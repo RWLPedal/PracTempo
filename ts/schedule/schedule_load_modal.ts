@@ -1,266 +1,311 @@
-// ts/schedule_load_modal.ts
 import { ScheduleEditor } from "./editor/schedule_editor";
-
-// Constants from main.ts (consider exporting from a shared file later)
-const RECENT_SCHEDULES_KEY = "recentSchedules";
+// Import the structure definition for parsing
+import { ScheduleDocument } from "./editor/schedule_serializer";
 
 export class ScheduleLoadModal {
-  private modalElement: HTMLElement;
+  private modalEl: HTMLElement;
   private scheduleEditor: ScheduleEditor;
+  private recentListEl: HTMLElement;
+  private previewEl: HTMLElement;
+  private previewContentEl: HTMLElement;
+  private closePreviewButtonEl: HTMLElement;
+  private saveToDiskButtonEl: HTMLElement;
+  private loadFromDiskInputEl: HTMLInputElement;
+  private loadScheduleModalCloseButtonEl: HTMLElement;
+  private loadScheduleModalCancelButtonEl: HTMLElement;
+  private recentSchedulesKey: string; // Key for localStorage (e.g., recentSchedulesJSON)
 
-  // DOM Elements within the modal
-  private recentSchedulesListEl!: HTMLElement;
-  private saveButtonEl!: HTMLElement;
-  private loadFileInputEl!: HTMLInputElement; // The hidden file input
-  private loadFileButtonEl!: HTMLElement; // The visible label/button
-  private closeButtonEl!: HTMLElement; // Modal card close button
-  private cancelButtonEl!: HTMLElement; // Modal card foot cancel button
-  private modalBackgroundEl!: HTMLElement;
-
-  constructor(modalElement: HTMLElement, scheduleEditor: ScheduleEditor) {
-    if (!modalElement || !scheduleEditor) {
-      throw new Error(
-        "ScheduleLoadModal requires a valid modal element and ScheduleEditor instance."
-      );
-    }
-    this.modalElement = modalElement;
+  constructor(
+    modalEl: HTMLElement,
+    scheduleEditor: ScheduleEditor,
+    recentSchedulesKey: string
+  ) {
+    if (!modalEl) throw new Error("Load Schedule Modal element not provided.");
+    this.modalEl = modalEl;
     this.scheduleEditor = scheduleEditor;
+    this.recentSchedulesKey = recentSchedulesKey;
 
-    if (!this.findModalElements()) {
-      console.error(
-        "Could not find all required elements within the schedule load modal. Functionality will be limited."
-      );
-      // Disable the modal trigger button in Main? Or handle gracefully.
-      return; // Prevent attaching listeners if elements are missing
-    }
-
-    this.attachEventListeners();
-  }
-
-  /** Finds and assigns required elements within the modal */
-  private findModalElements(): boolean {
-    this.recentSchedulesListEl = this.modalElement.querySelector(
-      "#recent-schedules-list"
-    ) as HTMLElement;
-    this.saveButtonEl = this.modalElement.querySelector(
-      "#save-schedule-disk"
-    ) as HTMLElement;
-    this.loadFileInputEl = this.modalElement.querySelector(
-      "#load-schedule-input-hidden"
-    ) as HTMLInputElement;
-    this.loadFileButtonEl = this.modalElement.querySelector(
-      'label[for="load-schedule-input-hidden"]'
-    ) as HTMLElement; // Find the label acting as a button
-    this.closeButtonEl = this.modalElement.querySelector(
-      ".modal-card-head .delete"
-    ) as HTMLElement; // Close button in header
-    this.cancelButtonEl = this.modalElement.querySelector(
-      "#load-schedule-modal-cancel"
-    ) as HTMLElement; // Cancel button in footer
-    this.modalBackgroundEl = this.modalElement.querySelector(
-      ".modal-background"
-    ) as HTMLElement;
-
-    return !!(
-      this.recentSchedulesListEl &&
-      this.saveButtonEl &&
-      this.loadFileInputEl &&
-      this.loadFileButtonEl &&
-      this.closeButtonEl &&
-      this.cancelButtonEl &&
-      this.modalBackgroundEl
-    );
-  }
-
-  /** Attaches event listeners to modal elements */
-  private attachEventListeners(): void {
-    // --- Close Mechanisms ---
-    this.closeButtonEl.onclick = () => this.hide();
-    this.cancelButtonEl.onclick = () => this.hide();
-    this.modalBackgroundEl.onclick = () => this.hide();
-
-    // --- Action Buttons ---
-    this.saveButtonEl.onclick = () => this.saveCurrentScheduleToFile();
-    // The visible button triggers the hidden file input
-    this.loadFileButtonEl.onclick = () => this.loadFileInputEl.click();
-    // Handle file selection on the hidden input
-    this.loadFileInputEl.onchange = (e) => this.loadScheduleFromFile(e);
-
-    // --- Recent Schedules List (using event delegation) ---
-    this.recentSchedulesListEl.onclick = (e) => {
-      const target = e.target as HTMLElement;
-      // Check if the clicked element is an <a> tag within the list
-      if (target && target.tagName === "A" && target.closest("li")) {
-        e.preventDefault(); // Prevent default anchor behavior
-        const scheduleText = target.dataset.scheduleText;
-        if (scheduleText) {
-          this.handleRecentScheduleClick(scheduleText);
-        } else if (!target.closest("li")?.classList.contains("is-disabled")) {
-          // Check if it's not the placeholder
-          console.warn("Clicked recent schedule item missing schedule data.");
-        }
-      }
+    // Find required elements
+    const requiredSelectors = {
+      recentListEl: "#recent-schedules-list",
+      previewEl: "#recent-schedule-preview",
+      previewContentEl: "#recent-schedule-preview-content",
+      closePreviewButtonEl: "#close-preview-button",
+      saveToDiskButtonEl: "#save-schedule-disk",
+      loadFromDiskInputEl: "#load-schedule-input-hidden",
+      loadScheduleModalCloseButtonEl: "#load-schedule-modal-close",
+      loadScheduleModalCancelButtonEl: "#load-schedule-modal-cancel",
     };
-  }
 
-  /** Checks if the modal is currently active/visible */
-  public isOpen(): boolean {
-    return this.modalElement.classList.contains("is-active");
-  }
-
-  /** Shows the modal and populates recent schedules */
-  public show(): void {
-    this.populateRecentSchedules();
-    this.modalElement.classList.add("is-active");
-    console.log("Load Schedule Modal shown.");
-  }
-
-  /** Hides the modal */
-  public hide(): void {
-    this.modalElement.classList.remove("is-active");
-    // Reset file input value so 'onchange' fires even if the same file is selected again
-    if (this.loadFileInputEl) {
-      this.loadFileInputEl.value = "";
+    let allFound = true;
+    for (const key in requiredSelectors) {
+      const element = this.modalEl.querySelector(
+        requiredSelectors[key as keyof typeof requiredSelectors]
+      );
+      if (!element) {
+        console.error(
+          `Load/Save Modal Error: Element not found for selector "${
+            requiredSelectors[key as keyof typeof requiredSelectors]
+          }"`
+        );
+        allFound = false;
+      }
+      (this as any)[key] = element; // Assign element
     }
-    console.log("Load Schedule Modal hidden.");
+
+    if (!allFound) {
+      console.error(
+        "Load/Save modal cannot initialize properly due to missing elements."
+      );
+      // Optionally disable buttons or throw error
+      return;
+    }
+
+    this._attachHandlers();
   }
 
-  /** Populates the list with recent schedules from localStorage */
-  public populateRecentSchedules(): void {
-    this.recentSchedulesListEl.innerHTML = ""; // Clear existing items
-    let recentSchedules: string[] = [];
+  public show(): void {
+    this.refreshRecentList();
+    this._hidePreview();
+    this.modalEl.classList.add("is-active");
+  }
 
-    try {
-      const stored = localStorage.getItem(RECENT_SCHEDULES_KEY);
-      if (stored) {
+  public hide(): void {
+    this.modalEl.classList.remove("is-active");
+  }
+
+  public isOpen(): boolean {
+    return this.modalEl.classList.contains("is-active");
+  }
+
+  /** Reloads and displays the recent schedules list from localStorage */
+  public refreshRecentList(): void {
+    if (!this.recentListEl) return;
+
+    this.recentListEl.innerHTML = ""; // Clear existing list
+    const stored = localStorage.getItem(this.recentSchedulesKey);
+    let recentSchedulesJSONStrings: string[] = []; // Expect array of JSON strings
+
+    if (stored) {
+      try {
         const parsed = JSON.parse(stored);
         if (
           Array.isArray(parsed) &&
           parsed.every((item) => typeof item === "string")
         ) {
-          recentSchedules = parsed;
-        } else {
-          console.warn(
-            "Invalid recent schedules data in localStorage during modal population."
-          );
+          recentSchedulesJSONStrings = parsed;
         }
+      } catch (e) {
+        console.error(
+          "Error parsing recent schedules JSON from localStorage:",
+          e
+        );
       }
-    } catch (e) {
-      console.error("Error reading recent schedules from localStorage:", e);
     }
 
-    if (recentSchedules.length === 0) {
-      const li = document.createElement("li");
-      li.classList.add("is-disabled"); // Add class to style placeholder
-      li.innerHTML = `<a>(No recent schedules saved)</a>`;
-      this.recentSchedulesListEl.appendChild(li);
-    } else {
-      recentSchedules.forEach((scheduleText, index) => {
-        const li = document.createElement("li");
-        const a = document.createElement("a");
-        // Store the full text in a data attribute
-        a.dataset.scheduleText = scheduleText;
-        // Display a truncated version or first line as the label
-        const firstLine = scheduleText.split("\n")[0];
-        const displayLabel =
-          firstLine.length > 50
-            ? firstLine.substring(0, 47) + "..."
-            : firstLine;
-        a.textContent = `${index + 1}. ${
-          displayLabel || "(Untitled Schedule)"
-        }`;
-        a.title = scheduleText; // Show full text on hover
-        li.appendChild(a);
-        this.recentSchedulesListEl.appendChild(li);
-      });
-    }
-  }
-
-  /** Handles clicking on a recent schedule item */
-  private handleRecentScheduleClick(scheduleText: string): void {
-    console.log("Loading recent schedule into editor.");
-    try {
-      this.scheduleEditor.setScheduleText(scheduleText); // Use the new method
-      this.hide(); // Close modal after loading
-    } catch (error) {
-      console.error("Error setting schedule text from recent item:", error);
-      alert("Error loading the selected schedule. Please check the console.");
-    }
-  }
-
-  /** Saves the current schedule from the editor to a text file */
-  private saveCurrentScheduleToFile(): void {
-    try {
-      const scheduleText = this.scheduleEditor.getScheduleText(); // Get current text
-      if (!scheduleText || scheduleText.trim().length === 0) {
-        alert("Cannot save an empty schedule.");
-        return;
-      }
-
-      const blob = new Blob([scheduleText], {
-        type: "text/plain;charset=utf-8",
-      });
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      // Create a simple filename, e.g., schedule_YYYY-MM-DD_HHMMSS.txt
-      const now = new Date();
-      const timestamp = now.toISOString().slice(0, 19).replace(/[-:T]/g, ""); // YYYYMMDD_HHMMSS
-      link.download = `schedule_${timestamp}.txt`;
-      document.body.appendChild(link); // Required for Firefox
-      link.click();
-      document.body.removeChild(link);
-      URL.revokeObjectURL(url); // Clean up
-      console.log("Current schedule download initiated.");
-      // Optionally hide modal after saving, or keep it open
-      // this.hide();
-    } catch (error) {
-      console.error("Error saving schedule to file:", error);
-      alert("Could not save the schedule to a file. See console for details.");
-    }
-  }
-
-  /** Handles the file input change event to load a schedule from disk */
-  private loadScheduleFromFile(event: Event): void {
-    const input = event.target as HTMLInputElement;
-    if (!input.files || input.files.length === 0) {
-      console.log("No file selected.");
+    if (recentSchedulesJSONStrings.length === 0) {
+      this.recentListEl.innerHTML =
+        '<li class="is-disabled"><a>(No recent schedules saved)</a></li>';
       return;
     }
 
-    const file = input.files[0];
-    if (file.type && !file.type.startsWith("text/")) {
-      console.warn(
-        `File selected is not a text file (${file.type}). Attempting to read anyway.`
-      );
-      // alert("Please select a plain text (.txt) file.");
-      // return;
-    }
+    recentSchedulesJSONStrings.forEach((scheduleJSONString, index) => {
+      const listItem = document.createElement("li");
+      const link = document.createElement("a");
+      const viewButton = document.createElement("button");
 
-    const reader = new FileReader();
-
-    reader.onload = (e) => {
+      // Try to parse JSON to get the name for a better preview title
+      let previewTitle = `Saved Schedule ${index + 1}`; // Default title
       try {
-        const content = e.target?.result as string;
-        if (content === null || content === undefined) {
-          throw new Error("File content is null or undefined.");
+        const scheduleDoc: ScheduleDocument = JSON.parse(scheduleJSONString);
+        if (scheduleDoc.name) {
+          previewTitle = scheduleDoc.name;
+        } else if (scheduleDoc.items && scheduleDoc.items.length > 0) {
+          // Fallback: Find first task or group name if no schedule name
+          const firstItem = scheduleDoc.items[0];
+          if ("task" in firstItem && firstItem.task) {
+            previewTitle = `${firstItem.task.substring(0, 25)}${
+              firstItem.task.length > 25 ? "..." : ""
+            } (${firstItem.duration || "N/A"})`;
+          } else if ("name" in firstItem && firstItem.name) {
+            // Group name
+            previewTitle = `${firstItem.name.substring(0, 30)}${
+              firstItem.name.length > 30 ? "..." : ""
+            }`;
+          }
         }
-        console.log("Loading schedule from file.");
-        this.scheduleEditor.setScheduleText(content); // Use the new method
-        this.hide(); // Close modal after successful load
-      } catch (loadError) {
-        console.error("Error loading schedule from file content:", loadError);
-        alert(
-          "Error reading or loading the schedule from the selected file. Please ensure it's a valid text file. See console for details."
-        );
+      } catch {
+        /* Ignore parsing errors for title */
+      }
+
+      link.textContent = previewTitle;
+      link.title = "Click to load this schedule into the editor";
+      link.onclick = (e) => {
+        e.preventDefault();
+        // Pass the original JSON string to load
+        this._loadRecentSchedule(scheduleJSONString);
+      };
+
+      viewButton.textContent = "View";
+      viewButton.classList.add(
+        "button",
+        "is-small",
+        "is-pulled-right",
+        "is-info",
+        "is-outlined"
+      );
+      viewButton.style.marginLeft = "10px";
+      viewButton.title = "Preview full schedule content";
+      viewButton.onclick = (e) => {
+        e.stopPropagation();
+        // Pass the original JSON string to preview
+        this._showPreview(scheduleJSONString);
+      };
+
+      link.appendChild(viewButton);
+      listItem.appendChild(link);
+      this.recentListEl.appendChild(listItem);
+    });
+  }
+
+  private _attachHandlers(): void {
+    // Close modal
+    this.loadScheduleModalCloseButtonEl.onclick = () => this.hide();
+    this.loadScheduleModalCancelButtonEl.onclick = () => this.hide();
+    this.modalEl
+      .querySelector(".modal-background")
+      ?.addEventListener("click", () => this.hide());
+
+    // Save/Load
+    this.saveToDiskButtonEl.onclick = () => this._saveCurrentScheduleToFile();
+    this.loadFromDiskInputEl.onchange = (event) => {
+      const file = (event.target as HTMLInputElement)?.files?.[0];
+      if (file) {
+        this._loadScheduleFromFile(file);
+        (event.target as HTMLInputElement).value = ""; // Reset input
       }
     };
 
-    reader.onerror = (e) => {
-      console.error("Error reading file:", e);
-      alert("Could not read the selected file.");
-    };
+    // Preview
+    this.closePreviewButtonEl.onclick = () => this._hidePreview();
+  }
 
-    reader.readAsText(file); // Read the file as text
+  private _loadRecentSchedule(scheduleJSONString: string): void {
+    if (
+      confirm(
+        "Load this schedule? This will replace the current content in the editor."
+      )
+    ) {
+      try {
+        this.scheduleEditor.setScheduleJSON(scheduleJSONString); // Load the JSON string
+        this.hide();
+      } catch (e: any) {
+        console.error("Error loading recent schedule:", e);
+        alert(`Error loading schedule: ${e.message}`);
+      }
+    }
+  }
+
+  private _showPreview(scheduleJSONString: string): void {
+    try {
+      // Parse and pretty-print the JSON for preview
+      const parsedDoc = JSON.parse(scheduleJSONString); // Parse the full document
+      const prettyJSON = JSON.stringify(parsedDoc, null, 2); // Stringify the parsed object
+      this.previewContentEl.textContent = prettyJSON;
+      this.previewEl.style.display = "block";
+    } catch (e) {
+      console.error("Error parsing JSON for preview:", e);
+      this.previewContentEl.textContent =
+        "Error: Could not parse schedule data for preview.";
+      this.previewEl.style.display = "block";
+    }
+  }
+
+  private _hidePreview(): void {
+    this.previewEl.style.display = "none";
+    this.previewContentEl.textContent = "";
+  }
+
+  private _saveCurrentScheduleToFile(): void {
+    try {
+      const scheduleJSONString = this.scheduleEditor.getScheduleJSON(); // Get JSON string
+      // Basic check if it's a valid JSON object structure (more than just "[]")
+      if (
+        !scheduleJSONString ||
+        scheduleJSONString.trim().length <= 2 ||
+        !scheduleJSONString.trim().startsWith("{")
+      ) {
+        alert("Cannot save an empty or invalid schedule.");
+        return;
+      }
+
+      // Try to parse to get name for filename suggestion
+      let scheduleName = "";
+      try {
+        const scheduleDoc: ScheduleDocument = JSON.parse(scheduleJSONString);
+        scheduleName = scheduleDoc.name || "";
+      } catch {} // Ignore parsing errors for filename
+
+      // Generate filename
+      const baseName = (scheduleName || "schedule")
+        .replace(/[^a-z0-9]/gi, "_")
+        .toLowerCase();
+      const filename = `${baseName.substring(0, 25)}.json`; // Use .json extension
+
+      // Create Blob and trigger download
+      const blob = new Blob([scheduleJSONString], {
+        type: "application/json;charset=utf-8",
+      });
+      const link = document.createElement("a");
+      const url = URL.createObjectURL(blob);
+      link.setAttribute("href", url);
+      link.setAttribute("download", filename);
+      link.style.visibility = "hidden";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    } catch (e: any) {
+      console.error("Error saving schedule to file:", e);
+      alert(`Error saving schedule: ${e.message}`);
+    }
+  }
+
+  private _loadScheduleFromFile(file: File): void {
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      const content = event.target?.result as string;
+      if (content) {
+        try {
+          // Validate by parsing into the expected ScheduleDocument structure
+          const parsedDoc: ScheduleDocument = JSON.parse(content);
+          // Basic validation: check if 'items' is an array
+          if (
+            typeof parsedDoc !== "object" ||
+            !Array.isArray(parsedDoc.items)
+          ) {
+            throw new Error("Invalid format: Missing 'items' array.");
+          }
+          // If parse succeeds and basic structure is okay, load it
+          this.scheduleEditor.setScheduleJSON(content); // Load raw string
+          this.hide();
+          alert(`Schedule "${file.name}" loaded successfully.`);
+        } catch (e: any) {
+          console.error("Error parsing loaded file:", e);
+          alert(
+            `Error loading file "${file.name}": Invalid JSON format or structure.\n(${e.message})`
+          );
+        }
+      } else {
+        alert(
+          `Error loading file "${file.name}": Could not read file content.`
+        );
+      }
+    };
+    reader.onerror = (event) => {
+      console.error("File reading error:", event);
+      alert(`Error reading file "${file.name}".`);
+    };
+    reader.readAsText(file); // Read as text
   }
 }

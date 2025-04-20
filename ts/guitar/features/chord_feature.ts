@@ -1,3 +1,5 @@
+/* ts/guitar/features/chord_feature.ts */
+
 import {
   Feature,
   FeatureCategoryName,
@@ -11,10 +13,13 @@ import { AppSettings } from "../../settings";
 import {
   START_PX,
   CANVAS_SUBTITLE_HEIGHT_PX,
-  CANVAS_SUBTITLE_FONT,
   NOTE_RADIUS_PX,
   OPEN_NOTE_RADIUS_FACTOR,
-} from "../guitar_utils";
+  MUSIC_NOTES, // Import MUSIC_NOTES
+  getKeyIndex, // Import getKeyIndex
+  getIntervalLabel, // Import getIntervalLabel
+} from "../guitar_utils"; // Removed unused font import
+import { MetronomeView } from "../views/metronome_view"; // Import MetronomeView to check instance type
 
 /** A feature for displaying mulitple chord diagrams and a metronome. */
 export class ChordFeature extends GuitarFeature {
@@ -26,15 +31,24 @@ export class ChordFeature extends GuitarFeature {
   private readonly chords: ReadonlyArray<Chord>;
   private readonly headerText: string;
 
+  // Constructor and static methods remain the same as before...
   constructor(
     config: ReadonlyArray<string>,
     chords: ReadonlyArray<Chord>,
     headerText: string,
     settings: AppSettings,
     metronomeBpmOverride?: number,
-    audioController?: AudioController
+    audioController?: AudioController,
+    maxCanvasHeight?: number // Add maxCanvasHeight
   ) {
-    super(config, settings, metronomeBpmOverride, audioController);
+    // Pass maxCanvasHeight to base constructor
+    super(
+      config,
+      settings,
+      metronomeBpmOverride,
+      audioController,
+      maxCanvasHeight
+    );
     this.chords = chords;
     this.headerText = headerText;
   }
@@ -46,15 +60,17 @@ export class ChordFeature extends GuitarFeature {
       args: [
         {
           name: "ChordNames",
-          type: "enum",
+          type: "enum", // Data type is enum
           required: true,
           enum: availableChordNames,
           description: "One or more chord names.",
-          isVariadic: true,
+          isVariadic: true, // Allows multiple inputs
+          // Default UI (text input for each) will be used unless uiComponentType specified
         },
         {
           name: "Guitar Settings",
           type: "ellipsis",
+          uiComponentType: "ellipsis",
           description: "Configure interval-specific guitar settings.",
           nestedSchema: [
             {
@@ -69,12 +85,12 @@ export class ChordFeature extends GuitarFeature {
   }
 
   static createFeature(
-    config: ReadonlyArray<string>,
+    config: ReadonlyArray<string>, // Expects [ChordKey1, ChordKey2, ...]
     audioController: AudioController,
     settings: AppSettings,
-    metronomeBpmOverride?: number
+    metronomeBpmOverride?: number,
+    maxCanvasHeight?: number // Add maxCanvasHeight
   ): Feature {
-    // Config contains ONLY the ChordNames (one or more)
     if (config.length < 1) {
       throw new Error(
         `Invalid config for ${
@@ -83,7 +99,7 @@ export class ChordFeature extends GuitarFeature {
       );
     }
 
-    const chordKeys = config; // All elements are chord keys
+    const chordKeys = config;
     const chords: Chord[] = [];
     const validChordNames: string[] = [];
 
@@ -93,169 +109,237 @@ export class ChordFeature extends GuitarFeature {
         chords.push(chord);
         validChordNames.push(chord.name);
       } else {
-        console.warn(`Unknown chord key: "${chordKey}". Skipping.`);
+        console.warn(`[DEBUG]   Unknown chord key: "${chordKey}". Skipping.`);
       }
     });
 
-    if (chords.length === 0)
+    if (chords.length === 0) {
       throw new Error(`No valid chords found in config: ${config.join(",")}`);
+    }
 
     const headerText =
       validChordNames.length > 1
         ? validChordNames.join(" & ") + " Chords"
         : validChordNames[0] + " Chord";
 
+    // Pass maxCanvasHeight to constructor
     return new ChordFeature(
       config,
       chords,
       headerText,
       settings,
       metronomeBpmOverride,
-      audioController
+      audioController,
+      maxCanvasHeight
     );
+  }
+
+  // Helper to get root note (copied from ChordProgressionFeature for consistency)
+  private getChordRootNote(chordName: string): string | null {
+    if (!chordName) return null;
+    const match = chordName.match(/^([A-G])([#b]?)/);
+    if (match) {
+      const rootName = `${match[1]}${match[2] || ""}`;
+      if (getKeyIndex(rootName) !== -1) return rootName;
+    }
+    const keyMatch = Object.keys(chord_library).find(
+      (key) => chord_library[key].name === chordName
+    );
+    if (keyMatch) {
+      const underscoreIndex = keyMatch.indexOf("_");
+      if (underscoreIndex > 0) {
+        const potentialRoot = keyMatch
+          .substring(0, underscoreIndex)
+          .replace("sharp", "#");
+        if (getKeyIndex(potentialRoot) !== -1) return potentialRoot;
+      }
+    }
+    console.warn(`Could not determine root note for chord name: ${chordName}`);
+    return null;
   }
 
   render(container: HTMLElement): void {
     const { canvas, ctx } = this.clearAndAddCanvas(container, this.headerText);
-    const numRows = Math.ceil(this.chords.length / 2);
-    const requiredHeight =
-      START_PX +
-      numRows *
-        (5 * this.fretboardConfig.fretLengthPx +
-          CANVAS_SUBTITLE_HEIGHT_PX +
-          NOTE_RADIUS_PX * 3 +
-          130) + 65;
-    canvas.height = Math.max(780, requiredHeight);
+
+    // --- Canvas Size Calculation ---
+    const numChords = this.chords.length;
+    const chordsPerRow = Math.min(4, numChords > 2 ? 4 : numChords);
+    const numRows = Math.ceil(numChords / chordsPerRow);
+    const verticalSpacing = 130 * this.fretboardConfig.scaleFactor; // Scale spacing
+    const titleHeight =
+      CANVAS_SUBTITLE_HEIGHT_PX * this.fretboardConfig.scaleFactor; // Scale title height
+    const diagramHeight =
+      5 * this.fretboardConfig.fretLengthPx +
+      this.fretboardConfig.noteRadiusPx * 3; // Height of fretboard + markers (already scaled)
+
+    let requiredHeight = START_PX * this.fretboardConfig.scaleFactor; // Initial padding scaled
+    requiredHeight += numRows * (diagramHeight + titleHeight + verticalSpacing); // Space for diagrams, titles, spacing
+    requiredHeight -= verticalSpacing; // Remove trailing spacing after last row
+    requiredHeight += 65 * this.fretboardConfig.scaleFactor; // Bottom padding scaled
+
+    // *** Check if metronome view exists and add its estimated height ***
+    const metronomeView = this.views.find(
+      (view) => view instanceof MetronomeView
+    );
+    const METRONOME_ESTIMATED_HEIGHT = 120; // Adjust as needed based on metronome view CSS/layout
+    if (metronomeView) {
+      requiredHeight += METRONOME_ESTIMATED_HEIGHT;
+      console.log(
+        `ChordFeature: Added ${METRONOME_ESTIMATED_HEIGHT}px to canvas height for MetronomeView.`
+      );
+    }
+
+    // Set canvas dimensions - Use scaled values where applicable
+    canvas.height = Math.max(780, requiredHeight); // Ensure minimum height, use calculated height
+    canvas.width = Math.max(
+      780,
+      (this.fretboardConfig.stringSpacingPx * 5 +
+        this.fretboardConfig.noteRadiusPx * 2 +
+        80 * this.fretboardConfig.scaleFactor) * // Scale horizontal spacing
+        chordsPerRow +
+        START_PX * this.fretboardConfig.scaleFactor * 2 // Scale side padding
+    );
+
+    // --- Rendering ---
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.resetTransform();
     ctx.translate(0.5, 0.5);
-    this.chords.forEach((chord, i) => this.drawChord(canvas, ctx, chord, i));
+    this.chords.forEach((chord, i) =>
+      this.drawSingleChordDiagram(canvas, ctx, chord, i, chordsPerRow, numRows)
+    );
+
+    // MetronomeView will render itself into the container via DisplayController/base class logic
   }
 
-  private drawChord(
+  private drawSingleChordDiagram(
     canvasEl: HTMLCanvasElement,
     ctx: CanvasRenderingContext2D,
     chord: Chord,
-    index: number
+    index: number,
+    chordsPerRow: number,
+    numRows: number
   ): void {
-    const fretCount = 5;
-    const fontSize = 16;
-    const chordsPerRow = 2;
+    const fretCount = 5; // Number of frets to display for chord diagrams
+    const config = this.fretboardConfig;
+    const scaleFactor = config.scaleFactor;
+    const fontSize = 16 * scaleFactor;
+    const titleFontSize = 18 * scaleFactor;
+    const sideFretFontSize = 16 * scaleFactor;
+    const scaledNoteRadius = config.noteRadiusPx;
+
+    // --- Layout Calculations (Scaled) ---
+    // ... (layout calculations remain the same) ...
     const colIndex = index % chordsPerRow;
     const rowIndex = Math.floor(index / chordsPerRow);
-    const diagramWidth =
-      this.fretboardConfig.stringSpacingPx * 5 + NOTE_RADIUS_PX * 2;
-    const horizontalSpacing = 52;
-    const verticalSpacing = 130;
-    const fullDiagramHeight =
-      fretCount * this.fretboardConfig.fretLengthPx +
-      CANVAS_SUBTITLE_HEIGHT_PX +
-      NOTE_RADIUS_PX * 3;
-    const leftPos = START_PX + colIndex * (diagramWidth + horizontalSpacing);
-    const topPos =
-      START_PX +
-      rowIndex * (fullDiagramHeight + verticalSpacing) +
-      CANVAS_SUBTITLE_HEIGHT_PX;
+    const diagramWidth = config.stringSpacingPx * 5 + scaledNoteRadius * 2;
+    const horizontalSpacing = 80 * scaleFactor;
+    const verticalSpacing = 130 * scaleFactor;
+    const titleHeight = CANVAS_SUBTITLE_HEIGHT_PX * scaleFactor;
+    const diagramContentHeight = fretCount * config.fretLengthPx + scaledNoteRadius * 3;
+    const fullBlockHeight = diagramContentHeight + titleHeight + verticalSpacing;
+    const leftPos = START_PX * scaleFactor + colIndex * (diagramWidth + horizontalSpacing);
+    const topPosDiagram = START_PX * scaleFactor + rowIndex * fullBlockHeight + titleHeight;
+    const topPosTitle = topPosDiagram - titleHeight + (titleHeight - titleFontSize) / 2;
 
-    ctx.font = CANVAS_SUBTITLE_FONT;
+    // --- Calculate Nut Line Y Position ---
+    const openNoteClearance = scaledNoteRadius * 1.5 + (5 * scaleFactor);
+    const nutLineY = topPosDiagram + openNoteClearance;
+
+    // --- Draw Title ---
+    // ... (title drawing logic remains the same) ...
+    ctx.font = `${titleFontSize}px Sans-serif`;
     ctx.fillStyle = "#444";
-    ctx.textAlign = "left";
-    ctx.textBaseline = "bottom";
-    ctx.fillText(chord.name, leftPos, topPos - CANVAS_SUBTITLE_HEIGHT_PX * 0.5);
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    const titleX = leftPos + diagramWidth / 2;
+    ctx.fillText(chord.name, titleX, topPosTitle);
 
+
+    // --- Fretboard and Notes Logic ---
     let startFret = 0;
+    // *** FIX: Define minFret and maxFret ***
     let minFret = fretCount + 1;
     let maxFret = 0;
+    // *** END FIX ***
     chord.strings.forEach((fret) => {
       if (fret > 0) {
         minFret = Math.min(minFret, fret);
         maxFret = Math.max(maxFret, fret);
       }
     });
-    // Determine if the chord is played higher up the neck
+    // Adjust starting fret if chord is played higher up
     if (minFret > 3 && maxFret - minFret < fretCount) {
       startFret = minFret - 1;
     }
 
     const fretboard = new Fretboard(
-      this.fretboardConfig,
+      config,
       leftPos,
-      topPos,
+      topPosDiagram, // Pass absolute top edge Y
       fretCount
     );
     fretboard.render(ctx);
 
-    // Display starting fret number if not starting at the nut
+    // --- Display starting fret number (Scaled) ---
     if (startFret > 0) {
-      ctx.font = "16px Sans-serif";
+      ctx.font = `${sideFretFontSize}px Sans-serif`;
       ctx.fillStyle = "#666";
       ctx.textAlign = "right";
       ctx.textBaseline = "middle";
       ctx.fillText(
         `${startFret + 1}`,
-        leftPos - 10,
-        topPos + this.fretboardConfig.fretLengthPx * 0.8
+        leftPos - 10 * scaleFactor,
+        nutLineY + (0.5 * config.fretLengthPx) // Position relative to nutLineY
       );
     }
+
+    // ... (rest of the note/fingering loop remains the same) ...
+    const chordRootName = this.getChordRootNote(chord.name);
+    const chordRootIndex = chordRootName ? getKeyIndex(chordRootName) : -1;
 
     ctx.font = fontSize + "px Sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    for (
-      let stringIndex = 0;
-      stringIndex < chord.strings.length;
-      stringIndex++
-    ) {
+
+    for (let stringIndex = 0; stringIndex < chord.strings.length; stringIndex++) {
       const fret = chord.strings[stringIndex];
       const finger = chord.fingers[stringIndex];
-      const displayFret = fret - startFret; // Adjust fret based on starting position
+      const displayFret = fret - startFret; // Calculate display fret relative to startFret
 
-      // Only draw if the fret is within the visible range (or muted/open)
       if (fret === -1 || (displayFret >= 0 && displayFret <= fretCount)) {
-        const fingerLabel = finger > 0 ? `${finger}` : "";
-        const isMuted = fret === -1;
-        const isOpen = fret === 0;
-        let noteColor = "#333";
-        let bgColor = "#555";
-        let strokeColor = "#888";
-        let lineWidth = 1;
-        let radiusOverride: number | undefined = undefined;
+         // ... (logic for drawing non-muted or muted string markers) ...
+         const fingerLabel = finger > 0 ? `${finger}` : "";
+         const isMuted = fret === -1;
+         const isOpen = fret === 0;
+         let noteName = "?";
+         let intervalLabel = "?";
+         let radiusOverride: number | undefined = undefined;
 
-        if (isOpen) {
-          bgColor = "transparent";
-          noteColor = "#666";
-          strokeColor = "#aaa";
-          radiusOverride = NOTE_RADIUS_PX * OPEN_NOTE_RADIUS_FACTOR;
-        } else if (!isMuted) {
-          noteColor = "#eee"; // Light text for filled notes
-        }
+         if (!isMuted) {
+           const noteOffsetFromA = (config.tuning.tuning[stringIndex] + fret) % 12;
+           noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
+           if (chordRootIndex !== -1) {
+             const noteRelativeToKey = (noteOffsetFromA - chordRootIndex + 12) % 12;
+             intervalLabel = getIntervalLabel(noteRelativeToKey);
+           }
+           if (isOpen) {
+               radiusOverride = scaledNoteRadius * OPEN_NOTE_RADIUS_FACTOR;
+           }
+         }
 
-        if (!isMuted) {
-          fretboard.renderFingering(
-            ctx,
-            displayFret,
-            stringIndex,
-            fingerLabel,
-            NOTE_RADIUS_PX,
-            fontSize,
-            bgColor,
-            noteColor,
-            false, // drawStar
-            strokeColor,
-            lineWidth,
-            radiusOverride
-          );
-        } else {
-          // Draw 'X' for muted string
-          const visualIndex =
-            this.fretboardConfig.handedness === "left"
-              ? 5 - stringIndex
-              : stringIndex;
-          fretboard.drawMutedString(ctx, visualIndex, NOTE_RADIUS_PX);
-        }
+         if (!isMuted) {
+           // Pass displayFret to renderFingering
+           fretboard.renderFingering(
+             ctx, displayFret, stringIndex, noteName, intervalLabel, fingerLabel,
+             scaledNoteRadius, fontSize, false, "black", 1, radiusOverride, config.colorScheme
+           );
+         } else { // Fret is -1 (muted)
+           const visualIndex = config.handedness === "left" ? 5 - stringIndex : stringIndex;
+           fretboard.drawMutedString(ctx, visualIndex, scaledNoteRadius, nutLineY);
+         }
+
       } else if (fret > 0) {
-        // Log if a defined fret is outside the calculated display range
-        console.warn(`Chord ${chord.name} fret ${fret} outside range`);
+         console.warn(`Chord ${chord.name} fret ${fret} on string ${stringIndex} outside display range (startFret: ${startFret})`);
       }
     }
   }

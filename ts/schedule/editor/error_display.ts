@@ -1,6 +1,7 @@
 export class ErrorDisplay {
   private containerEl: HTMLElement;
   private controlsContainerEl: HTMLElement | null; // Reference to insert before
+  private messageElement: HTMLElement | null = null; // Keep track of the message element
 
   constructor(
     containerEl: HTMLElement,
@@ -18,7 +19,7 @@ export class ErrorDisplay {
 
     const butterbar = document.createElement("div");
     butterbar.textContent = message;
-    butterbar.classList.add("butterbar-message", `is-${type}`);
+    butterbar.classList.add("butterbar-message", `is-${type}`); // Use this class to check existence
     butterbar.style.padding = "8px 15px";
     butterbar.style.marginBottom = "10px";
     butterbar.style.borderRadius = "4px";
@@ -44,12 +45,14 @@ export class ErrorDisplay {
         break;
     }
 
+    this.messageElement = butterbar; // Store reference
+
     if (this.controlsContainerEl && this.containerEl) {
       // Insert the message before the controls container
-      this.containerEl.insertBefore(butterbar, this.controlsContainerEl);
+      this.containerEl.insertBefore(this.messageElement, this.controlsContainerEl);
     } else if (this.containerEl) {
       // Fallback: append to the main container if controls aren't found
-      this.containerEl.appendChild(butterbar);
+      this.containerEl.appendChild(this.messageElement);
       console.warn(
         "ErrorDisplay: Controls container not found, appending message to end."
       );
@@ -58,14 +61,25 @@ export class ErrorDisplay {
         "ErrorDisplay: Cannot find container to add message:",
         message
       );
+      this.messageElement = null; // Failed to add
     }
   }
 
   public removeMessage(): void {
-    const existingButterbar =
-      this.containerEl?.querySelector(".butterbar-message");
-    if (existingButterbar) {
-      existingButterbar.remove();
+    if (this.messageElement && this.messageElement.parentNode) {
+      this.messageElement.parentNode.removeChild(this.messageElement);
     }
+    this.messageElement = null; // Clear reference
+  }
+
+  /**
+   * Checks if an error/warning/info message is currently displayed.
+   * @returns {boolean} True if a message is visible, false otherwise.
+   */
+  public hasMessage(): boolean {
+    // Check if we have a stored reference and if it's still in the DOM
+    return !!(this.messageElement && this.messageElement.parentNode);
+    // Alternative: Query the DOM directly each time
+    // return !!this.containerEl?.querySelector(".butterbar-message");
   }
 }

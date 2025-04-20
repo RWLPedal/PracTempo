@@ -22,6 +22,7 @@ export abstract class GuitarFeature implements Feature {
   protected settings: AppSettings;
   protected audioController?: AudioController;
   protected fretboardConfig: FretboardConfig;
+  readonly maxCanvasHeight?: number; // Store the max height constraint
 
   readonly views: ReadonlyArray<View> = [];
   protected metronomeBpm: number = 0;
@@ -38,17 +39,26 @@ export abstract class GuitarFeature implements Feature {
     config: ReadonlyArray<string>,
     settings: AppSettings,
     metronomeBpmOverride?: number,
-    audioController?: AudioController
+    audioController?: AudioController,
+    maxCanvasHeight?: number // Add maxCanvasHeight parameter
   ) {
     this.config = config;
     this.settings = settings;
+    this.maxCanvasHeight = maxCanvasHeight; // Store the value
     this.audioController = audioController;
 
     const tuningName = settings.guitarSettings.tuning;
     const tuning = AVAILABLE_TUNINGS[tuningName] ?? STANDARD_TUNING;
+
+    // Pass all relevant guitar settings AND maxCanvasHeight to FretboardConfig constructor
     this.fretboardConfig = new FretboardConfig(
       tuning,
-      settings.guitarSettings.handedness
+      settings.guitarSettings.handedness,
+      settings.guitarSettings.colorScheme, // Pass color scheme
+      undefined, // markerDots (use default)
+      undefined, // sideNumbers (use default)
+      undefined, // stringWidths (use default)
+      this.maxCanvasHeight // Pass the max height constraint
     );
 
     // Determine the BPM: Use override if provided and valid, otherwise default to 0 (no metronome).
@@ -87,9 +97,15 @@ export abstract class GuitarFeature implements Feature {
 
   abstract render(container: HTMLElement): void;
 
-  // --- Lifecycle Methods (pass through to views) ---
+  // Base prepare method, primarily for preparing associated views.
+  // Subclasses can override this and call super.prepare() if needed.
   prepare?(): void {
-    this.views?.forEach((view) => (view as any).prepare?.());
+    this.views?.forEach((view) => {
+        // Check if view has a prepare method before calling
+        if (typeof (view as any).prepare === 'function') {
+            (view as any).prepare();
+        }
+    });
   }
 
   start?(): void {

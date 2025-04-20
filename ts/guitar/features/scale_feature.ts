@@ -1,3 +1,5 @@
+/* ts/guitar/features/scale_feature.ts */
+
 import {
   Feature,
   FeatureCategoryName,
@@ -12,10 +14,9 @@ import {
   getKeyIndex,
   getChordTones,
   MUSIC_NOTES,
-  NOTE_RADIUS_PX,
-  RAINBOW_COLORS,
   START_PX,
-} from "../guitar_utils";
+  getIntervalLabel,
+} from "../guitar_utils"; // Removed unused NOTE_RADIUS_PX
 
 /** Displays scale diagrams on the fretboard. */
 export class ScaleFeature extends GuitarFeature {
@@ -64,6 +65,7 @@ export class ScaleFeature extends GuitarFeature {
               type: "number",
               description: "Metronome BPM (0=off)",
             },
+            // Color scheme is handled globally via AppSettings
           ],
         },
       ],
@@ -73,8 +75,9 @@ export class ScaleFeature extends GuitarFeature {
   static createFeature(
     config: ReadonlyArray<string>,
     audioController: AudioController,
-    settings: AppSettings,
-    metronomeBpmOverride?: number
+    settings: AppSettings, // Receive full AppSettings
+    metronomeBpmOverride?: number,
+    maxCanvasHeight?: number // Add maxCanvasHeight parameter
   ): Feature {
     // Config array should contain [ScaleName, Key, OptionalChordTones]
     // Check for minimum required arguments (ScaleName, Key)
@@ -103,16 +106,17 @@ export class ScaleFeature extends GuitarFeature {
     const keyName = MUSIC_NOTES[keyIndex]?.[0] ?? `Note ${keyIndex}`;
     const headerText = `${scale.name} Scale, Key of ${keyName}`;
 
-    // Pass the original arg-only config and the parsed override
+    // Pass the original arg-only config, full settings, override, and maxCanvasHeight
     return new ScaleFeature(
       config,
       scale,
       keyIndex,
       chordTones,
       headerText,
-      settings,
+      settings, // Pass full settings
       metronomeBpmOverride,
-      audioController
+      audioController,
+      maxCanvasHeight // Pass maxCanvasHeight to constructor
     );
   }
 
@@ -121,6 +125,7 @@ export class ScaleFeature extends GuitarFeature {
   private readonly keyIndex: number;
   private readonly chordTones: Array<Array<string>>;
   private readonly headerText: string;
+  // settings and fretboardConfig are inherited from GuitarFeature base class
 
   constructor(
     config: ReadonlyArray<string>,
@@ -128,105 +133,144 @@ export class ScaleFeature extends GuitarFeature {
     keyIndex: number,
     chordTones: Array<Array<string>>,
     headerText: string,
-    settings: AppSettings,
+    settings: AppSettings, // Accept full settings
     metronomeBpmOverride?: number,
-    audioController?: AudioController
+    audioController?: AudioController,
+    maxCanvasHeight?: number // Add maxCanvasHeight parameter
   ) {
-    super(config, settings, metronomeBpmOverride, audioController);
+    // Pass settings and maxCanvasHeight up to base class constructor
+    super(
+      config,
+      settings,
+      metronomeBpmOverride,
+      audioController,
+      maxCanvasHeight
+    );
     this.scale = scale;
     this.keyIndex = keyIndex;
     this.chordTones = chordTones;
     this.headerText = headerText;
+    // this.fretboardConfig is now set in the base constructor using settings
   }
 
   render(container: HTMLElement): void {
-    const { ctx } = this.clearAndAddCanvas(container, this.headerText);
-    // Determine number of diagrams and adjust canvas height if necessary
+    const { canvas, ctx } = this.clearAndAddCanvas(container, this.headerText);
+    const fretCount = 18;
+    const config = this.fretboardConfig;
+    const scaleFactor = config.scaleFactor;
+    const scaledNoteRadius = config.noteRadiusPx;
+    const scaledFretLength = config.fretLengthPx;
+
     const numDiagrams = this.chordTones.length > 0 ? this.chordTones.length : 1;
-    // Simplified height calculation for now, assumes single row
-    const requiredHeight =
-      START_PX + 18 * this.fretboardConfig.fretLengthPx + 65;
+    const hasTitles = this.chordTones.length > 0;
+
+    // --- Refined Height & Position Calculation ---
+    const topPadding = START_PX * scaleFactor;
+    const openNoteClearance = scaledNoteRadius * 1.5 + (5 * scaleFactor);
+    const titleSpace = hasTitles ? (30 * scaleFactor) : 0;
+    // Total space needed above the nut line (including title and open notes)
+    const totalTopSpace = Math.max(topPadding + titleSpace, openNoteClearance);
+
+    const fretboardLinesHeight = fretCount * scaledFretLength;
+    const bottomClearance = scaledNoteRadius + (5 * scaleFactor);
+    const bottomPadding = 65 * scaleFactor;
+    const requiredHeight = totalTopSpace + fretboardLinesHeight + bottomClearance + bottomPadding;
+
+    // --- Width Calculation ---
+    const horizontalSpacing = 40 * scaleFactor;
+    const diagramWidth = 5 * config.stringSpacingPx;
     const requiredWidth =
-      START_PX +
-      numDiagrams * (this.fretboardConfig.stringSpacingPx * 5 + 40) +
-      START_PX; // Estimate width
-    const canvas = ctx.canvas;
-    canvas.height = Math.max(780, requiredHeight);
+        START_PX * scaleFactor * 2 + numDiagrams * diagramWidth + Math.max(0, numDiagrams - 1) * horizontalSpacing;
+
+    canvas.height = requiredHeight;
     canvas.width = Math.max(780, requiredWidth);
 
+    // --- Rendering ---
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.resetTransform();
     ctx.translate(0.5, 0.5);
 
+    // The top Y coordinate passed to drawScale is the basic top padding
+    const diagramTopY = topPadding;
+
     if (this.chordTones.length > 0) {
       this.chordTones.forEach((tones, i) =>
-        this.drawScale(ctx, this.scale, this.keyIndex, i, tones)
+        this.drawScale(
+            ctx, this.scale, this.keyIndex, i, tones,
+            diagramTopY, // Pass basic top padding
+            totalTopSpace, // Pass calculated total needed above nut
+            numDiagrams, diagramWidth, horizontalSpacing
+            )
       );
     } else {
-      this.drawScale(ctx, this.scale, this.keyIndex, 0, []);
+      this.drawScale(
+          ctx, this.scale, this.keyIndex, 0, [],
+          diagramTopY, totalTopSpace,
+          numDiagrams, diagramWidth, horizontalSpacing
+          );
     }
   }
+
   private drawScale(
     ctx: CanvasRenderingContext2D,
     scale: Scale,
     keyOffset: number,
     diagramIndex: number,
-    chordTones: Array<string>
+    chordTones: Array<string>,
+    diagramTopY: number, // Absolute top Y for this diagram block (starts with padding)
+    totalTopSpace: number, // Total space calculated above nut (incl title, open notes)
+    numDiagrams: number,
+    diagramWidth: number,
+    horizontalSpacing: number
   ): void {
-    const fretCount = 12;
-    const diagramSpacing = this.fretboardConfig.stringSpacingPx * 5 + 40;
-    const startX = START_PX + diagramIndex * diagramSpacing;
-    const startY = START_PX;
+    const fretCount = 18;
+    const config = this.fretboardConfig;
+    const scaleFactor = config.scaleFactor;
+    const scaledNoteRadius = config.noteRadiusPx;
+    const fontSize = 16 * scaleFactor;
 
+    const startX = START_PX * scaleFactor + diagramIndex * (diagramWidth + horizontalSpacing);
+
+    // --- Draw Title (Chord Tones) ---
     if (chordTones.length > 0) {
-      ctx.font = "16px Sans-serif";
+       // Position title Y within the *overall* top space allocated
+      const titleY = diagramTopY + (30 * scaleFactor) / 2; // Center roughly in title space
+      ctx.font = `${fontSize}px Sans-serif`;
       ctx.textAlign = "left";
       ctx.fillStyle = "#555";
-      ctx.fillText(
-        chordTones.join("/"),
-        startX,
-        startY - this.fretboardConfig.fretLengthPx / 2
-      );
+      ctx.fillText(chordTones.join("/"), startX, titleY);
     }
 
+    // --- Draw Fretboard ---
+    // Fretboard constructor receives the absolute top Y for its drawing area
     const fretboard = new Fretboard(
-      this.fretboardConfig,
+      config,
       startX,
-      startY,
+      diagramTopY, // Pass the absolute top Y for this diagram block
       fretCount
     );
+    // Fretboard.render internally calculates nut position based on diagramTopY + clearance
     fretboard.render(ctx);
 
-    const theme = RAINBOW_COLORS;
-    for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
-      for (let fretIndex = 0; fretIndex <= fretCount; fretIndex++) {
-        let noteOffsetFromA =
-          (this.fretboardConfig.tuning.tuning[stringIndex] + fretIndex) % 12;
-        let noteRelativeToKey = (noteOffsetFromA - keyOffset + 12) % 12;
+    // --- Draw Notes ---
+    // (Loop and renderFingering call remain the same as NotesFeature)
+     for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
+       for (let fretIndex = 0; fretIndex <= fretCount; fretIndex++) {
+         const noteOffsetFromA = (config.tuning.tuning[stringIndex] + fretIndex) % 12;
+         const noteRelativeToKey = (noteOffsetFromA - keyOffset + 12) % 12;
 
-        if (scale.degrees.includes(noteRelativeToKey)) {
-          const noteName = MUSIC_NOTES[noteOffsetFromA][0];
-          const isRoot = noteRelativeToKey === 0;
-          const isChordTone = chordTones.includes(noteName);
-          let bgColor = isChordTone
-            ? "#a468d1"
-            : isRoot
-            ? theme[0].color
-            : theme["default"].color;
-          const fgColor = fretIndex > 0 ? "#eee" : "#333";
-          fretboard.renderFingering(
-            ctx,
-            fretIndex,
-            stringIndex,
-            noteName,
-            NOTE_RADIUS_PX,
-            16,
-            bgColor,
-            fgColor,
-            false
-          );
-        }
-      }
-    }
+         if (scale.degrees.includes(noteRelativeToKey)) {
+           const noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
+           const intervalLabel = getIntervalLabel(noteRelativeToKey);
+           const displayLabel = noteName;
+
+           fretboard.renderFingering(
+             ctx, fretIndex, stringIndex, noteName, intervalLabel, displayLabel,
+             scaledNoteRadius, fontSize, false,
+             "black", 1, undefined, config.colorScheme
+           );
+         }
+       }
+     }
   }
 }

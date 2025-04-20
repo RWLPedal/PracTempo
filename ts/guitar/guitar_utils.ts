@@ -1,106 +1,125 @@
-/** Utility functions and constants for guitar features. */
+// Feature configuration constants
+export const START_PX = 35;
+export const NOTE_RADIUS_PX = 14; // Base radius
+export const OPEN_NOTE_RADIUS_FACTOR = 0.7; // Make open note circles smaller
+export const CANVAS_WIDTH_PX = 400;
+export const CANVAS_HEIGHT_PX = 500;
+export const CANVAS_SUBTITLE_HEIGHT_PX = 25;
+export const CANVAS_SUBTITLE_FONT = '14px sans-serif';
 
+// Musical constants
 export const MUSIC_NOTES = [
-  ["A"],
-  ["A#", "Bb"],
-  ["B"],
-  ["C"],
-  ["C#", "Db"],
-  ["D"], // Added Db
-  ["D#", "Eb"],
-  ["E"],
-  ["F"],
-  ["F#", "Gb"],
-  ["G"],
-  ["G#", "Ab"],
+    ['A'], ['A#', 'Bb'], ['B'], ['C'], ['C#', 'Db'], ['D'],
+    ['D#', 'Eb'], ['E'], ['F'], ['F#', 'Gb'], ['G'], ['G#', 'Ab'],
 ];
-export const NOTE_RADIUS_PX = 13;
-export const CANVAS_SUBTITLE_HEIGHT_PX = 70;
-export const CANVAS_SUBTITLE_FONT = "31px 'Segoe UI'";
-export const OPEN_NOTE_RADIUS_FACTOR = 0.7; // Keep factor, base radius increased
-export const RAINBOW_COLORS = {
-  // Basic theme for scale notes
-  0: { name: "Root", color: "#56ec52" }, // Green for Root
-  default: { color: "#444" }, // Dark grey for others
-};
-export const START_PX = 58;
-export const INTERVAL_LABELS: { [key: number]: string } = {
-  0: "R", // Root
-  1: "b2", // Minor Second
-  2: "2", // Major Second
-  3: "b3", // Minor Third
-  4: "3", // Major Third
-  5: "4", // Perfect Fourth
-  6: "d5", // Diminished Fifth (#4/b5) - Using d5 for triads
-  7: "5", // Perfect Fifth
-  8: "#5", // Augmented Fifth (m6) - Using #5 for triads
-  9: "6", // Major Sixth (m7)
-  10: "b7", // Minor Seventh
-  11: "7", // Major Seventh
-};
 
-/** Finds the index (0-11) of a given note name (e.g., "C#", "Bb"). Returns -1 if not found. */
-export function getKeyIndex(keyName: string): number {
-  for (let i = 0; i < MUSIC_NOTES.length; i++) {
-    if (MUSIC_NOTES[i].includes(keyName)) {
-      return i;
-    }
-  }
-  console.error("Unknown key: " + keyName);
-  return -1; // Return -1 to indicate failure
-}
+// --- Utility Functions ---
 
-/** Parses a string of chord tones (e.g., "C-E-G|G-B-D") into an array of arrays. */
-export function getChordTones(
-  chordTonesStr: string | undefined
-): Array<Array<string>> {
-  if (!chordTonesStr) return []; // Return empty array if input is undefined or empty
-  return chordTonesStr
-    .split("|") // Split into individual chords
-    .map(
-      (chord) =>
-        chord
-          .split("-") // Split each chord into notes
-          .map((note) => note.trim()) // Trim whitespace from each note
-          .filter((note) => note !== "") // Remove empty strings resulting from splitting
-    )
-    .filter((chordArray) => chordArray.length > 0); // Remove empty chord arrays
-}
-
-/** Removes all child elements from a given HTML element. */
+/** Clears all child elements from a given HTML element */
 export function clearAllChildren(element: HTMLElement): void {
-  while (element.firstChild) {
-    element.removeChild(element.firstChild);
-  }
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
 }
 
-/** Adds a standard subtitle/header <p> element to a container. */
-export function addHeader(element: HTMLElement, text: string): HTMLElement {
-  const headerEl = document.createElement("p");
-  headerEl.classList.add("subtitle"); // Use Bulma subtitle class
-  headerEl.innerText = text;
-  element.appendChild(headerEl);
-  return headerEl;
+/** Adds a simple h4 header element to a container */
+export function addHeader(container: HTMLElement, text: string): HTMLElement {
+    const header = document.createElement('h4');
+    header.classList.add('title', 'is-6'); // Example Bulma classes
+    header.style.textAlign = 'center';
+    header.textContent = text;
+    container.appendChild(header);
+    return header;
 }
 
-/** Adds a standard canvas element to a container. */
-export function addCanvas(
-  element: HTMLElement,
-  baseId: string = "featureCanvas"
-): HTMLCanvasElement {
-  const canvasEl = document.createElement("canvas");
-  // Create a more unique ID
-  canvasEl.id = `${baseId}_${Date.now()}_${Math.random()
-    .toString(36)
-    .substring(2, 7)}`;
-  // Increased default size by ~30%
-  canvasEl.width = 780; // Was 600
-  canvasEl.height = 780; // Was 600
-  element.appendChild(canvasEl);
-  return canvasEl;
+/** Adds a canvas element to a container */
+export function addCanvas(container: HTMLElement, idSuffix: string): HTMLCanvasElement {
+    const canvas = document.createElement('canvas');
+    canvas.id = `canvas-${idSuffix}-${Date.now()}`; // Add timestamp for uniqueness if needed
+    canvas.width = CANVAS_WIDTH_PX;
+    canvas.height = CANVAS_HEIGHT_PX;
+    container.appendChild(canvas);
+    return canvas;
 }
 
-/** Gets the display label for a given interval in semitones. */
-export function getIntervalLabel(intervalSemitones: number): string {
-  return INTERVAL_LABELS[intervalSemitones] ?? "?";
+
+/** Finds the primary index (0-11) for a given note name (e.g., C, Db, F#) */
+export function getKeyIndex(noteName: string): number {
+    if (!noteName) return -1;
+    return MUSIC_NOTES.findIndex(group => group.includes(noteName));
+}
+
+/**
+ * Parses a duration string (like "MM:SS" or "SS") into total seconds.
+ * @param durationStr - The duration string.
+ * @returns Total duration in seconds (integer).
+ * @throws {Error} if the format is invalid.
+ */
+export function parseDurationString(durationStr: string): number {
+    if (!durationStr || typeof durationStr !== 'string') {
+        throw new Error("Invalid duration input: Must be a non-empty string.");
+    }
+
+    const parts = durationStr.trim().split(':');
+    let minutes = 0;
+    let seconds = 0;
+
+    if (parts.length === 1) {
+        // Only seconds provided (e.g., "120")
+        seconds = parseInt(parts[0], 10);
+    } else if (parts.length === 2) {
+        // Minutes and seconds provided (e.g., "3:45")
+        minutes = parseInt(parts[0], 10);
+        seconds = parseInt(parts[1], 10);
+    } else {
+        throw new Error(`Invalid duration format: "${durationStr}". Use MM:SS or SS.`);
+    }
+
+    // Validate parsed numbers
+    if (isNaN(minutes) || isNaN(seconds) || minutes < 0 || seconds < 0 || seconds >= 60) {
+         throw new Error(`Invalid time values in duration: "${durationStr}". Minutes/seconds must be non-negative, seconds < 60.`);
+    }
+
+    return minutes * 60 + seconds;
+}
+
+/** Formats total seconds into a MM:SS string */
+export function formatDuration(totalSeconds: number): string {
+    if (isNaN(totalSeconds) || totalSeconds < 0) {
+        return "0:00";
+    }
+    const minutes = Math.floor(totalSeconds / 60);
+    const seconds = Math.floor(totalSeconds % 60);
+    const paddedSeconds = seconds < 10 ? `0${seconds}` : `${seconds}`;
+    return `${minutes}:${paddedSeconds}`;
+}
+
+
+/** Gets chord tones for highlighting (simple implementation) */
+export function getChordTones(chordTonesStr: string | undefined): Array<Array<string>> {
+    if (!chordTonesStr) return [];
+    return chordTonesStr.split('|').map(group => group.split('-').map(n => n.trim()).filter(n => n));
+}
+
+/**
+ * Gets a standard interval label (e.g., 'R', 'b3', '5', 'M7') from a semitone offset.
+ * @param offset - Semitones relative to the root (0-11).
+ * @returns The interval label string.
+ */
+export function getIntervalLabel(offset: number): string {
+  const labels: { [key: number]: string } = {
+    0: "R", // Root
+    1: "b2", // Minor Second
+    2: "2", // Major Second
+    3: "b3", // Minor Third
+    4: "3", // Major Third
+    5: "4", // Perfect Fourth
+    6: "d5", // Diminished Fifth (Tritone) - can also be #4
+    7: "5", // Perfect Fifth
+    8: "b6", // Minor Sixth (or #5)
+    9: "6", // Major Sixth
+    10: "b7", // Minor Seventh
+    11: "7", // Major Seventh
+  };
+  return labels[offset] ?? "?"; // Return label or '?' if offset is unexpected
 }

@@ -1,9 +1,11 @@
 import { TuningName } from "./guitar/fretboard";
+import { FretboardColorScheme } from "./guitar/colors"; // Import the type
 
 /** Defines the settings specifically for the Guitar feature category. */
 export interface GuitarSettings {
   handedness: "right" | "left";
   tuning: TuningName; // Use the type alias for tuning names
+  colorScheme: FretboardColorScheme; // Added color scheme setting
 }
 
 /** Defines the structure for all application-level settings. */
@@ -23,6 +25,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   guitarSettings: {
     handedness: "right", // Default to right-handed diagrams
     tuning: "Standard", // Default to Standard tuning
+    colorScheme: "default", // Default color scheme
   },
 };
 

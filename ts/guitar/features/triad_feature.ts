@@ -1,3 +1,5 @@
+/* ts/guitar/features/triad_feature.ts */
+
 import {
   Feature,
   FeatureCategoryName,
@@ -9,13 +11,12 @@ import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
 import {
   MUSIC_NOTES,
-  NOTE_RADIUS_PX,
   getKeyIndex,
   START_PX,
   addHeader,
   addCanvas,
   clearAllChildren,
-} from "../guitar_utils";
+} from "../guitar_utils"; // Removed unused NOTE_RADIUS_PX
 import {
   TriadQuality,
   TriadInversion,
@@ -78,7 +79,7 @@ export class TriadFeature extends GuitarFeature {
           enum: inversions,
           description: "Inversion(s) to display (Root, 1st, 2nd, or All).",
         },
-        // Removed the separate "Show All Inversions" boolean argument
+        // Ellipsis for guitar-wide settings (like metronome, color scheme is global)
         {
           name: "Guitar Settings",
           type: "ellipsis",
@@ -89,6 +90,7 @@ export class TriadFeature extends GuitarFeature {
               type: "number",
               description: "Metronome BPM (0=off)",
             },
+            // Color scheme is handled globally via AppSettings, not per-interval here
           ],
         },
       ],
@@ -98,8 +100,9 @@ export class TriadFeature extends GuitarFeature {
   static createFeature(
     config: ReadonlyArray<string>,
     audioController: AudioController,
-    settings: AppSettings,
-    metronomeBpmOverride?: number
+    settings: AppSettings, // Receive full AppSettings
+    metronomeBpmOverride?: number,
+    maxCanvasHeight?: number // Add maxCanvasHeight
   ): Feature {
     // Config array: [RootNote, Quality, Optional Inversion ('All' is an option)]
     if (config.length < 2) {
@@ -142,16 +145,17 @@ export class TriadFeature extends GuitarFeature {
       headerText += ` (All Inversions)`;
     }
 
-    // Pass validated root, quality, and the inversion selection to constructor
+    // Pass validated root, quality, inversion selection, settings, and maxCanvasHeight
     return new TriadFeature(
       config,
       validRootName,
       quality,
       inversionSelection,
       headerText,
-      settings,
+      settings, // Pass full settings
       metronomeBpmOverride,
-      audioController
+      audioController,
+      maxCanvasHeight // Pass height to constructor
     );
   }
 
@@ -161,6 +165,7 @@ export class TriadFeature extends GuitarFeature {
   private readonly quality: TriadQuality;
   private readonly inversionSelection: TriadInversion | "All";
   private readonly headerText: string;
+  // settings and fretboardConfig are inherited from GuitarFeature base class
 
   constructor(
     config: ReadonlyArray<string>,
@@ -168,15 +173,24 @@ export class TriadFeature extends GuitarFeature {
     quality: TriadQuality,
     inversionSelection: TriadInversion | "All",
     headerText: string,
-    settings: AppSettings,
+    settings: AppSettings, // Accept full settings
     metronomeBpmOverride?: number,
-    audioController?: AudioController
+    audioController?: AudioController,
+    maxCanvasHeight?: number // Add maxCanvasHeight
   ) {
-    super(config, settings, metronomeBpmOverride, audioController);
+    // Pass settings and maxCanvasHeight to base constructor
+    super(
+      config,
+      settings,
+      metronomeBpmOverride,
+      audioController,
+      maxCanvasHeight
+    );
     this.rootNoteName = rootNoteName;
     this.quality = quality;
     this.inversionSelection = inversionSelection;
     this.headerText = headerText;
+    // this.fretboardConfig is set in the base constructor using settings
   }
 
   // Helper to get the triad notes as strings (e.g., "C, E, G")
@@ -258,38 +272,38 @@ export class TriadFeature extends GuitarFeature {
       // Add canvas for this inversion
       const canvasIdBase = `${this.typeName}-${inversion}`;
       const canvas = addCanvas(diagramWrapper, canvasIdBase);
-      // Adjust canvas size if multiple are shown - make them smaller?
-      // For now, keep the larger size from utils, rely on flexbox/wrapping.
-      const ctx = canvas.getContext("2d");
-      if (!ctx) return;
-
+      // Use the fretboardConfig created in the base class constructor
       const requiredHeight =
         START_PX + fretCount * this.fretboardConfig.fretLengthPx + 65;
       canvas.height = Math.max(canvas.height, requiredHeight); // Use calculated or default
+
+      const ctx = canvas.getContext("2d");
+      if (!ctx) return;
 
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.resetTransform();
       ctx.translate(0.5, 0.5);
 
+      // Use the fretboardConfig from this instance (set in base class)
       const fretboard = new Fretboard(
-        this.fretboardConfig,
+        this.fretboardConfig, // Use the SCALED config
         START_PX,
         START_PX,
         fretCount
       );
-      fretboard.render(ctx);
+      fretboard.render(ctx); // Renders scaled fretboard
 
       // Find shapes for the current inversion
       const triadShapes = findSpecificTriadShapes(
         this.rootNoteName,
         this.quality,
         inversion,
-        this.fretboardConfig,
+        this.fretboardConfig, // Pass the SCALED config
         fretCount
       );
 
       if (!triadShapes || triadShapes.length === 0) {
-        ctx.font = "18px Sans-serif";
+        ctx.font = "18px Sans-serif"; // Consider scaling this font too
         ctx.fillStyle = "#888";
         ctx.textAlign = "center";
         ctx.fillText(
@@ -303,7 +317,7 @@ export class TriadFeature extends GuitarFeature {
       // --- Draw notes and connecting lines for found shapes ---
       const drawnNotes = new Set<string>();
       triadShapes.forEach((shape, shapeIndex) => {
-        // Calculate coordinates
+        // Calculate coordinates using the scaled fretboard instance
         shape.notes.forEach((note) => {
           if (note.fret !== -1) {
             const coords = fretboard.getNoteCoordinates(
@@ -348,8 +362,11 @@ export class TriadFeature extends GuitarFeature {
 
     ctx.save();
     ctx.strokeStyle = strokeColor;
-    ctx.lineWidth = 2;
-    ctx.setLineDash([4, 4]);
+    ctx.lineWidth = 2 * this.fretboardConfig.scaleFactor; // Scale line width
+    ctx.setLineDash([
+      4 * this.fretboardConfig.scaleFactor,
+      4 * this.fretboardConfig.scaleFactor,
+    ]); // Scale dash pattern
 
     // Connect notes on adjacent strings
     ctx.beginPath();
@@ -374,39 +391,39 @@ export class TriadFeature extends GuitarFeature {
         lastNote = currentNote;
       }
     }
-    // Close the shape? Connect last back to first if > 2 notes? Could be messy.
-    // Let's leave it as connecting adjacent strings for now.
     ctx.stroke();
 
     ctx.setLineDash([]); // Reset line dash
     ctx.restore();
   }
 
-  /** Draws a single note belonging to a triad shape with interval labeling. */
+  /** Draws a single note belonging to a triad shape with interval labeling, using the color scheme. */
   private drawTriadShapeNote(
     ctx: CanvasRenderingContext2D,
-    fretboard: Fretboard,
+    fretboard: Fretboard, // Pass the Fretboard instance which holds the config
     note: TriadShapeNote
   ): void {
     if (note.fret === -1) return;
 
-    const isRoot = note.isRoot;
-    const label = note.intervalLabel;
-    const bgColor = isRoot ? "#e74c3c" : "#555"; // Red for root, dark grey otherwise
-    const fgColor = note.fret > 0 ? "#eee" : "#333";
+    // const isRoot = note.isRoot; // Determined by color scheme now
+    const displayLabel = note.intervalLabel; // Use interval label for display
+    const fontSize = 16 * this.fretboardConfig.scaleFactor; // Scale font size
+
+    // No longer need explicit bgColor/fgColor here
 
     fretboard.renderFingering(
       ctx,
       note.fret,
       note.stringIndex,
-      label,
-      NOTE_RADIUS_PX,
-      16, // Font size
-      bgColor,
-      fgColor,
+      note.noteName, // Pass note name for coloring
+      note.intervalLabel, // Pass interval label for coloring
+      displayLabel, // What to actually draw inside the circle
+      this.fretboardConfig.noteRadiusPx, // Use SCALED radius
+      fontSize, // Use SCALED font size
       false, // Don't draw star (use color/label)
-      "black",
-      1
+      "black", // Default stroke color
+      1 // Default line width
+      // radiusOverride not needed here
     );
   }
 }

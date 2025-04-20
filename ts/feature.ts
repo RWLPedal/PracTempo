@@ -12,6 +12,7 @@ export interface Feature {
   readonly typeName: string;
   readonly config: ReadonlyArray<string>; // Raw config args (excluding serialized settings)
   readonly views?: ReadonlyArray<View>;
+  readonly maxCanvasHeight?: number; // Optional height constraint
   render(container: HTMLElement): void;
   prepare?(): void;
   start?(): void;
@@ -22,9 +23,17 @@ export interface Feature {
 
 export interface ConfigurationSchemaArg {
   name: string;
+  // Defines the underlying data type (string, number, etc.)
   type: "string" | "number" | "boolean" | "enum" | "ellipsis";
+   // Optional: Specify a custom UI component to render instead of the default for 'type'
+  uiComponentType?: 'text' | 'number' | 'enum' | 'toggle_button_selector' | 'ellipsis';
+  // Optional: Data needed by the custom UI component (e.g., button labels)
+  uiComponentData?: {
+      buttonLabels?: string[];
+      // Add other potential data keys here if needed for future components
+  };
   required?: boolean;
-  enum?: string[];
+  enum?: string[]; // Still used for standard 'enum' type or as data for custom components
   description?: string;
   example?: string;
   isVariadic?: boolean;
@@ -36,7 +45,7 @@ export type ConfigurationSchema =
       description: string;
       args: ConfigurationSchemaArg[];
     }
-  | string;
+  | string; // Allow simple string description for features with no args
 
 export interface FeatureTypeDescriptor {
   readonly category: FeatureCategoryName;
@@ -49,6 +58,8 @@ export interface FeatureTypeDescriptor {
   /**
    * Factory method.
    * @param config - Feature-specific args (excluding serialized settings string).
+   * For custom UI components like sequence selectors, this might contain
+   * the component's output (e.g., [RootNote, Numeral1, Numeral2,...]).
    * @param audioController - Shared audio controller.
    * @param settings - Global app settings.
    * @param metronomeBpmOverride - BPM parsed from the ellipsis UI or text config.
@@ -58,7 +69,8 @@ export interface FeatureTypeDescriptor {
     config: ReadonlyArray<string>,
     audioController: AudioController,
     settings: AppSettings,
-    metronomeBpmOverride?: number // Optional BPM from ellipsis/text config
+    metronomeBpmOverride?: number, // Optional BPM from ellipsis/text config
+    maxCanvasHeight?: number // Optional height constraint
   ): Feature;
 }
 

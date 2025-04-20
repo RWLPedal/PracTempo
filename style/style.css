@@ -227,7 +227,8 @@ body.dark-theme #status img {
   background-color: #fff;
   border: 1px solid var(--clr-border);
   color: #363636;
-  min-height: 200px; /* Ensure minimum height */
+  min-height: min-content; /* Ensure minimum height */
+  display: block;   
 }
 #diagram .subtitle {
   margin-bottom: 0.5rem;

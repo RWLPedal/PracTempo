@@ -2,18 +2,20 @@ import {
   buildIntervalRowElement,
   buildGroupRowElement,
   applyIndentation,
-  ScheduleRowData,
-  GroupRowData,
-  IntervalRowData,
+  ScheduleRowData, // Still used by clipboard/add internally? Review if needed.
+  GroupRowData,   // For addGroupRow parameter type check
+  IntervalRowData,// For addEmptyIntervalRow parameter type check
+  // Import the JSON structure types
+  GroupDataJSON,
+  IntervalDataJSON,
+  ScheduleRowJSONData
 } from "./interval_row";
 import { GuitarIntervalSettings } from "../../guitar/guitar_interval_settings";
-import { getFeatureTypeDescriptor } from "../../feature_registry";
-import { FeatureCategoryName } from "../../feature";
 import { SelectionManager } from "./selection_manager";
 
 export class RowManager {
   private configEntriesContainerEl: HTMLElement;
-  private selectionManager: SelectionManager; // Use import type
+  private selectionManager: SelectionManager;
 
   constructor(
     configEntriesContainerEl: HTMLElement,
@@ -24,33 +26,37 @@ export class RowManager {
     this._addRowCopyHandler();
   }
 
+  /** Adds an empty interval row to the UI */
   public addEmptyIntervalRow(
     insertAfterElement?: HTMLElement | null
   ): HTMLElement {
-    const newRowData: IntervalRowData = {
-      rowType: "interval",
-      duration: "3:00",
-      task: "",
-      featureTypeName: "",
-      featureArgsList: [],
-      intervalSettings: new GuitarIntervalSettings(),
-    };
-    const newRowElement = buildIntervalRowElement(newRowData);
+     // Need to create IntervalRowData compatible with buildIntervalRowElement's expectation
+     const newRowUIData: IntervalRowData = {
+        rowType: "interval",
+        duration: "3:00",
+        task: "",
+        featureTypeName: "",
+        featureArgsList: [],
+        intervalSettings: new GuitarIntervalSettings(), // Provide instance
+      };
+    const newRowElement = buildIntervalRowElement(newRowUIData);
     this.insertRowElement(newRowElement, insertAfterElement);
     return newRowElement;
   }
 
+  /** Adds a group row to the UI */
   public addGroupRow(
     level: number = 1,
     name: string = "",
     insertAfterElement?: HTMLElement | null
   ): HTMLElement {
-    const newRowData: GroupRowData = {
-      rowType: "group",
-      level: Math.max(1, level),
-      name: name || `New Group Level ${level}`,
+    // Need to create GroupRowData compatible with buildGroupRowElement's expectation
+    const newRowUIData: GroupRowData = {
+        rowType: "group",
+        level: Math.max(1, level),
+        name: name || `New Group Level ${level}`,
     };
-    const newRowElement = buildGroupRowElement(newRowData);
+    const newRowElement = buildGroupRowElement(newRowUIData);
     this.insertRowElement(newRowElement, insertAfterElement);
     return newRowElement;
   }
@@ -61,7 +67,6 @@ export class RowManager {
   ): void {
     let effectiveInsertAfter = insertAfterElement;
     if (!effectiveInsertAfter) {
-      // If no specific element provided, insert after the last selected element
       effectiveInsertAfter =
         this.selectionManager.getLastSelectedElementInDomOrder();
     }
@@ -75,7 +80,6 @@ export class RowManager {
         effectiveInsertAfter.nextSibling
       );
     } else {
-      // Fallback: append to the end if no valid insertion point found
       this.configEntriesContainerEl.appendChild(newRowElement);
     }
     this.updateAllRowIndentation();
@@ -83,140 +87,96 @@ export class RowManager {
 
   public deleteSelectedRows(): void {
     const selectedRows = this.selectionManager.getSelectedElementsInDomOrder();
-    if (selectedRows.length === 0) {
-      console.log("Nothing selected to delete.");
-      return;
-    }
-
-    console.log(`Deleting ${selectedRows.length} selected rows.`);
-    // TODO: Implement recursive group deletion later if needed.
+    if (selectedRows.length === 0) return;
     selectedRows.forEach((row) => row.remove());
-
-    this.selectionManager.clearSelection(); // Clear selection state
-    this.updateAllRowIndentation(); // Update indentation after deletion
+    this.selectionManager.clearSelection();
+    this.updateAllRowIndentation();
   }
 
   public updateAllRowIndentation(): void {
     const rows = Array.from(
-      this.configEntriesContainerEl.querySelectorAll<HTMLElement>(
-        ".schedule-row"
-      )
+      this.configEntriesContainerEl.querySelectorAll<HTMLElement>(".schedule-row")
     );
-    const levelStack: number[] = [0]; // Start with base level 0
-
+    const levelStack: number[] = [0];
     rows.forEach((row) => {
       const rowType = row.dataset.rowType;
       let currentIndentLevel = levelStack[levelStack.length - 1];
-
       if (rowType === "group") {
         const groupLevel = parseInt(row.dataset.level || "1", 10);
-
-        // Pop levels off stack until we find a parent level or empty stack
-        while (
-          levelStack.length > 1 &&
-          levelStack[levelStack.length - 1] >= groupLevel
-        ) {
+        while (levelStack.length > 1 && levelStack[levelStack.length - 1] >= groupLevel) {
           levelStack.pop();
         }
-        // The new indent level is the level of the parent group on the stack
         currentIndentLevel = levelStack[levelStack.length - 1];
-        applyIndentation(row, currentIndentLevel); // Indent the group itself relative to its parent
-        levelStack.push(groupLevel); // Push this group's level onto the stack for its children
-      } else if (rowType === "interval") {
-        // Interval inherits indentation from the last group on the stack
         applyIndentation(row, currentIndentLevel);
-      } else {
-        // Unknown row type, apply base indentation
-        applyIndentation(row, 0);
+        levelStack.push(groupLevel);
+      } else { // Apply indent to interval or unknown rows
+        applyIndentation(row, currentIndentLevel);
       }
     });
   }
 
-  // Extracts data from a single row element
-  public getRowData(rowElement: HTMLElement): ScheduleRowData | null {
+  /**
+   * Extracts data from a single row element into a JSON-compatible structure.
+   * @param rowElement - The HTML element for the schedule row (.schedule-row).
+   * @returns {ScheduleRowJSONData | null} Plain data object or null if extraction fails.
+   */
+  public getRowData(rowElement: HTMLElement): ScheduleRowJSONData | null { // Update return type annotation
     const rowType = rowElement.dataset.rowType;
     try {
       if (rowType === "group") {
         const level = parseInt(rowElement.dataset.level || "1", 10);
-        const name =
-          (
-            rowElement.querySelector(".group-name-input") as HTMLInputElement
-          )?.value.trim() || "";
-        return { rowType: "group", level, name };
+        const name = (rowElement.querySelector(".group-name-input") as HTMLInputElement)?.value.trim() || "";
+        const groupData: GroupDataJSON = { rowType: "group", level, name }; // Use imported type
+        return groupData;
+
       } else if (rowType === "interval") {
-        const duration =
-          (
-            rowElement.querySelector(".config-duration") as HTMLInputElement
-          )?.value.trim() || "0:00";
-        const task =
-          (
-            rowElement.querySelector(".config-task") as HTMLInputElement
-          )?.value.trim() || "";
-        const featureTypeName =
-          (
-            rowElement.querySelector(
-              ".config-feature-type"
-            ) as HTMLSelectElement
-          )?.value.trim() || "";
-        const intervalSettings =
-          ((rowElement as any)._intervalSettings as GuitarIntervalSettings) ??
-          new GuitarIntervalSettings();
+        const duration = (rowElement.querySelector(".config-duration") as HTMLInputElement)?.value.trim() || "0:00";
+        const task = (rowElement.querySelector(".config-task") as HTMLInputElement)?.value.trim() || "";
+        const featureTypeName = (rowElement.querySelector(".config-feature-type") as HTMLSelectElement)?.value.trim() || "";
 
-        // Revised argument retrieval logic (from config_parser.ts generateScheduleText)
+        const intervalSettingsInstance = ((rowElement as any)._intervalSettings as GuitarIntervalSettings) ?? new GuitarIntervalSettings();
+        const intervalSettingsJSON = intervalSettingsInstance.toJSON();
+
         const featureArgsList: string[] = [];
-        const argsInnerContainer = rowElement.querySelector(
-          ".config-feature-args-container .feature-args-inner-container"
-        );
+        const argsContainer = rowElement.querySelector(".config-feature-args-container .feature-args-inner-container");
 
-        if (argsInnerContainer && featureTypeName) {
-          const descriptor = getFeatureTypeDescriptor(
-            FeatureCategoryName.Guitar,
-            featureTypeName
-          );
-          const schema = descriptor?.getConfigurationSchema();
-          const schemaArgs =
-            typeof schema === "object" &&
-            "args" in schema &&
-            Array.isArray(schema.args)
-              ? schema.args.filter((a) => a.type !== "ellipsis") // Exclude ellipsis itself
-              : [];
-
-          const argWrappers = argsInnerContainer.querySelectorAll<HTMLElement>(
-            ":scope > .feature-arg-wrapper"
-          );
-
-          argWrappers.forEach((wrapper, wrapperIndex) => {
-            const schemaArg = schemaArgs[wrapperIndex]; // Assumes order matches schema (excluding ellipsis)
-            const inputElements = wrapper.querySelectorAll<
-              HTMLInputElement | HTMLSelectElement
-            >(
-              ".feature-arg-inputs-container .config-feature-arg, .feature-arg-inputs-container .select > select"
-            );
-
-            if (inputElements.length > 0) {
-              if (schemaArg?.isVariadic) {
-                inputElements.forEach((el) => {
-                  const value = el.value?.trim();
-                  if (value) featureArgsList.push(value);
-                });
-              } else if (inputElements[0]) {
-                const value = inputElements[0].value?.trim();
-                featureArgsList.push(value ?? ""); // Push even empty for non-variadic
-              }
-            } else if (schemaArg && !schemaArg.isVariadic) {
-              featureArgsList.push(""); // Maintain position for empty non-variadic
-            }
-          });
+        if (argsContainer) {
+            // ... (logic for iterating wrappers and extracting args remains the same) ...
+             const argWrappers = argsContainer.querySelectorAll<HTMLElement>(":scope > .feature-arg-wrapper");
+            argWrappers.forEach(wrapper => {
+                const inputsContainer = wrapper.querySelector<HTMLElement>(".feature-arg-inputs-container");
+                if (!inputsContainer) return;
+                const uiType = inputsContainer.dataset.uiComponentType;
+                const isVariadic = inputsContainer.dataset.isVariadic === 'true';
+                if (uiType === 'toggle_button_selector') { // Use correct name
+                    const activeButtons = inputsContainer.querySelectorAll<HTMLButtonElement>(".numeral-toggle-btn.is-active");
+                    const selectedValues = Array.from(activeButtons).map(btn => btn.dataset.value || '');
+                    featureArgsList.push(...selectedValues);
+                } else if (uiType === 'ellipsis') { /* no-op */ }
+                else if (isVariadic) {
+                    const variadicInputs = inputsContainer.querySelectorAll<HTMLInputElement | HTMLSelectElement>(".config-feature-arg, .select > select");
+                    variadicInputs.forEach(input => { if (input.value?.trim()) featureArgsList.push(input.value.trim()); });
+                } else {
+                    const inputElement = inputsContainer.querySelector<HTMLInputElement | HTMLSelectElement>(".config-feature-arg, .select > select");
+                    featureArgsList.push(inputElement?.value?.trim() ?? "");
+                }
+            });
         }
 
-        return {
+        // Construct the plain data object for the interval
+        const intervalData: IntervalDataJSON = { // Use imported type
           rowType: "interval",
           duration,
           task,
           featureTypeName,
           featureArgsList,
-          intervalSettings,
         };
+        if (intervalSettingsJSON) {
+            intervalData.intervalSettings = intervalSettingsJSON;
+        }
+        console.log(`[DEBUG] getRowData (JSON Mode) - Feature: ${featureTypeName}, Data:`, JSON.stringify(intervalData));
+        return intervalData;
+
       } else {
         console.warn("Unknown row type found:", rowType, rowElement);
         return null;
@@ -233,22 +193,13 @@ export class RowManager {
       const targetElement = e.target as HTMLElement;
       const copyButton = targetElement.closest(".copy-row-btn");
       if (copyButton) {
-        e.stopPropagation(); // Prevent row selection logic
+        e.stopPropagation();
         const rowToCopy = targetElement.closest<HTMLElement>(".schedule-row");
         if (rowToCopy) {
-          // Select just this row before triggering copy action
           this.selectionManager.selectSingleRow(rowToCopy);
-          // The actual copy action will be handled by the ClipboardManager via button/shortcut
-          // We can trigger the copy button's click event programmatically if needed,
-          // or rely on the user clicking the main copy button / using Ctrl+C.
-          // For simplicity, let's assume the user uses the main button/shortcut after selection.
-
-          // Optional: Visual feedback
-          rowToCopy.style.transition = "background-color 0.1s ease-out";
-          rowToCopy.style.backgroundColor = "rgba(72, 199, 116, 0.3)"; // Example flash
-          setTimeout(() => {
-            rowToCopy.style.backgroundColor = "";
-          }, 200);
+           rowToCopy.style.transition = "background-color 0.1s ease-out";
+           rowToCopy.style.backgroundColor = "rgba(72, 199, 116, 0.3)";
+           setTimeout(() => { rowToCopy.style.backgroundColor = ""; }, 200);
           console.log("Row selected via icon click for copying.");
         }
       }
