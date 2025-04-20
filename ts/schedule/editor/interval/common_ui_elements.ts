@@ -1,6 +1,6 @@
 // ts/schedule/editor/interval/common_ui_elements.ts
 import { ConfigurationSchemaArg, FeatureCategoryName } from "../../../feature";
-import { GuitarIntervalSettings } from "../../../guitar/guitar_interval_settings";
+import { IntervalSettings } from "./types";
 
 // --- Generic UI Element Creation Functions ---
 
@@ -122,7 +122,8 @@ export function createToggleButtonInput(
 /** Creates the ellipsis dropdown UI for nested settings */
 export function createEllipsisDropdown(
   arg: ConfigurationSchemaArg,
-  currentSettingsInstance: GuitarIntervalSettings // Expects INSTANCE
+  // Expect the generic IntervalSettings instance
+  currentSettingsInstance: IntervalSettings
 ): HTMLElement {
     if (!arg.nestedSchema) {
         console.warn(`EllipsisDropdown: No nestedSchema provided for arg "${arg.name}".`);
@@ -133,19 +134,17 @@ export function createEllipsisDropdown(
     }
 
     const dropdownDiv = document.createElement("div");
-    dropdownDiv.classList.add("dropdown", "config-ellipsis-dropdown"); // Use specific class
+    dropdownDiv.classList.add("dropdown", "config-ellipsis-dropdown");
 
     const triggerDiv = document.createElement("div");
     triggerDiv.classList.add("dropdown-trigger");
-
     const button = document.createElement("button");
-    button.type = "button"; // Specify button type
+    button.type = "button";
     button.classList.add("button", "is-small", "is-outlined", "config-ellipsis-button");
     button.setAttribute("aria-haspopup", "true");
-    // Create a more unique ID for accessibility/control
     const uniqueId = `dropdown-menu-${arg.name.replace(/\s+/g, "-")}-${Math.random().toString(36).substring(2, 7)}`;
     button.setAttribute("aria-controls", uniqueId);
-    button.innerHTML = "<span>...</span>"; // Simple ellipsis content
+    button.innerHTML = "<span>...</span>";
     button.title = arg.description || "Advanced Settings";
     triggerDiv.appendChild(button);
     dropdownDiv.appendChild(triggerDiv);
@@ -158,106 +157,87 @@ export function createEllipsisDropdown(
 
     const contentDiv = document.createElement("div");
     contentDiv.classList.add("dropdown-content");
-    contentDiv.style.padding = "10px"; // Add padding
-    contentDiv.style.minWidth = "200px"; // Ensure minimum width
+    contentDiv.style.padding = "10px";
+    contentDiv.style.minWidth = "200px";
     menuDiv.appendChild(contentDiv);
 
     // --- Dropdown Toggle Logic ---
     const toggleDropdown = (event?: MouseEvent) => {
-        event?.stopPropagation(); // Prevent event bubbling
+        event?.stopPropagation();
         const isActive = dropdownDiv.classList.toggle("is-active");
         if (isActive) {
-        // Populate content only when opening
-        populateEllipsisDropdownContent(contentDiv, arg.nestedSchema!, currentSettingsInstance);
-        // Add listener to close when clicking outside
-        document.addEventListener("click", handleClickOutside, true);
+            // Populate content only when opening, pass the generic settings instance
+            populateEllipsisDropdownContent(contentDiv, arg.nestedSchema!, currentSettingsInstance); // Pass generic instance
+            document.addEventListener("click", handleClickOutside, true);
         } else {
-        // Remove listener when closing
-        document.removeEventListener("click", handleClickOutside, true);
+            document.removeEventListener("click", handleClickOutside, true);
         }
     };
-
     const handleClickOutside = (event: MouseEvent) => {
         if (!dropdownDiv.contains(event.target as Node)) {
-        dropdownDiv.classList.remove("is-active");
-        document.removeEventListener("click", handleClickOutside, true);
+            dropdownDiv.classList.remove("is-active");
+            document.removeEventListener("click", handleClickOutside, true);
         }
     };
-
     button.addEventListener("click", toggleDropdown);
     // --- End Dropdown Logic ---
 
     return dropdownDiv;
 }
 
+
 /** Populates the content of an ellipsis dropdown based on nested schema */
 export function populateEllipsisDropdownContent(
   contentContainer: HTMLElement,
   nestedSchema: ConfigurationSchemaArg[],
-  settingsInstance: GuitarIntervalSettings // Expects INSTANCE
+  // Expect the generic IntervalSettings instance
+  settingsInstance: IntervalSettings
 ): void {
     contentContainer.innerHTML = ""; // Clear previous content
 
     nestedSchema.forEach((nestedArg) => {
-        // Use Bulma 'field' and 'control' for structure
-        const fieldDiv = document.createElement("div");
-        fieldDiv.classList.add("field");
-
-        const label = document.createElement("label");
-        label.classList.add("label", "is-small");
-        // Simple label generation (can be improved)
+        const fieldDiv = document.createElement("div"); fieldDiv.classList.add("field");
+        const label = document.createElement("label"); label.classList.add("label", "is-small");
         label.textContent = nestedArg.name.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase()).trim();
         label.title = nestedArg.description || "";
         fieldDiv.appendChild(label);
+        const controlDiv = document.createElement("div"); controlDiv.classList.add("control");
 
-        const controlDiv = document.createElement("div");
-        controlDiv.classList.add("control");
-
-        // Use the INSTANCE to get the current value
-        // Type assertion needed as index signatures aren't strictly checked
+        // Access properties using index signature on the generic type.
         const currentValue = (settingsInstance as any)[nestedArg.name];
         const currentValueStr = (currentValue !== undefined && currentValue !== null) ? String(currentValue) : "";
 
         let inputElement: HTMLElement | null = null;
 
         // Create appropriate input based on nested schema type
+        // This logic is already generic
         if (nestedArg.enum) {
              inputElement = createDropdownInput(nestedArg.name, nestedArg.enum, currentValueStr);
         } else if (nestedArg.type === "number") {
              inputElement = createNumberInput(nestedArg.name, currentValueStr, nestedArg.description);
         } else if (nestedArg.type === "boolean") {
-             // Use dropdown for boolean for consistency
              inputElement = createDropdownInput(nestedArg.name, ["true", "false"], currentValueStr || "false");
         } else { // Default to string/text input
              inputElement = createTextInput(nestedArg.name, currentValueStr, nestedArg.description);
         }
 
         if (inputElement) {
-            // Find the actual input/select element within potential wrappers
             const inputField = (inputElement.tagName === "DIV") ? inputElement.querySelector("select, input") : inputElement;
-
             if (inputField) {
                 // Add event listener to update the settings INSTANCE directly on change
                 inputField.addEventListener("change", (e) => {
                     const target = e.target as HTMLInputElement | HTMLSelectElement;
                     let newValue: string | number | boolean = target.value;
-
                     // Convert value type based on schema
-                    if (nestedArg.type === "number") {
-                        newValue = parseInt(target.value, 10);
-                        if (isNaN(newValue)) newValue = 0; // Default to 0 if parsing fails
-                    } else if (nestedArg.type === "boolean") {
-                        newValue = target.value === "true";
-                    }
-
+                    if (nestedArg.type === "number") { newValue = parseInt(target.value, 10); if (isNaN(newValue)) newValue = 0; }
+                    else if (nestedArg.type === "boolean") { newValue = target.value === "true"; }
                     // Update the INSTANCE directly using the nestedArg name as key
                     (settingsInstance as any)[nestedArg.name] = newValue;
-                    console.log(`Updated setting '${nestedArg.name}' to:`, newValue, settingsInstance); // For debugging
+                    console.log(`Updated setting '${nestedArg.name}' to:`, newValue, settingsInstance); // Log generic instance
                 });
             }
             controlDiv.appendChild(inputElement);
         }
-
         fieldDiv.appendChild(controlDiv);
         contentContainer.appendChild(fieldDiv);
     });

@@ -1,25 +1,30 @@
 import { AudioController } from "./audio_controller";
 import { DisplayController, Status } from "./display_controller";
 import { ScheduleEditor } from "./schedule/editor/schedule_editor";
-// feature_registry imports remain the same
-import "./guitar/guitar"; // Ensure features are registered
+// Import registry functions and types
+import { FeatureCategoryName, SettingsUISchemaItem } from "./feature";
+import { getAvailableCategories, getDefaultSettingsForCategory } from "./feature_registry";
+// Import settings functions and types
 import {
-  AppSettings,
-  DEFAULT_SETTINGS,
-  SETTINGS_STORAGE_KEY,
-  GuitarSettings,
+    AppSettings,
+    loadSettings,
+    getCategorySettings,
+    CategorySettingsMap,
+    SETTINGS_STORAGE_KEY,
+    LAST_RUN_SCHEDULE_JSON_KEY,
+    RECENT_SCHEDULES_JSON_KEY,
+    MAX_RECENT_SCHEDULES,
 } from "./settings";
-import { AVAILABLE_TUNINGS, TuningName } from "./guitar/fretboard";
+// Import feature registration files (ensure they run)
+import "./guitar/guitar"; // For Guitar category registration
+// Other imports
 import { ScheduleLoadModal } from "./schedule/schedule_load_modal";
-import { FretboardColorScheme } from "./guitar/colors";
-import { Schedule } from "./schedule/schedule"; // Import Schedule for type hint
+import { Schedule } from "./schedule/schedule";
 
-// --- Constants for JSON Storage ---
-const RECENT_SCHEDULES_JSON_KEY = "recentSchedulesJSON";
-const MAX_RECENT_SCHEDULES = 5;
-const LAST_RUN_SCHEDULE_JSON_KEY = "lastRunScheduleJSON";
-const DEFAULT_MAX_CANVAS_HEIGHT = 650; // Use new key for last run JSON string
-// --- End Constants ---
+// --- Constants ---
+const DEFAULT_MAX_CANVAS_HEIGHT = 650;
+// ID for the container where dynamic settings will be injected
+const CATEGORY_SETTINGS_CONTAINER_ID = "category-settings-container";
 
 export class Main {
   currentSchedule: Schedule | null = null;
@@ -37,16 +42,16 @@ export class Main {
   scheduleAccordionHeaderEl!: HTMLElement;
   loadScheduleButtonEl!: HTMLElement;
 
-  settings: AppSettings;
+  settings: AppSettings; // Holds the currently active settings
 
   constructor() {
-    // ... (constructor logic mostly remains the same) ...
     console.log("Initializing Main Application...");
-    this.settings = this.loadSettings();
+    // Load settings using the updated function which incorporates registry defaults
+    this.settings = loadSettings();
 
     if (!this.ensureElementsExist()) return;
 
-    this.applySettings();
+    this.applySettings(); // Apply theme initially
 
     // Initialize Controllers
     this.audioController = new AudioController(
@@ -58,7 +63,7 @@ export class Main {
       document.querySelector("#total-timer") as HTMLElement,
       document.querySelector("#task-wrapper") as HTMLElement,
       document.querySelector("#task") as HTMLElement,
-      document.querySelector("#diagram") as HTMLElement, // This is the container where features render
+      document.querySelector("#diagram") as HTMLElement,
       document.querySelector("#status") as HTMLElement,
       document.querySelector("#upcoming") as HTMLElement,
       document.querySelector("#start-control") as HTMLElement
@@ -71,7 +76,7 @@ export class Main {
     if (editorContainer) {
       this.scheduleEditor = new ScheduleEditor(
         editorContainer as HTMLElement,
-        () => this.reset(), // Pass reset as the updateAction callback
+        () => this.reset(),
         this.audioController
       );
     } else {
@@ -88,7 +93,7 @@ export class Main {
       this.scheduleLoadModal = new ScheduleLoadModal(
         loadModalElement,
         this.scheduleEditor,
-        RECENT_SCHEDULES_JSON_KEY // Pass the new key name for JSON storage
+        RECENT_SCHEDULES_JSON_KEY
       );
       console.log("ScheduleLoadModal initialized.");
     } else {
@@ -98,7 +103,7 @@ export class Main {
     }
 
     this.addControlHandlers();
-    this.addSettingsModalHandlers();
+    this.addSettingsModalHandlers(); // This needs refactoring
     this.addAccordionHandlers();
 
     // Load last run schedule (JSON format)
@@ -109,7 +114,7 @@ export class Main {
         console.log(
           "Found last run schedule (JSON) in localStorage. Attempting to load..."
         );
-        this.scheduleEditor.setScheduleJSON(lastRunJSON, true); // Load JSON, skip sync initially
+        this.scheduleEditor.setScheduleJSON(lastRunJSON, true);
         loadedFromStorage = true;
         console.log(
           "Last run schedule (JSON) loaded successfully into editor."
@@ -117,7 +122,7 @@ export class Main {
         this.reset(); // Trigger reset manually AFTER successful load
       } catch (e: any) {
         console.error("Error loading or setting last run schedule JSON:", e);
-        localStorage.removeItem(LAST_RUN_SCHEDULE_JSON_KEY); // Remove corrupted data
+        localStorage.removeItem(LAST_RUN_SCHEDULE_JSON_KEY);
         this.reset(); // Fallback to default reset
       }
     }
@@ -127,13 +132,13 @@ export class Main {
       console.log(
         "No last run schedule JSON found or loading failed. Performing initial reset."
       );
-      this.reset(); // This will load the default schedule from the editor
+      this.reset();
     }
 
     console.log("Initialization complete.");
   }
 
-  // Helper to check essential elements
+  // ensureElementsExist remains the same
   private ensureElementsExist(): boolean {
     const requiredIds = [
       // Core UI
@@ -151,7 +156,7 @@ export class Main {
       "#intro-end-sound",
       "#interval-end-sound",
       "#metronome-sound",
-      // Editor & Name (Check schedule-editor-container first)
+      // Editor & Name
       "#schedule-editor-container",
       "#schedule-accordion",
       "#schedule-name-display",
@@ -163,11 +168,11 @@ export class Main {
       "#warmup-input",
       "#handedness-select",
       "#tuning-select",
-      "#color-scheme-select",
+      "#color-scheme-select", // Assuming these IDs exist for guitar settings
       "#settings-save-button",
       "#settings-cancel-button",
       "#settings-modal-close",
-      // Load/save modal (optional but checked)
+      // Load/save modal
       "#load-schedule-button",
       "#load-schedule-modal",
     ];
@@ -186,7 +191,17 @@ export class Main {
           console.warn(
             `Optional HTML element not found: ${id}. Schedule naming UI disabled.`
           );
-          // Don't make naming critical for basic function
+        } else if (
+          [
+            "#handedness-select",
+            "#tuning-select",
+            "#color-scheme-select",
+          ].includes(id)
+        ) {
+          console.warn(
+            `HTML element for Guitar Setting not found: ${id}. Settings modal might be incomplete.`
+          );
+          // Don't make it critical if only settings elements are missing initially
         } else {
           console.error(
             `CRITICAL ERROR: Required HTML element not found: ${id}`
@@ -197,6 +212,7 @@ export class Main {
     });
 
     if (allFound) {
+      // Assign core elements needed by methods
       this.settingsModalEl = document.querySelector(
         "#settings-modal"
       ) as HTMLElement;
@@ -217,18 +233,17 @@ export class Main {
       }
       this.loadScheduleButtonEl = document.querySelector(
         "#load-schedule-button"
-      ) as HTMLElement;
-    } else if (!allFound) {
-      // Only alert if critical elements missing
+      ) as HTMLElement; // May be null if optional element missing
+    }
+    if (!allFound) {
       alert(
         "Error: Could not find all necessary page elements. The application might not work correctly."
       );
     }
-
     return allFound;
   }
 
-  // Attaches handlers to main control buttons
+  // addControlHandlers remains the same
   addControlHandlers(): void {
     const startBtn = document.querySelector("#start-control") as HTMLElement;
     const skipBtn = document.querySelector("#skip-control") as HTMLElement;
@@ -242,11 +257,7 @@ export class Main {
 
     if (!startBtn || !skipBtn || !resetBtn || !this.settingsButtonEl) {
       console.error("Core control or Settings buttons not found!");
-    }
-    if (!this.loadScheduleButtonEl) {
-      console.warn(
-        "Load Schedule button (#load-schedule-button) not found. Load/Save modal functionality disabled."
-      );
+      return; // Prevent errors if core buttons are missing
     }
 
     this.controlButtonEl = startBtn;
@@ -256,17 +267,15 @@ export class Main {
     resetBtn.onclick = () => this.reset();
     this.settingsButtonEl.onclick = () => this.openSettingsModal();
 
-    // Attach handler for load/save modal button only if modal instance exists
     if (this.loadScheduleButtonEl && this.scheduleLoadModal) {
       this.loadScheduleButtonEl.onclick = () => {
         if (this.currentSchedule?.isRunning()) {
           alert("Please stop the timer before loading or saving schedules.");
           return;
         }
-        this.scheduleLoadModal.show(); // Show the modal
+        this.scheduleLoadModal.show();
       };
     } else if (this.loadScheduleButtonEl) {
-      // Disable button if modal wasn't created
       this.loadScheduleButtonEl.setAttribute("disabled", "true");
       this.loadScheduleButtonEl.setAttribute(
         "title",
@@ -275,111 +284,110 @@ export class Main {
     }
   }
 
-  // --- Settings Logic ---
-  private loadSettings(): AppSettings {
-    try {
-      const storedSettings = localStorage.getItem(SETTINGS_STORAGE_KEY);
-      if (storedSettings) {
-        const parsed = JSON.parse(storedSettings);
-        const loaded: AppSettings = JSON.parse(
-          JSON.stringify(DEFAULT_SETTINGS)
-        ); // Deep copy defaults
-
-        // Merge top-level
-        for (const key in parsed) {
-          if (
-            Object.prototype.hasOwnProperty.call(parsed, key) &&
-            key !== "guitarSettings" &&
-            key in loaded
-          ) {
-            (loaded as any)[key] = parsed[key];
-          }
-        }
-        // Merge guitarSettings
-        if (parsed.guitarSettings) {
-          loaded.guitarSettings = {
-            ...loaded.guitarSettings, // Start with defaults
-            ...parsed.guitarSettings, // Overwrite with stored
-          };
-        }
-        // Validation
-        if (!AVAILABLE_TUNINGS[loaded.guitarSettings.tuning]) {
-          loaded.guitarSettings.tuning = "Standard";
-        }
-        const validSchemes: FretboardColorScheme[] = [
-          "default",
-          "note",
-          "interval",
-        ];
-        if (!validSchemes.includes(loaded.guitarSettings.colorScheme)) {
-          loaded.guitarSettings.colorScheme = "default";
-        }
-        return loaded;
-      }
-    } catch (e) {
-      console.error("Failed to load settings from localStorage:", e);
-    }
-    return JSON.parse(JSON.stringify(DEFAULT_SETTINGS)); // Return deep copy
-  }
+  /** Saves the complete AppSettings object to localStorage */
   private saveSettings(newSettings: AppSettings): void {
     try {
-      // Validation before saving
-      if (!AVAILABLE_TUNINGS[newSettings.guitarSettings.tuning]) {
-        newSettings.guitarSettings.tuning = "Standard";
-      }
-      const validSchemes: FretboardColorScheme[] = [
-        "default",
-        "note",
-        "interval",
-      ];
-      if (!validSchemes.includes(newSettings.guitarSettings.colorScheme)) {
-        newSettings.guitarSettings.colorScheme = "default";
-      }
-      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
-      this.settings = newSettings;
-      console.log("Settings saved:", this.settings);
+        console.log("[saveSettings] Attempting to save:", JSON.stringify(newSettings));
+        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
+        this.settings = newSettings; // Update the instance's settings
+        console.log("[saveSettings] Settings object updated in Main instance.");
     } catch (e) {
-      console.error("Failed to save settings to localStorage:", e);
+        console.error("Failed to save settings to localStorage:", e);
+        alert("Error saving settings.");
     }
-  }
+}
+
+  
+  /** Applies global settings (like theme) */
   private applySettings(): void {
     if (this.settings.theme === "dark") {
       document.body.classList.add("dark-theme");
     } else {
       document.body.classList.remove("dark-theme");
     }
-    console.log("Settings applied.");
-    // Visual changes requiring feature re-render are handled by reset() after save
+    console.log("Global settings applied.");
+    // Category-specific visual changes are handled by reset() after save
   }
+
+  /** Populates and opens the settings modal */
   private openSettingsModal(): void {
-    if (this.currentSchedule?.isRunning()) {
-      alert("Please stop the timer before changing settings.");
-      return;
-    }
+    if (this.currentSchedule?.isRunning()) { /* ... alert ... */ return; }
     if (!this.settingsModalEl) return;
-    // Populate global
-    (document.getElementById("theme-select") as HTMLSelectElement).value =
-      this.settings.theme;
-    (document.getElementById("warmup-input") as HTMLInputElement).value =
-      String(this.settings.warmupPeriod);
-    // Populate Guitar
-    (document.getElementById("handedness-select") as HTMLSelectElement).value =
-      this.settings.guitarSettings.handedness;
-    const tuningSelect = document.getElementById(
-      "tuning-select"
-    ) as HTMLSelectElement;
-    tuningSelect.value = AVAILABLE_TUNINGS[this.settings.guitarSettings.tuning]
-      ? this.settings.guitarSettings.tuning
-      : "Standard";
-    (
-      document.getElementById("color-scheme-select") as HTMLSelectElement
-    ).value = this.settings.guitarSettings.colorScheme;
+
+    // --- Populate Global Settings ---
+    (document.getElementById("theme-select") as HTMLSelectElement).value = this.settings.theme;
+    (document.getElementById("warmup-input") as HTMLInputElement).value = String(this.settings.warmupPeriod);
+
+    // --- Populate Dynamic Category Settings ---
+    const container = this.settingsModalEl.querySelector<HTMLElement>(`#${CATEGORY_SETTINGS_CONTAINER_ID}`);
+    if (!container) { console.error("Cannot find category settings container in modal!"); return; }
+    container.innerHTML = ''; // Clear previous dynamic content
+
+    const categories = getAvailableCategories();
+    categories.forEach(categoryDesc => {
+        if (typeof categoryDesc.getSettingsUISchema === 'function') {
+            const schemaItems = categoryDesc.getSettingsUISchema();
+            if (schemaItems && schemaItems.length > 0) {
+                const currentCategorySettings = getCategorySettings<any>(this.settings, categoryDesc.categoryName);
+                // --- Create Category Header ---
+                const categoryHeader = document.createElement('h5');
+                categoryHeader.textContent = `${categoryDesc.displayName} Settings`;
+                categoryHeader.classList.add('title', 'is-6', 'category-settings-header', 'mt-4'); // Added margin-top
+                container.appendChild(categoryHeader);
+                // --- Create UI elements ---
+                schemaItems.forEach(item => {
+                    const fieldDiv = document.createElement('div'); fieldDiv.classList.add('field', 'is-horizontal');
+                    const fieldLabel = document.createElement('div'); fieldLabel.classList.add('field-label', 'is-normal');
+                    const label = document.createElement('label'); label.classList.add('label'); label.textContent = item.label; if (item.description) label.title = item.description;
+                    fieldLabel.appendChild(label);
+                    const fieldBody = document.createElement('div'); fieldBody.classList.add('field-body');
+                    const fieldInner = document.createElement('div'); fieldInner.classList.add('field');
+                    const control = document.createElement('div'); control.classList.add('control');
+                    let inputElement: HTMLInputElement | HTMLSelectElement;
+                    const inputId = `setting-${categoryDesc.categoryName}-${item.key}`; // Consistent ID
+
+                    if (item.type === 'select' && item.options) {
+                        inputElement = document.createElement('select'); inputElement.id = inputId;
+                        const selectWrapper = document.createElement('div'); selectWrapper.classList.add('select', 'is-fullwidth');
+                        item.options.forEach(opt => {
+                            const option = document.createElement('option'); option.value = opt.value; option.textContent = opt.text;
+                            if (currentCategorySettings && currentCategorySettings[item.key] === opt.value) option.selected = true;
+                            inputElement.appendChild(option); });
+                        selectWrapper.appendChild(inputElement); control.appendChild(selectWrapper);
+                    } else {
+                        inputElement = document.createElement('input'); inputElement.id = inputId; inputElement.type = item.type;
+                        if (item.type === 'checkbox') {
+                            inputElement.classList.add('checkbox');
+                            inputElement.checked = !!(currentCategorySettings && currentCategorySettings[item.key]);
+                            control.appendChild(inputElement); // Checkbox goes directly into control
+                        } else {
+                            inputElement.classList.add('input');
+                            inputElement.value = (currentCategorySettings && currentCategorySettings[item.key] !== undefined) ? String(currentCategorySettings[item.key]) : '';
+                            if (item.placeholder) inputElement.placeholder = item.placeholder;
+                            if (item.min !== undefined) inputElement.min = String(item.min);
+                            if (item.max !== undefined) inputElement.max = String(item.max);
+                            if (item.step !== undefined) inputElement.step = String(item.step);
+                            control.appendChild(inputElement);
+                        }
+                    }
+                    inputElement.dataset.category = categoryDesc.categoryName; inputElement.dataset.setting = item.key;
+                    label.htmlFor = inputId;
+                    fieldInner.appendChild(control); fieldBody.appendChild(fieldInner); fieldDiv.appendChild(fieldLabel); fieldDiv.appendChild(fieldBody);
+                    container.appendChild(fieldDiv);
+                });
+            }
+        }
+    });
     this.settingsModalEl.classList.add("is-active");
-  }
+}
+
+  // closeSettingsModal remains the same
   private closeSettingsModal(): void {
     if (!this.settingsModalEl) return;
     this.settingsModalEl.classList.remove("is-active");
   }
+
+  /** Attaches handlers for the settings modal buttons */
   private addSettingsModalHandlers(): void {
     const saveBtn = document.getElementById("settings-save-button");
     const cancelBtn = document.getElementById("settings-cancel-button");
@@ -387,49 +395,70 @@ export class Main {
     if (!saveBtn || !cancelBtn || !closeBtn || !this.settingsModalEl) return;
 
     saveBtn.onclick = () => {
-      const theme = (
-        document.getElementById("theme-select") as HTMLSelectElement
-      ).value as "light" | "dark";
-      const warmupPeriod =
-        parseInt(
-          (document.getElementById("warmup-input") as HTMLInputElement).value,
-          10
-        ) || 0;
-      const handedness = (
-        document.getElementById("handedness-select") as HTMLSelectElement
-      ).value as "right" | "left";
-      const tuning = (
-        document.getElementById("tuning-select") as HTMLSelectElement
-      ).value as TuningName;
-      const colorScheme = (
-        document.getElementById("color-scheme-select") as HTMLSelectElement
-      ).value as FretboardColorScheme;
+        // 1. Create a deep copy of current settings to modify
+        const newSettings: AppSettings = JSON.parse(JSON.stringify(this.settings));
 
-      const newSettings: AppSettings = {
-        ...this.settings,
-        theme: theme,
-        warmupPeriod: Math.max(0, warmupPeriod),
-        guitarSettings: {
-          ...this.settings.guitarSettings,
-          handedness: handedness,
-          tuning: AVAILABLE_TUNINGS[tuning] ? tuning : "Standard", // Validate
-          colorScheme: colorScheme,
-        },
-      };
-      this.saveSettings(newSettings);
-      this.applySettings();
-      this.closeSettingsModal();
-      this.reset(); // Force reset to apply changes
+        // 2. Update global settings
+        newSettings.theme = (document.getElementById("theme-select") as HTMLSelectElement).value as "light" | "dark";
+        newSettings.warmupPeriod = Math.max(0, parseInt((document.getElementById("warmup-input") as HTMLInputElement).value, 10) || 0);
+
+        // 3. Update Category Settings Dynamically
+        const container = this.settingsModalEl.querySelector<HTMLElement>(`#${CATEGORY_SETTINGS_CONTAINER_ID}`);
+        if (container) {
+            // Find all input/select elements within the dynamic container
+            const settingElements = container.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[data-setting], select[data-setting]');
+
+            settingElements.forEach(element => {
+                const categoryKey = element.dataset.category;
+                const settingKey = element.dataset.setting;
+
+                if (categoryKey && settingKey) {
+                    // Ensure the category object exists in the settings map
+                    if (!newSettings.categorySettings[categoryKey]) {
+                        // Initialize with defaults if it's missing (shouldn't happen if loadSettings works)
+                        const defaults = getDefaultSettingsForCategory<any>(categoryKey as FeatureCategoryName) ?? {};
+                        newSettings.categorySettings[categoryKey] = { ...defaults };
+                         console.warn(`Initialized missing settings for category: ${categoryKey}`);
+                    }
+
+                    // Get the value based on element type
+                    let value: string | number | boolean;
+                    if (element.type === 'checkbox') {
+                        value = (element as HTMLInputElement).checked;
+                    } else if (element.type === 'number') {
+                        value = parseFloat(element.value) || 0; // Or handle NaN appropriately
+                         // Optional: Clamp value based on min/max attributes
+                         const min = element.getAttribute('min');
+                         const max = element.getAttribute('max');
+                         if (min !== null) value = Math.max(parseFloat(min), value);
+                         if (max !== null) value = Math.min(parseFloat(max), value);
+                    } else {
+                        value = element.value;
+                    }
+
+                    // Update the specific setting
+                    newSettings.categorySettings[categoryKey][settingKey] = value;
+                    console.log(`[Settings Save] Updated ${categoryKey}.${settingKey} to:`, value);
+                }
+            });
+        } else {
+             console.error("Category settings container not found during save!");
+        }
+
+        // 4. Save, Apply, Close, Reset
+        this.saveSettings(newSettings);
+        this.applySettings();
+        this.closeSettingsModal();
+        this.reset();
     };
 
     cancelBtn.onclick = () => this.closeSettingsModal();
     closeBtn.onclick = () => this.closeSettingsModal();
-    this.settingsModalEl
-      .querySelector(".modal-background")
-      ?.addEventListener("click", () => this.closeSettingsModal());
-  }
+    this.settingsModalEl.querySelector(".modal-background")?.addEventListener("click", () => this.closeSettingsModal());
+}
 
-  // --- Accordion Logic ---
+
+  // --- Accordion Logic (Remains the same) ---
   private addAccordionHandlers(): void {
     if (!this.scheduleAccordionHeaderEl) return;
     this.scheduleAccordionHeaderEl.onclick = () => {
@@ -443,10 +472,8 @@ export class Main {
     this.scheduleAccordionEl.classList.toggle("collapsed", collapse);
   }
 
-  // --- Core Timer/Schedule Logic ---
-  // --- Core Timer/Schedule Logic ---
+  // --- Core Timer/Schedule Logic (Remains largely the same, uses updated settings) ---
   toggleCountdown(): void {
-    // Prevent control if modals are open
     if (this.settingsModalEl?.classList.contains("is-active")) {
       console.warn("Settings modal is open.");
       return;
@@ -455,8 +482,6 @@ export class Main {
       console.warn("Load Schedule modal is open.");
       return;
     }
-
-    // Ensure schedule exists, reset if needed
     if (!this.currentSchedule) {
       this.reset();
       if (!this.currentSchedule) {
@@ -465,31 +490,29 @@ export class Main {
       }
     }
 
-    // Handle timer states
     if (this.currentSchedule.isFinished()) {
-      this.reset(); // Reset if finished
+      this.reset();
     } else if (this.currentSchedule.isRunning()) {
       this.currentSchedule.pause();
-      this.toggleScheduleAccordion(false); // Expand when paused
+      this.toggleScheduleAccordion(false);
     } else {
-      // --- Save schedule (JSON) to localStorage before starting ---
       try {
-        const scheduleJSON = this.scheduleEditor.getScheduleJSON(); // Get JSON string
-        // Basic check if JSON is not empty object "{}" or empty items "{\"items\":[]}"
+        const scheduleJSON = this.scheduleEditor.getScheduleJSON();
         let isValidToSave = false;
         try {
           const parsed = JSON.parse(scheduleJSON);
           isValidToSave =
             parsed && Array.isArray(parsed.items) && parsed.items.length > 0;
-        } catch {} // Ignore parse errors for this check
+        } catch {
+          /* ignore */
+        }
 
         if (isValidToSave) {
-          localStorage.setItem(LAST_RUN_SCHEDULE_JSON_KEY, scheduleJSON); // Use new key
+          localStorage.setItem(LAST_RUN_SCHEDULE_JSON_KEY, scheduleJSON);
           console.log("Saved current schedule as last run schedule (JSON).");
-
           // --- Update Recent List ---
-          const stored = localStorage.getItem(RECENT_SCHEDULES_JSON_KEY); // Use new key
-          let recentSchedules: string[] = []; // Array of JSON strings
+          const stored = localStorage.getItem(RECENT_SCHEDULES_JSON_KEY);
+          let recentSchedules: string[] = [];
           if (stored) {
             try {
               const p = JSON.parse(stored);
@@ -501,19 +524,16 @@ export class Main {
           }
           recentSchedules = recentSchedules.filter(
             (item) => item !== scheduleJSON
-          ); // Remove duplicate
-          recentSchedules.unshift(scheduleJSON); // Add to front
+          );
+          recentSchedules.unshift(scheduleJSON);
           if (recentSchedules.length > MAX_RECENT_SCHEDULES)
-            recentSchedules.length = MAX_RECENT_SCHEDULES; // Limit size
+            recentSchedules.length = MAX_RECENT_SCHEDULES;
           localStorage.setItem(
             RECENT_SCHEDULES_JSON_KEY,
             JSON.stringify(recentSchedules)
           );
-          console.log(
-            `Updated recent schedules list (${recentSchedules.length} items, JSON).`
-          );
           if (this.scheduleLoadModal?.isOpen())
-            this.scheduleLoadModal.refreshRecentList(); // Refresh modal if open
+            this.scheduleLoadModal.refreshRecentList();
         } else {
           console.log("Skipping save for empty or invalid schedule JSON.");
         }
@@ -523,13 +543,12 @@ export class Main {
           storageError
         );
       }
-      // --- End save logic ---
-
       this.currentSchedule.start();
-      this.toggleScheduleAccordion(true); // Collapse when started
+      this.toggleScheduleAccordion(true);
     }
   }
 
+  // skipCurrentTask remains the same
   skipCurrentTask(): void {
     if (!this.currentSchedule || this.currentSchedule.isFinished()) {
       console.warn("Cannot skip: No active schedule or schedule finished.");
@@ -546,50 +565,44 @@ export class Main {
     this.toggleScheduleAccordion(this.currentSchedule.isRunning());
   }
 
-  /** Resets the current schedule based on the editor content and global settings */
+  /** Resets the schedule using the editor and current settings */
   reset(): void {
     console.log("Resetting schedule using current editor state...");
-    this.currentSchedule?.pause(); // Pause existing schedule if any
-    this.scheduleEditor?.errorDisplay?.removeMessage(); // Clear editor errors
+    this.currentSchedule?.pause();
+    this.scheduleEditor?.errorDisplay?.removeMessage();
 
     try {
-      // --- Determine maxCanvasHeight from the #diagram container ---
-      const diagramContainer = document.getElementById('diagram');
-      // Use clientHeight, but ensure it's a reasonable value, otherwise fallback.
-      // Checking > 50 avoids using 0 if the element hasn't rendered properly yet.
-      const maxCanvasHeight = (diagramContainer?.clientHeight && diagramContainer.clientHeight > 50)
-                              ? diagramContainer.clientHeight
-                              : DEFAULT_MAX_CANVAS_HEIGHT; // Fallback to default
-      console.log(`[Main.reset] Using maxCanvasHeight: ${maxCanvasHeight} (from container: ${diagramContainer?.clientHeight})`);
-      // --- End maxCanvasHeight determination ---
-
-
-      // getSchedule now handles syncing JSON view if needed and uses ScheduleBuilder
-      // Pass the dynamically determined maxCanvasHeight constraint to getSchedule
-      this.currentSchedule = this.scheduleEditor.getSchedule(
-        this.displayController,
-        this.settings, // Pass current global settings
-        maxCanvasHeight // Pass height constraint
+      const diagramContainer = document.getElementById("diagram");
+      const maxCanvasHeight =
+        diagramContainer?.clientHeight && diagramContainer.clientHeight > 50
+          ? diagramContainer.clientHeight
+          : DEFAULT_MAX_CANVAS_HEIGHT;
+      console.log(
+        `[Main.reset] Using maxCanvasHeight: ${maxCanvasHeight} (from container: ${diagramContainer?.clientHeight})`
       );
 
-      // Update UI based on whether a valid schedule was built
+      // getSchedule now uses the current `this.settings` which includes dynamic category settings
+      this.currentSchedule = this.scheduleEditor.getSchedule(
+        this.displayController,
+        this.settings, // Pass the instance's current settings
+        maxCanvasHeight
+      );
+
       if (this.currentSchedule && this.currentSchedule.intervals.length > 0) {
-        this.currentSchedule.prepare(); // Prepare the first interval's display
+        this.currentSchedule.prepare();
         this.displayController.setStart();
         this.displayController.setStatus(Status.Pause);
         console.log("Schedule reset and prepared.");
       } else {
-        // Handle empty or invalid schedule (getSchedule logs errors)
         console.warn("Reset resulted in empty or invalid schedule.");
-        // Clear display if schedule is invalid/empty
         this.displayController.setTask("Load/Create Schedule", "lightgrey");
         this.displayController.setTime(0);
         this.displayController.setTotalTime(0, 0);
         this.displayController.setUpcoming([], true);
         this.displayController.setStatus(Status.Stop);
-        this.displayController.setStart(); // Ensure button shows START
-        this.displayController.clearFeature(); // Clear any old diagram
-        this.currentSchedule = null; // Ensure no schedule object exists
+        this.displayController.setStart();
+        this.displayController.clearFeature();
+        this.currentSchedule = null;
       }
     } catch (error) {
       console.error("Unexpected error during reset/getSchedule:", error);
@@ -602,11 +615,11 @@ export class Main {
       this.displayController.clearFeature();
       this.currentSchedule = null;
     }
-    this.toggleScheduleAccordion(false); // Ensure accordion is expanded after reset
+    this.toggleScheduleAccordion(false);
   }
 }
 
-// --- App Initialization ---
+// --- App Initialization (Remains the same) ---
 function initializeApp() {
   if (document.readyState === "loading") {
     document.addEventListener("DOMContentLoaded", () => new Main());

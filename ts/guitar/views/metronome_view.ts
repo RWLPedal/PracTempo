@@ -1,3 +1,4 @@
+// ts/guitar/views/metronome_view.ts
 import { View } from "../../view";
 import { AudioController } from "../../audio_controller";
 
@@ -18,13 +19,13 @@ export class MetronomeView implements View {
   private beatElements: HTMLElement[] = [];
   private activeBeats: boolean[] = [];
   private currentBeatIndex: number = -1;
-  private readonly subdivisions = 8;
+  private readonly subdivisions = 8; // 8 eighth notes in 4/4
 
   private controlsContainer: HTMLElement | null = null;
   private bpmSlider: HTMLInputElement | null = null;
   private bpmDisplay: HTMLSpanElement | null = null;
-  private muteButton: HTMLButtonElement | null = null; // Renamed from pauseButton
-  private isMuted: boolean = false; // Renamed from isPausedManually
+  private muteButton: HTMLButtonElement | null = null;
+  private isMuted: boolean = false;
 
   constructor(
     bpm: number,
@@ -46,19 +47,27 @@ export class MetronomeView implements View {
 
   render(container: HTMLElement): void {
     this.container = container;
-    this.cleanupVisuals();
+    this.cleanupVisuals(); // Remove any previous visuals
 
+    // --- Main container for the metronome view ---
     this.visualizerContainer = document.createElement("div");
     this.visualizerContainer.classList.add("metronome-visualizer");
-    this.visualizerContainer.style.width = "100%";
-    this.visualizerContainer.style.padding = "10px 0";
+    this.visualizerContainer.style.padding = "10px 5px"; // Adjust padding
+    // **** Set a max-width to control overall size ****
+    this.visualizerContainer.style.maxWidth = "300px"; // Adjust this value as needed (e.g., "280px", "320px")
+    this.visualizerContainer.style.margin = "10px auto"; // Center it if container is wider (or remove 'auto' for left align)
+    // Add a border for visual separation if desired
+    // this.visualizerContainer.style.border = "1px solid var(--clr-border-light)";
+    // this.visualizerContainer.style.borderRadius = "4px";
 
+    // --- Beat Visualizer ---
     this.beatsContainer = document.createElement("div");
     this.beatsContainer.style.display = "flex";
-    this.beatsContainer.style.justifyContent = "space-around";
+    // Adjust justification for narrower width
+    this.beatsContainer.style.justifyContent = "space-between"; // Use space-between instead of space-around
     this.beatsContainer.style.alignItems = "center";
     this.beatsContainer.style.marginBottom = "15px";
-    this.beatsContainer.style.minHeight = "30px";
+    this.beatsContainer.style.minHeight = "25px"; // Slightly smaller min-height
 
     this.beatElements = [];
     for (let i = 0; i < this.subdivisions; i++) {
@@ -66,14 +75,17 @@ export class MetronomeView implements View {
       beatElement.classList.add("metronome-beat");
       beatElement.dataset.index = String(i);
 
+      // Slightly smaller beat indicators
       if (i % 2 === 0) {
+        // Quarter notes
         beatElement.classList.add("quarter-note");
-        beatElement.style.width = "22px";
-        beatElement.style.height = "22px";
+        beatElement.style.width = "18px";
+        beatElement.style.height = "18px";
       } else {
+        // Eighth notes
         beatElement.classList.add("eighth-note");
-        beatElement.style.width = "16px";
-        beatElement.style.height = "16px";
+        beatElement.style.width = "14px";
+        beatElement.style.height = "14px";
       }
 
       beatElement.style.borderRadius = "50%";
@@ -82,45 +94,51 @@ export class MetronomeView implements View {
       beatElement.style.cursor = "pointer";
       beatElement.style.transition =
         "opacity 0.1s ease-in-out, background-color 0.1s ease-in-out, border-color 0.1s ease-in-out, transform 0.1s ease-in-out";
-      beatElement.style.margin = "0 3px";
+      beatElement.style.margin = "0 2px"; // Reduced margin
 
       beatElement.addEventListener("click", this.handleBeatClick.bind(this));
       this.beatElements.push(beatElement);
       this.beatsContainer.appendChild(beatElement);
     }
-    this.updateBeatStyles();
+    this.updateBeatStyles(); // Set initial active/inactive styles
     this.visualizerContainer.appendChild(this.beatsContainer);
 
+    // --- Controls ---
     this.controlsContainer = document.createElement("div");
     this.controlsContainer.style.display = "flex";
     this.controlsContainer.style.alignItems = "center";
-    this.controlsContainer.style.justifyContent = "center";
-    this.controlsContainer.style.gap = "15px";
+    this.controlsContainer.style.justifyContent = "center"; // Keep centered
+    this.controlsContainer.style.gap = "10px"; // Reduced gap
 
+    // Mute Button
     this.muteButton = document.createElement("button");
     this.muteButton.classList.add("button", "is-small", "metronome-mute-btn");
-    this.muteButton.textContent = "Mute";
-    this.muteButton.style.minWidth = "65px";
+    this.muteButton.textContent = "Mute"; // Initial text
+    this.muteButton.style.minWidth = "60px"; // Slightly smaller min-width
     this.muteButton.addEventListener("click", this.toggleMute.bind(this));
     this.controlsContainer.appendChild(this.muteButton);
 
+    // BPM Slider
     this.bpmSlider = document.createElement("input");
     this.bpmSlider.type = "range";
-    this.bpmSlider.min = "1";
+    this.bpmSlider.min = "1"; // Keep range, can be adjusted if needed
     this.bpmSlider.max = "250";
     this.bpmSlider.value = String(this.bpm);
-    this.bpmSlider.style.flexGrow = "1";
-    this.bpmSlider.style.maxWidth = "200px";
+    this.bpmSlider.style.flexGrow = "1"; // Allow slider to take space
+    this.bpmSlider.style.maxWidth = "150px"; // Reduced max-width for slider
+    this.bpmSlider.style.minWidth = "80px"; // Ensure it doesn't get too small
     this.bpmSlider.addEventListener("input", this.handleSliderInput.bind(this));
     this.controlsContainer.appendChild(this.bpmSlider);
 
+    // BPM Display
     this.bpmDisplay = document.createElement("span");
     this.bpmDisplay.classList.add("metronome-bpm-display", "is-size-7");
-    this.bpmDisplay.style.minWidth = "55px";
+    this.bpmDisplay.style.minWidth = "50px"; // Slightly smaller min-width
     this.bpmDisplay.style.textAlign = "right";
     this.bpmDisplay.textContent = `${this.bpm} BPM`;
     this.controlsContainer.appendChild(this.bpmDisplay);
 
+    // Append controls and main container
     this.visualizerContainer.appendChild(this.controlsContainer);
     this.container.appendChild(this.visualizerContainer);
 
@@ -144,19 +162,15 @@ export class MetronomeView implements View {
 
   /** Starts the actual setInterval */
   private startInterval(): void {
-    if (this.intervalId !== null) return;
-    if (this.bpm <= 0) {
-      console.warn("MetronomeView: Cannot start with BPM <= 0.");
-      return;
-    }
+    if (this.intervalId !== null || this.bpm <= 0) return;
 
-    const intervalMillis = (60 / this.bpm / 2) * 1000; // 8th note interval
+    const intervalMillis = (60 / this.bpm / (this.subdivisions / 4)) * 1000; // Interval per displayed beat (8th notes)
     console.log(
       `MetronomeView starting interval: ${intervalMillis.toFixed(2)}ms (${
         this.bpm
-      } BPM)`
+      } BPM, ${this.subdivisions} subdivisions)`
     );
-    this.currentBeatIndex = -1;
+    this.currentBeatIndex = -1; // Reset index
 
     this.intervalId = window.setInterval(() => {
       this.tick();
@@ -172,6 +186,7 @@ export class MetronomeView implements View {
       this.intervalId = null;
       console.log("MetronomeView interval stopped.");
 
+      // Reset style of the last active beat
       if (
         this.currentBeatIndex >= 0 &&
         this.beatElements[this.currentBeatIndex]
@@ -187,7 +202,7 @@ export class MetronomeView implements View {
     }
   }
 
-  /** Toggles the metronome's sound on/off via the user button */
+  /** Toggles the metronome's sound on/off */
   private toggleMute(): void {
     this.isMuted = !this.isMuted;
     console.log(
@@ -199,7 +214,6 @@ export class MetronomeView implements View {
   /** Updates the Mute/Unmute button text and style */
   private updateMuteButtonState(): void {
     if (!this.muteButton) return;
-
     if (this.isMuted) {
       this.muteButton.textContent = "Unmute";
       this.muteButton.classList.add("is-warning");
@@ -230,9 +244,9 @@ export class MetronomeView implements View {
     if (isNaN(index) || index < 0 || index >= this.subdivisions) return;
 
     this.activeBeats[index] = !this.activeBeats[index];
-    this.applyBeatStyle(target, index);
+    this.applyBeatStyle(target, index); // Update visual style
 
-    // Play click feedback sound only if not muted
+    // Play click feedback sound only if unmuted and beat is now active
     if (this.activeBeats[index] && this.metronomeAudioEl && !this.isMuted) {
       this.metronomeAudioEl.currentTime = 0;
       this.metronomeAudioEl
@@ -244,7 +258,9 @@ export class MetronomeView implements View {
     );
   }
 
+  /** The metronome tick logic */
   private tick(): void {
+    // Reset style of the previously active beat
     if (
       this.currentBeatIndex >= 0 &&
       this.beatElements[this.currentBeatIndex]
@@ -256,22 +272,25 @@ export class MetronomeView implements View {
       );
     }
 
+    // Advance to the next beat
     this.currentBeatIndex = (this.currentBeatIndex + 1) % this.subdivisions;
 
+    // Apply 'current' style to the new active beat
     const currentElement = this.beatElements[this.currentBeatIndex];
     if (currentElement) {
       currentElement.classList.add("current");
-      currentElement.style.borderColor = "#e74c3c";
-      currentElement.style.backgroundColor = "#fadbd8";
+      // Use CSS variables or more dynamic styling if needed
+      currentElement.style.borderColor = "#e74c3c"; // Example: Red border
+      currentElement.style.backgroundColor = "#fadbd8"; // Example: Light red background
       currentElement.style.opacity = "1";
-      currentElement.style.transform = "scale(1.1)";
+      currentElement.style.transform = "scale(1.15)"; // Slightly larger pop
     }
 
-    // Play sound only if the current beat is active AND not muted
+    // Play sound only if this beat is active AND the metronome is not muted
     if (
       this.activeBeats[this.currentBeatIndex] &&
       this.metronomeAudioEl &&
-      !this.isMuted // Check mute status
+      !this.isMuted
     ) {
       this.metronomeAudioEl.currentTime = 0;
       this.metronomeAudioEl
@@ -280,32 +299,39 @@ export class MetronomeView implements View {
     }
   }
 
+  /** Sets the initial styles for all beat elements based on active state */
   private updateBeatStyles(): void {
     this.beatElements.forEach((element, index) => {
       this.applyBeatStyle(element, index);
     });
   }
 
+  /** Applies the appropriate style to a single beat element */
   private applyBeatStyle(element: HTMLElement, index: number): void {
     const isQuarter = index % 2 === 0;
-    element.style.transform = "scale(1)";
+    element.style.transform = "scale(1)"; // Reset scale
 
+    // Set styles based on whether the beat is active or inactive
     if (this.activeBeats[index]) {
+      // Active beat style
       element.style.opacity = "1";
-      element.style.backgroundColor = isQuarter ? "#d0d0d0" : "#e0e0e0";
+      element.style.backgroundColor = isQuarter ? "#d0d0d0" : "#e0e0e0"; // Darker greys
       element.style.borderColor = "#888";
     } else {
-      element.style.opacity = "0.35";
-      element.style.backgroundColor = isQuarter ? "#eaeaea" : "#f5f5f5";
+      // Inactive beat style
+      element.style.opacity = "0.35"; // Dimmed
+      element.style.backgroundColor = isQuarter ? "#eaeaea" : "#f5f5f5"; // Lighter greys
       element.style.borderColor = "#ccc";
     }
-    element.classList.remove("current");
+    element.classList.remove("current"); // Ensure 'current' highlight is removed
   }
 
+  /** Removes the metronome UI elements from the DOM */
   private cleanupVisuals(): void {
     if (this.visualizerContainer && this.visualizerContainer.parentNode) {
       this.visualizerContainer.parentNode.removeChild(this.visualizerContainer);
     }
+    // Nullify references to prevent memory leaks
     this.visualizerContainer = null;
     this.beatsContainer = null;
     this.controlsContainer = null;
@@ -315,16 +341,19 @@ export class MetronomeView implements View {
     this.muteButton = null;
   }
 
+  /** Updates the BPM and restarts the interval if running */
   setBpm(newBpm: number): void {
     if (newBpm > 0 && newBpm <= 250) {
+      // Basic validation
       this.bpm = newBpm;
+      // Update UI display if elements exist
       if (this.bpmDisplay) {
         this.bpmDisplay.textContent = `${this.bpm} BPM`;
       }
       if (this.bpmSlider) {
         this.bpmSlider.value = String(this.bpm);
       }
-      // If interval is running, restart it with the new BPM
+      // Restart the interval with the new BPM if it's currently running
       if (this.intervalId !== null) {
         this.stopInterval();
         this.startInterval();

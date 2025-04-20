@@ -1,5 +1,4 @@
 // ts/schedule/editor/clipboard_manager.ts
-// ... (imports remain the same) ...
 import { RowManager } from "./row_manager";
 import {
   ScheduleRowJSONData,
@@ -7,9 +6,15 @@ import {
   GroupDataJSON,
   IntervalRowData,
   GroupRowData,
-} from "./interval/types"; // Adjusted import
+  IntervalSettings // Import base settings type
+} from "./interval/types";
 import { SelectionManager } from "./selection_manager";
-import { GuitarIntervalSettings } from "../../guitar/guitar_interval_settings";
+// Import factory getter and FeatureCategoryName enum
+import { getIntervalSettingsFactory } from "../../feature_registry";
+import { FeatureCategoryName } from "../../feature";
+// Import the builder for interval rows
+import { buildIntervalRowElement } from "./interval/interval_row_ui";
+
 
 export class ClipboardManager {
   private selectionManager: SelectionManager;
@@ -27,34 +32,33 @@ export class ClipboardManager {
     this.onClipboardChangeCallback = onClipboardChangeCallback;
   }
 
-  // ... (copySelectedRows, pasteRows, hasCopiedData methods remain the same) ...
-
   /** Clears the internal clipboard data. */
   public clearClipboard(): void {
     this.clipboardData = [];
     console.log("Internal clipboard cleared.");
-    this.onClipboardChangeCallback(this.hasCopiedData()); // Update UI paste button state
+    this.onClipboardChangeCallback(this.hasCopiedData()); // Update UI
   }
 
-  // ... copySelectedRows implementation ...
+  /** Copies the currently selected rows' data to the internal clipboard. */
   public copySelectedRows(): void {
     const selectedRows = this.selectionManager.getSelectedElementsInDomOrder();
     if (selectedRows.length === 0) {
       console.log("Nothing selected to copy.");
       return;
     }
+    // Use RowManager.getRowData which now includes featureCategoryName for intervals
     this.clipboardData = selectedRows
       .map((row) => this.rowManager.getRowData(row))
-      .filter((data): data is ScheduleRowJSONData => data !== null);
+      .filter((data): data is ScheduleRowJSONData => data !== null); // Type guard
 
     console.log(
       `Copied ${this.clipboardData.length} rows to internal clipboard:`,
-      this.clipboardData
+      JSON.stringify(this.clipboardData) // Log stringified data for inspection
     );
-    this.onClipboardChangeCallback(this.hasCopiedData());
+    this.onClipboardChangeCallback(this.hasCopiedData()); // Update UI
   }
 
-  // ... pasteRows implementation ...
+  /** Pastes rows from the internal clipboard after the last selected element. */
   public pasteRows(): void {
     if (!this.hasCopiedData()) {
       console.log("Clipboard is empty, nothing to paste.");
@@ -62,56 +66,84 @@ export class ClipboardManager {
     }
 
     console.log(`Pasting ${this.clipboardData.length} rows...`);
-    // Determine insertion point: after last selected element in DOM order
-    const insertAfterElement =
-      this.selectionManager.getLastSelectedElementInDomOrder();
-    let lastPastedElement: HTMLElement | null = insertAfterElement; // Track last pasted element for sequential insertion
+    // Determine insertion point
+    const insertAfterElement = this.selectionManager.getLastSelectedElementInDomOrder();
+    let lastPastedElement: HTMLElement | null = insertAfterElement; // Track insertion point
 
-    this.clipboardData.forEach((rowDataJSON, index) => {
+    this.clipboardData.forEach((rowDataJSON) => {
       let newRowElement: HTMLElement | null = null;
       try {
         if (rowDataJSON.rowType === "group") {
-          const groupUIData: GroupRowData = { ...rowDataJSON };
+          // Pasting a group row (category doesn't apply here)
+          const groupUIData: GroupRowData = { ...rowDataJSON }; // Simple copy
           newRowElement = this.rowManager.addGroupRow(
             groupUIData.level,
             groupUIData.name,
-            lastPastedElement // Insert after the previous one
+            lastPastedElement
           );
         } else if (rowDataJSON.rowType === "interval") {
-          // Instantiate settings correctly
-          const intervalSettingsInstance = GuitarIntervalSettings.fromJSON(
-            rowDataJSON.intervalSettings
-          );
-          // Create the data structure expected by buildIntervalRowElement
+          // Pasting an interval row
+          const intervalJsonData = rowDataJSON as IntervalDataJSON; // Cast for easier access
+
+          // --- Determine Category and Settings Instance ---
+          const category = intervalJsonData.featureCategoryName ?? FeatureCategoryName.Guitar; // Default if missing (shouldn't happen)
+          if (!intervalJsonData.featureCategoryName) {
+              console.warn("Pasting interval row missing categoryName, defaulting to Guitar.");
+          }
+
+          let settingsInstance: IntervalSettings;
+          const settingsFactory = getIntervalSettingsFactory(category);
+          const settingsJsonData = intervalJsonData.intervalSettings;
+
+          // TODO: This still requires a category-aware way to create settings *from JSON*.
+          // Using the factory directly only creates *default* settings.
+          // For now, create default and attempt to overlay JSON data generically.
+          if (settingsFactory) {
+              settingsInstance = settingsFactory();
+              if (settingsJsonData) {
+                  Object.assign(settingsInstance, settingsJsonData);
+                  console.warn(`Pasted interval settings for ${category} applied generically. Specific parsing logic might be needed.`);
+              }
+          } else {
+              console.error(`Cannot paste settings: No factory for category ${category}. Using basic object.`);
+              settingsInstance = { toJSON: () => (settingsJsonData || {}) };
+               if (settingsJsonData) { Object.assign(settingsInstance, settingsJsonData); }
+          }
+          // --- End Settings Instance Creation ---
+
+          // Create the UI data structure expected by buildIntervalRowElement
           const intervalUIData: IntervalRowData = {
-            ...rowDataJSON,
-            intervalSettings: intervalSettingsInstance,
+            rowType: "interval",
+            duration: intervalJsonData.duration,
+            task: intervalJsonData.task,
+            featureCategoryName: category, // Use determined category
+            featureTypeName: intervalJsonData.featureTypeName,
+            featureArgsList: intervalJsonData.featureArgsList,
+            intervalSettings: settingsInstance, // Use created instance
           };
-          // Use the RowManager to add the row with the correct data
-          // NOTE: This assumes rowManager has a method like addIntervalRow that accepts data,
-          // or we adapt buildIntervalRowElement usage here. Let's use build directly.
-          newRowElement = buildIntervalRowElement(intervalUIData); // Build element with data
+
+          // Build the element, passing the correct category
+          newRowElement = buildIntervalRowElement(intervalUIData, category); // Pass category
           this.rowManager.insertRowElement(newRowElement, lastPastedElement); // Insert it
+
         }
 
         if (newRowElement) {
-          lastPastedElement = newRowElement; // Update insertion point
+          lastPastedElement = newRowElement; // Update insertion point for the next row
         }
       } catch (error) {
         console.error("Error pasting row:", rowDataJSON, error);
+        // Optionally add UI feedback about the error
       }
     });
 
     // Select the newly pasted rows? Optional. For now, clear selection.
     this.selectionManager.clearSelection();
-    this.rowManager.updateAllRowIndentation(); // Update indent after pasting
+    this.rowManager.updateAllRowIndentation(); // Update indent after pasting all rows
   }
 
-  // ... hasCopiedData implementation ...
+  /** Checks if there is data in the internal clipboard. */
   public hasCopiedData(): boolean {
     return this.clipboardData.length > 0;
   }
 }
-
-// Need to import buildIntervalRowElement if not already done
-import { buildIntervalRowElement } from "./interval/interval_row_ui";
