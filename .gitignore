@@ -6,3 +6,4 @@ js/
 !js/bundle.js
 main.js
 main.js.map
+.vscode/

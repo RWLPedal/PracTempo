@@ -1,7 +1,7 @@
 const path = require('path');
 
 module.exports = {
-  entry: './main.ts', // Your main TypeScript entry point (ContentFetcher.SourceReference(id='uploaded:ts/main.ts'))
+  entry: './main.ts',
   module: {
     rules: [
       {
