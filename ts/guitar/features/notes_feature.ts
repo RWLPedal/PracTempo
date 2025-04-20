@@ -6,26 +6,34 @@ import {
   ConfigurationSchema,
 } from "../../feature";
 import { GuitarFeature } from "../guitar_base";
-import { Fretboard } from "../fretboard";
+// Removed Fretboard import
 import { AppSettings } from "../../settings";
 import { AudioController } from "../../audio_controller";
 import {
   MUSIC_NOTES,
-  START_PX,
   getKeyIndex,
   getIntervalLabel,
-} from "../guitar_utils"; // Removed unused radius/font imports
-import { FretboardColorScheme } from "../colors"; // Import color scheme type only
+  START_PX,
+  clearAllChildren,
+  addHeader,
+  OPEN_NOTE_RADIUS_FACTOR, // Keep START_PX if needed for header/spacing calcs maybe
+} from "../guitar_utils";
+import { FretboardColorScheme } from "../colors";
+// Import the new FretboardView and its data interface
+import { FretboardView, NoteRenderData } from "../views/fretboard_view";
+import { MetronomeView } from "../views/metronome_view";
+import { View } from "../../view";
 
-/** A guitar feature for displaying all notes on the fretboard with specific coloring logic. */
+/** A guitar feature for displaying all notes on the fretboard using FretboardView. */
 export class NotesFeature extends GuitarFeature {
   static readonly category = FeatureCategoryName.Guitar;
   static readonly typeName = "Notes";
   static readonly displayName = "Fretboard Notes";
   static readonly description =
-    "Displays all notes on the fretboard. Select 'None' for note-based colors, or a root note for interval-based colors (overrides global color scheme for this feature).";
+    "Displays all notes on the fretboard. Select 'None' for note-based colors, or a root note for interval-based colors.";
   readonly typeName = NotesFeature.typeName;
-  private readonly rootNoteName: string | null; // Store optional root note
+  private readonly rootNoteName: string | null;
+  private fretboardViewInstance: FretboardView; // Hold the instance
 
   constructor(
     config: ReadonlyArray<string>,
@@ -33,15 +41,8 @@ export class NotesFeature extends GuitarFeature {
     rootNoteName: string | null, // Accept optional root note
     metronomeBpmOverride?: number,
     audioController?: AudioController,
-    maxCanvasHeight?: number // Add maxCanvasHeight
+    maxCanvasHeight?: number
   ) {
-    // --- Log Entry ---
-    console.log(
-      `[NotesFeature.constructor] Called. RootNote: ${rootNoteName}, maxCanvasHeight: ${maxCanvasHeight}`
-    );
-    // --- End Log ---
-
-    // Pass maxCanvasHeight to the base constructor
     super(
       config,
       settings,
@@ -50,11 +51,49 @@ export class NotesFeature extends GuitarFeature {
       maxCanvasHeight
     );
     this.rootNoteName = rootNoteName;
-    // this.fretboardConfig is now set in the base constructor
+
+    const fretCount = 18; // Or determine dynamically if needed
+
+    const views: View[] = [];
+
+    // 1. Create FretboardView
+    this.fretboardViewInstance = new FretboardView(
+      this.fretboardConfig,
+      fretCount
+    );
+    views.push(this.fretboardViewInstance);
+
+    // 2. Create MetronomeView (if applicable)
+    if (this.metronomeBpm > 0 && this.audioController) {
+      const metronomeAudioEl = document.getElementById(
+        "metronome-sound"
+      ) as HTMLAudioElement;
+      if (metronomeAudioEl) {
+        views.push(
+          new MetronomeView(
+            this.metronomeBpm,
+            this.audioController,
+            metronomeAudioEl
+          )
+        );
+      } else {
+        console.error("Metronome audio element not found for NotesFeature.");
+      }
+    } else if (this.metronomeBpm > 0 && !this.audioController) {
+      console.warn(
+        "Metronome requested for NotesFeature, but AudioController missing."
+      );
+    }
+
+    // Assign views
+    (this as { views: ReadonlyArray<View> }).views = views;
+
+    // Calculate and set the notes *after* creating the view instance
+    this.calculateAndSetNotes(fretCount);
   }
 
+  // Static methods remain the same...
   static getConfigurationSchema(): ConfigurationSchema {
-    // Add "None" to the list of keys for the dropdown
     const availableKeys = ["None", ...MUSIC_NOTES.flat()];
     return {
       description: `Config: ${this.typeName}[,RootNote][,GuitarSettings]`,
@@ -62,8 +101,8 @@ export class NotesFeature extends GuitarFeature {
         {
           name: "RootNote",
           type: "enum",
-          required: false, // Optional, defaults to "None" behavior if omitted
-          enum: availableKeys, // Include "None"
+          required: false,
+          enum: availableKeys,
           description:
             "Select 'None' (default) to color by note name, or a root note to color by interval.",
         },
@@ -71,15 +110,13 @@ export class NotesFeature extends GuitarFeature {
           name: "Guitar Settings",
           type: "ellipsis",
           uiComponentType: "ellipsis",
-          description:
-            "Configure interval-specific guitar settings (e.g., Metronome).",
+          description: "Configure interval-specific guitar settings.",
           nestedSchema: [
             {
               name: "metronomeBpm",
               type: "number",
               description: "Metronome BPM (0=off)",
             },
-            // Global color scheme is ignored by this feature's rendering logic
           ],
         },
       ],
@@ -91,126 +128,94 @@ export class NotesFeature extends GuitarFeature {
     audioController: AudioController,
     settings: AppSettings,
     metronomeBpmOverride?: number,
-    maxCanvasHeight?: number // Add maxCanvasHeight
+    maxCanvasHeight?: number
   ): Feature {
-    // --- Log Entry ---
-    console.log(
-      `[NotesFeature.createFeature] Called with config: [${config.join(
-        ", "
-      )}], maxCanvasHeight: ${maxCanvasHeight}`
-    );
-    // --- End Log ---
-
     let rootNoteName: string | null = null;
-    let processedConfig = config;
+    let processedConfig = config; // Keep track of config args excluding the root note if used
 
-    // ... (rest of the existing createFeature logic) ...
     if (config.length > 0 && config[0]) {
       const potentialRoot = config[0];
       if (potentialRoot.toLowerCase() === "none") {
         rootNoteName = null;
-        console.log(`[NotesFeature.createFeature] Using note-based coloring.`);
-        processedConfig = config.slice(1);
+        processedConfig = config.slice(1); // Remove "None" from config passed to constructor
       } else if (getKeyIndex(potentialRoot) !== -1) {
         rootNoteName = potentialRoot;
-        console.log(
-          `[NotesFeature.createFeature] Using interval-based coloring relative to ${rootNoteName}.`
-        );
-        processedConfig = config.slice(1);
+        processedConfig = config.slice(1); // Remove RootNote from config passed to constructor
       } else {
+        // If first arg is not 'None' or a valid key, assume it's part of other config (if any)
+        // and default to note-based coloring.
         console.warn(
-          `[NotesFeature.createFeature] Invalid config value "${potentialRoot}", defaulting to note-based coloring.`
+          `[NotesFeature.createFeature] Invalid or ambiguous RootNote value "${potentialRoot}", defaulting to note-based coloring.`
         );
         rootNoteName = null;
+        // Keep original config if the first arg wasn't meant to be RootNote
+        // processedConfig = config; // This line might be needed depending on how base constructor uses config
       }
     } else {
-      rootNoteName = null;
-      console.log(
-        `[NotesFeature.createFeature] No RootNote specified, using note-based coloring.`
-      );
-      processedConfig = config;
+      rootNoteName = null; // No root note specified
     }
 
-    // Pass the potentially null rootNoteName, adjusted config, and maxCanvasHeight
     return new NotesFeature(
-      processedConfig,
+      processedConfig, // Pass potentially modified config
       settings,
       rootNoteName,
       metronomeBpmOverride,
       audioController,
-      maxCanvasHeight // Pass height to constructor
+      maxCanvasHeight
     );
   }
 
+  /** Calculates all note data and passes it to the FretboardView instance. */
+  private calculateAndSetNotes(fretCount: number): void {
+    const notesData: NoteRenderData[] = [];
+    const rootNoteIndex = this.rootNoteName
+      ? getKeyIndex(this.rootNoteName)
+      : -1;
+    // Determine color scheme override based on whether a root note was provided
+    const schemeOverride: FretboardColorScheme = this.rootNoteName
+      ? "interval"
+      : "note";
+    const config = this.fretboardConfig; // Use instance config
+
+    for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
+      if (stringIndex >= config.tuning.tuning.length) continue;
+      for (let fretIndex = 0; fretIndex <= fretCount; fretIndex++) {
+        const noteOffsetFromA =
+          (config.tuning.tuning[stringIndex] + fretIndex) % 12;
+        const noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
+        let intervalLabel = "?";
+        if (rootNoteIndex !== -1) {
+          const noteRelativeToKey = (noteOffsetFromA - rootNoteIndex + 12) % 12;
+          intervalLabel = getIntervalLabel(noteRelativeToKey);
+        }
+        // For NotesFeature, display the note name inside the dot
+        const displayLabel = noteName;
+
+        notesData.push({
+          fret: fretIndex,
+          stringIndex: stringIndex,
+          noteName: noteName,
+          intervalLabel: intervalLabel,
+          displayLabel: displayLabel,
+          colorSchemeOverride: schemeOverride, // Apply the determined scheme
+          // Set other properties like radiusOverride for open strings if needed
+          radiusOverride:
+            fretIndex === 0
+              ? config.noteRadiusPx * OPEN_NOTE_RADIUS_FACTOR
+              : undefined,
+        });
+      }
+    }
+    this.fretboardViewInstance.setNotes(notesData);
+  }
+
+  /** Render method now just adds the header. Views are rendered by DisplayController. */
   render(container: HTMLElement): void {
+    clearAllChildren(container);
     const headerText = this.rootNoteName
       ? `Notes (Interval Colors Relative to ${this.rootNoteName})`
       : "Notes (Note Name Colors)";
-    const { canvas, ctx } = this.clearAndAddCanvas(container, headerText);
-
-    const fretCount = 18;
-    const config = this.fretboardConfig; // Alias
-    const scaleFactor = config.scaleFactor;
-    const scaledNoteRadius = config.noteRadiusPx;
-    const scaledFretLength = config.fretLengthPx;
-
-    // --- Height & Position Calculation ---
-    const topPadding = START_PX * scaleFactor; // Basic padding from canvas top edge
-    // Clearance needed above the nut line for open notes/muted markers
-    const openNoteClearance = scaledNoteRadius * 1.5 + (5 * scaleFactor);
-    // Height of the fretted area
-    const fretboardLinesHeight = fretCount * scaledFretLength;
-    // Clearance needed below the last fret line for notes/markers
-    const bottomClearance = scaledNoteRadius + (5 * scaleFactor);
-    // Padding below the diagram elements
-    const bottomPadding = 65 * scaleFactor;
-
-    // Total height needed is padding + clearance + fret height + clearance + padding
-    const requiredHeight = topPadding + openNoteClearance + fretboardLinesHeight + bottomClearance + bottomPadding;
-
-    // --- Width Calculation ---
-    const requiredWidth =
-        START_PX * scaleFactor + 5 * config.stringSpacingPx + START_PX * scaleFactor;
-    canvas.width = Math.max(300, requiredWidth);
-    canvas.height = requiredHeight;
-
-    // --- Rendering ---
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.resetTransform();
-    ctx.translate(0.5, 0.5);
-
-    // Fretboard constructor now receives the absolute top padding (top edge of drawing area)
-    const scaledStartPxX = START_PX * scaleFactor;
-    const fretboard = new Fretboard(
-      config,
-      scaledStartPxX, // X starting point
-      topPadding,     // Y starting point (absolute top of diagram area)
-      fretCount
-    );
-    // Fretboard.render will internally calculate nutLineY based on topPadding + openNoteClearance
-    fretboard.render(ctx);
-
-    // --- Note Drawing Logic ---
-    // (No changes needed in the loop itself, renderFingering handles new Y calc)
-    const rootNoteIndex = this.rootNoteName ? getKeyIndex(this.rootNoteName) : -1;
-    const schemeOverride: FretboardColorScheme = this.rootNoteName ? "interval" : "note";
-    const fontSize = 16 * scaleFactor;
-    for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
-      for (let fretIndex = 0; fretIndex <= fretboard.fretCount; fretIndex++) {
-         const noteOffsetFromA = (config.tuning.tuning[stringIndex] + fretIndex) % 12;
-         const noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
-         let intervalLabel = "?";
-         if (rootNoteIndex !== -1) {
-           const noteRelativeToKey = (noteOffsetFromA - rootNoteIndex + 12) % 12;
-           intervalLabel = getIntervalLabel(noteRelativeToKey);
-         }
-         const displayLabel = noteName;
-         fretboard.renderFingering(
-           ctx, fretIndex, stringIndex, noteName, intervalLabel, displayLabel,
-           scaledNoteRadius, fontSize, false,
-           "black", 1, undefined, schemeOverride
-         );
-      }
-    }
+    addHeader(container, headerText);
+    // DisplayController will render the FretboardView (and MetronomeView if present)
   }
 }

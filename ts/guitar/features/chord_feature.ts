@@ -1,43 +1,36 @@
-/* ts/guitar/features/chord_feature.ts */
-
 import {
   Feature,
   FeatureCategoryName,
   ConfigurationSchema,
 } from "../../feature";
-// Import the NEW base class
-import {
-  BaseChordDiagramFeature,
-  ChordAndTitle,
-} from "./base_chord_diagram_feature";
+import { GuitarFeature } from "../guitar_base";
 import { Chord, chord_library } from "../chords";
-// Removed Fretboard import as it's handled by base
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
-// Removed utils imports handled by base
-import { MUSIC_NOTES } from "../guitar_utils";
+// Import the new View
+import { ChordDiagramView } from "../views/chord_diagram_view";
+import { addHeader, clearAllChildren, MUSIC_NOTES } from "../guitar_utils";
+import { View } from "../../view"; // Import base View type
+import { MetronomeView } from "../views/metronome_view";
+
 
 /** A feature for displaying mulitple chord diagrams and a metronome. */
-// Extend the new base class
-export class ChordFeature extends BaseChordDiagramFeature {
+export class ChordFeature extends GuitarFeature {
   static readonly category = FeatureCategoryName.Guitar;
   static readonly typeName = "Chord";
   static readonly displayName = "Chord Diagram";
   static readonly description = "Displays one or more chord diagrams.";
   readonly typeName = ChordFeature.typeName;
-  private readonly chords: ReadonlyArray<Chord>;
-  // Removed headerText property, it's generated in base class
+  // No longer need to store chords directly here, they are in the views
 
   constructor(
     config: ReadonlyArray<string>,
-    chords: ReadonlyArray<Chord>,
-    // Removed headerText parameter
+    chords: ReadonlyArray<Chord>, // Still receive chords to create views
     settings: AppSettings,
     metronomeBpmOverride?: number,
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
-    // Pass relevant parameters up to base class constructor
     super(
       config,
       settings,
@@ -45,11 +38,30 @@ export class ChordFeature extends BaseChordDiagramFeature {
       audioController,
       maxCanvasHeight
     );
-    this.chords = chords;
-    // Don't store headerText here anymore
+
+    // Create Views based on chords and metronome setting
+    const views: View[] = [];
+    chords.forEach(chord => {
+        views.push(new ChordDiagramView(chord, chord.name, this.fretboardConfig));
+    });
+
+    // Add metronome view if BPM is set (logic moved from base constructor)
+    if (this.metronomeBpm > 0 && this.audioController) {
+       const metronomeAudioEl = document.getElementById("metronome-sound") as HTMLAudioElement;
+       if (metronomeAudioEl) {
+           views.push(new MetronomeView(this.metronomeBpm, this.audioController, metronomeAudioEl));
+       } else {
+            console.error("Metronome audio element not found for ChordFeature.");
+       }
+    } else if (this.metronomeBpm > 0 && !this.audioController) {
+        console.warn("Metronome requested for ChordFeature, but AudioController missing.");
+    }
+
+    // Assign the created views to the inherited views property
+    (this as { views: ReadonlyArray<View> }).views = views; // Use type assertion to assign
   }
 
-  // Static methods remain the same
+  // Static methods remain mostly the same
   static getConfigurationSchema(): ConfigurationSchema {
     const availableChordNames = Object.keys(chord_library);
     return {
@@ -57,12 +69,11 @@ export class ChordFeature extends BaseChordDiagramFeature {
       args: [
         {
           name: "ChordNames",
-          type: "enum", // Data type is enum
+          type: "enum",
           required: true,
           enum: availableChordNames,
           description: "One or more chord names.",
-          isVariadic: true, // Allows multiple inputs
-          // Default UI (text input for each) will be used unless uiComponentType specified
+          isVariadic: true,
         },
         {
           name: "Guitar Settings",
@@ -82,7 +93,7 @@ export class ChordFeature extends BaseChordDiagramFeature {
   }
 
   static createFeature(
-    config: ReadonlyArray<string>, // Expects [ChordKey1, ChordKey2, ...]
+    config: ReadonlyArray<string>,
     audioController: AudioController,
     settings: AppSettings,
     metronomeBpmOverride?: number,
@@ -90,36 +101,26 @@ export class ChordFeature extends BaseChordDiagramFeature {
   ): Feature {
     if (config.length < 1) {
       throw new Error(
-        `Invalid config for ${
-          this.typeName
-        }. Expected at least one ChordName, received: [${config.join(", ")}]`
+        `Invalid config for ${this.typeName}. Expected at least one ChordName.`
       );
     }
-
     const chordKeys = config;
     const chords: Chord[] = [];
-    const validChordNames: string[] = []; // Keep track for potential header generation if needed
-
     chordKeys.forEach((chordKey) => {
       const chord = chord_library[chordKey];
       if (chord) {
         chords.push(chord);
-        validChordNames.push(chord.name);
       } else {
         console.warn(`Unknown chord key: "${chordKey}". Skipping.`);
       }
     });
-
     if (chords.length === 0) {
       throw new Error(`No valid chords found in config: ${config.join(",")}`);
     }
 
-    // Header text generation is moved to base class, so no need here
-    // Pass maxCanvasHeight to constructor
     return new ChordFeature(
       config,
       chords,
-      // No headerText needed here
       settings,
       metronomeBpmOverride,
       audioController,
@@ -127,11 +128,23 @@ export class ChordFeature extends BaseChordDiagramFeature {
     );
   }
 
-  /** Implement the abstract method from the base class. */
-  protected getChordsAndTitles(): ChordAndTitle[] {
-    return this.chords.map((chord) => ({
-      chord: chord,
-      title: chord.name, // Simple title for ChordFeature
-    }));
+  /** Render method now just adds the header. Views are rendered by DisplayController. */
+  render(container: HTMLElement): void {
+    clearAllChildren(container);
+    // Generate header based on the views created
+    const chordViews = this.views.filter(v => v instanceof ChordDiagramView) as ChordDiagramView[];
+    const uniqueChordNames = [...new Set(chordViews.map(v => (v as any).chord.name))]; // Access chord name via view
+    let headerText = "Chord Diagram"; // Default
+     if (uniqueChordNames.length === 1) {
+        headerText = `${uniqueChordNames[0]} Chord`;
+     } else if (uniqueChordNames.length > 1) {
+        headerText = uniqueChordNames.slice(0, 3).join(' / ') + " Chords";
+     }
+    addHeader(container, headerText);
+    // Optionally add the layout container div here if needed for CSS styling
+    // const viewContainer = document.createElement('div');
+    // viewContainer.className = 'diagram-views-container'; // Add class for styling
+    // container.appendChild(viewContainer);
+    // DisplayController will iterate views and pass the main container to each view's render
   }
 }
