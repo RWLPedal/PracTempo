@@ -9,7 +9,7 @@ import { getFeatureTypeDescriptor } from "../../feature_registry";
 import { parseDurationString } from "../../guitar/guitar_utils"; // Assuming this utility exists and works
 import { GuitarIntervalSettings } from "../../guitar/guitar_interval_settings"; // Import class for instantiation
 import { ErrorDisplay } from "./error_display";
-import { ScheduleRowJSONData, GroupDataJSON, IntervalDataJSON } from "./interval_row";
+import { ScheduleRowJSONData, GroupDataJSON, IntervalDataJSON } from "./interval/types";
 import { RowManager } from "./row_manager"; // Import RowManager and JSON data types
 
 export class ScheduleBuilder {

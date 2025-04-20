@@ -9,7 +9,7 @@ import {
   GroupDataJSON,
   IntervalDataJSON,
   ScheduleRowJSONData, // This type now represents items in the array
-} from "./interval_row";
+} from "./interval/types";
 
 // --- Type Guards for Validation ---
 

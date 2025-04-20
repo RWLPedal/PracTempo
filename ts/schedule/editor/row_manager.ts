@@ -1,17 +1,19 @@
 import {
-  buildIntervalRowElement,
-  buildGroupRowElement,
-  applyIndentation,
-  ScheduleRowData, // Still used by clipboard/add internally? Review if needed.
-  GroupRowData,   // For addGroupRow parameter type check
-  IntervalRowData,// For addEmptyIntervalRow parameter type check
-  // Import the JSON structure types
+  GroupRowData,
+  IntervalRowData,
   GroupDataJSON,
   IntervalDataJSON,
   ScheduleRowJSONData
-} from "./interval_row";
+} from "./interval/types";
+import {
+  buildGroupRowElement,
+} from "./interval/group_row_ui";
+import {
+  buildIntervalRowElement,
+} from "./interval/interval_row_ui";
 import { GuitarIntervalSettings } from "../../guitar/guitar_interval_settings";
 import { SelectionManager } from "./selection_manager";
+import { applyIndentation } from './interval/common_ui_elements';
 
 export class RowManager {
   private configEntriesContainerEl: HTMLElement;
