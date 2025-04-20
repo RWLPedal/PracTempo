@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Guitar Timer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Droid+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css">
+  <script src="./js/bundle.js" defer></script>
+  <link rel="stylesheet" href="style/style.css">
+</head>
+
+<body>
+  <!-- Removed is-horizontal from container, it's not standard for layout -->
+  <div class="container pt-4 pb-4">
+
+    <!-- Main Tile Ancestor for the side-by-side layout -->
+    <div class="tile is-ancestor">
+
+      <!-- Left Column Parent Tile (Vertical stacking, ~40% width) -->
+      <div class="tile is-vertical is-parent is-5">
+        <!-- Each item is a child tile -->
+        <div class="tile is-child notification" id="task-wrapper">
+          <p class="subtitle">PracTempo!</p>
+        </div>
+        <div class="tile is-child notification" id="task-wrapper">
+          <p class="subtitle">Current Task</p>
+          <div id="timer-wrapper">
+            <div id="task">Your task</div>
+            <span id="status">‖</span>
+            <div id="timer">0:00</div>
+          </div>
+        </div>
+        <div class="tile is-child notification">
+          <p class="subtitle">Time</p>
+          <span id="total-timer">0:00 / 0:00</span>
+          <p class="subtitle">Upcoming Tasks</p>
+          <ol id="upcoming"></ol>
+        </div>
+        <div class="tile is-child notification">
+          <!-- Controls -->
+          <div class="level main-controls is-mobile">
+            <div class="level-item">
+              <button id="start-control" class="button is-success is-medium">START</button>
+            </div>
+            <div class="level-item">
+              <button id="reset-control" class="button is-danger is-medium">RESET</button>
+            </div>
+            <div class="level-item">
+              <button id="settings-button" class="button is-text" title="Settings">
+                &#9881; </button>
+            </div>
+          </div>
+        </div>
+      </div> <!-- End Left Column Parent Tile -->
+
+      <!-- Right Column Parent Tile (~60% width) -->
+      <div class="tile is-parent is-7">
+        <!-- Diagram is the child tile -->
+        <article id="diagram" class="tile is-child notification">
+          <!-- Diagram content will go here -->
+           <p class="subtitle">Diagram</p> <!-- Placeholder -->
+        </article>
+      </div> <!-- End Right Column Parent Tile -->
+
+    </div> <!-- End Main Tile Ancestor -->
+
+    <!-- Schedule Accordion (remains below the main layout) -->
+    <div class="tile is-ancestor"> <!-- Wrap accordion in its own ancestor for consistency -->
+        <div class="tile is-parent">
+            <article class="tile is-child notification pb-4" id="schedule-accordion">
+                <div class="accordion-header is-clickable">
+                    <p class="subtitle is-5 mb-2">Schedule</p>
+                    <span class="accordion-toggle-icon">&#9660;</span> <!-- Down Arrow -->
+                </div>
+                <div class="accordion-content" id="schedule-editor-container-wrapper">
+                    <div id="schedule-editor-container">
+                        <!-- Schedule Editor will be injected here -->
+                    </div>
+                </div>
+            </article>
+        </div>
+    </div> <!-- End Accordion Ancestor -->
+
+  </div> <!-- End Container -->
+
+
+  <!-- Audio Elements -->
+  <audio id="intro-end-sound" src="sounds/intro_bell.wav" preload="auto"></audio>
+  <audio id="interval-end-sound" src="sounds/bell.wav" preload="auto"></audio>
+  <audio id="metronome-sound" src="sounds/metronome.wav" preload="auto"></audio>
+
+  <!-- Overlay -->
+  <div id="overlay" class="hidden"></div>
+
+  <!-- Settings Modal -->
+  <div class="modal" id="settings-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p class="modal-card-title">Application Settings</p>
+        <button class="delete" aria-label="close" id="settings-modal-close"></button>
+      </header>
+      <section class="modal-card-body">
+        <h4 class="title is-6">Global Settings</h4>
+        <div class="field">
+          <label class="label is-small">Theme</label>
+          <div class="control">
+            <div class="select is-small is-fullwidth">
+              <select id="theme-select">
+                <option value="light">Light</option>
+                <option value="dark">Dark</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label is-small">Global Warmup Period (seconds)</label>
+          <div class="control">
+            <input class="input is-small" type="number" id="warmup-input" min="0" step="1" value="0">
+          </div>
+        </div>
+
+        <hr>
+
+        <h4 class="title is-6">Guitar Settings</h4>
+        <div class="field">
+          <label class="label is-small">Diagram Handedness</label>
+          <div class="control">
+            <div class="select is-small is-fullwidth">
+              <select id="handedness-select">
+                <option value="right">Right-Handed</option>
+                <option value="left">Left-Handed</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="field">
+          <label class="label is-small">Tuning</label>
+          <div class="control">
+            <div class="select is-small is-fullwidth">
+              <select id="tuning-select">
+                <option value="Standard">Standard (EADGBE)</option>
+                <option value="Drop D">Drop D (DADGBE)</option>
+                <!-- Add other tunings as needed -->
+              </select>
+            </div>
+          </div>
+        </div>
+
+      </section>
+      <footer class="modal-card-foot is-justify-content-flex-end">
+        <button class="button is-success" id="settings-save-button">Save changes</button>
+        <button class="button" id="settings-cancel-button">Cancel</button>
+      </footer>
+    </div>
+  </div>
+
+  <!-- Load/Save Schedule Modal -->
+  <div class="modal" id="load-schedule-modal">
+    <div class="modal-background"></div>
+    <div class="modal-card">
+      <header class="modal-card-head">
+        <p class="modal-card-title">Load/Save Schedule</p>
+        <button class="delete" aria-label="close" id="load-schedule-modal-close"></button>
+      </header>
+      <section class="modal-card-body">
+        <h3 class="title is-5">Recent Schedules</h3>
+        <p class="is-size-7 has-text-grey mb-2">Click to load into editor. Click 'View' to preview.</p>
+        <div class="menu">
+          <ul class="menu-list" id="recent-schedules-list">
+            <li class="is-disabled"><a>(No recent schedules saved)</a></li>
+          </ul>
+        </div>
+        <hr>
+        <h3 class="title is-5">File Operations</h3>
+        <div class="field is-grouped">
+          <p class="control">
+            <button class="button is-link" id="save-schedule-disk">
+              <span>Save Current to File</span>
+            </button>
+          </p>
+          <p class="control">
+            <label class="button is-info" for="load-schedule-input-hidden">
+              <span>Load from File</span>
+            </label>
+            <input type="file" id="load-schedule-input-hidden" accept=".txt,text/plain" style="display: none;">
+          </p>
+        </div>
+
+        <!-- Recent Schedule Preview Area -->
+        <div id="recent-schedule-preview"
+          style="display: none; margin-top: 15px; border-top: 1px solid #dbdbdb; padding-top: 15px;">
+          <button class="delete is-pulled-right" aria-label="close" id="close-preview-button"
+            title="Close Preview"></button>
+          <p class="has-text-weight-semibold is-size-6 mb-2">Full Schedule Preview:</p>
+          <pre id="recent-schedule-preview-content" style="max-height: 250px;
+                      overflow: auto;
+                      background-color: #f9f9f9;
+                      padding: 10px;
+                      border: 1px solid #dbdbdb;
+                      border-radius: 4px;
+                      white-space: pre-wrap;
+                      word-wrap: break-word;
+                      font-size: 0.85em;
+                      line-height: 1.4;">
+          </pre>
+        </div>
+      </section>
+      <footer class="modal-card-foot is-justify-content-flex-end">
+        <button class="button" id="load-schedule-modal-cancel">Cancel</button>
+      </footer>
+    </div>
+  </div>
+
+</body>
+</html>

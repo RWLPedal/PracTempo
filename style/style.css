@@ -1,0 +1,661 @@
+/* Define Color Palette */
+:root {
+  --clr-bg-light: #f4f5ed;
+  --clr-primary-light: #adb2d4;
+  --clr-secondary-light: #c7d9dd;
+  --clr-tertiary-light: #d5e5d5;
+  --clr-text-light: #363636;
+  --clr-text-subtle-light: #555;
+  --clr-border-light: #dcdcdc;
+  --clr-shadow-light: rgba(0, 0, 0, 0.08);
+
+  --clr-bg-dark: #2c3e50; /* Dark blue-grey */
+  --clr-primary-dark: #3498db; /* Brighter blue */
+  --clr-secondary-dark: #4a6572; /* Darker secondary */
+  --clr-tertiary-dark: #34495e; /* Dark tertiary */
+  --clr-text-dark: #ecf0f1; /* Light text */
+  --clr-text-subtle-dark: #bdc3c7; /* Lighter subtle text */
+  --clr-border-dark: #4a6572;
+  --clr-shadow-dark: rgba(0, 0, 0, 0.2);
+
+  --clr-danger: #e74c3c; /* Adjusted danger */
+  --clr-success: #2ecc71; /* Adjusted success */
+  --clr-info: #3498db; /* Adjusted info */
+  --clr-warning: #f39c12; /* Adjusted warning */
+  --clr-link: #3498db;
+}
+
+/* Apply base light theme variables */
+body {
+  --clr-bg: var(--clr-bg-light);
+  --clr-primary: var(--clr-primary-light);
+  --clr-secondary: var(--clr-secondary-light);
+  --clr-tertiary: var(--clr-tertiary-light);
+  --clr-text: var(--clr-text-light);
+  --clr-text-subtle: var(--clr-text-subtle-light);
+  --clr-border: var(--clr-border-light);
+  --clr-shadow: var(--clr-shadow-light);
+
+  font-family: "Droid Sans", sans-serif;
+  background-color: var(--clr-bg);
+  color: var(--clr-text);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* Dark Theme Override */
+body.dark-theme {
+  --clr-bg: var(--clr-bg-dark);
+  --clr-primary: var(--clr-primary-dark);
+  --clr-secondary: var(--clr-secondary-dark);
+  --clr-tertiary: var(--clr-tertiary-dark);
+  --clr-text: var(--clr-text-dark);
+  --clr-text-subtle: var(--clr-text-subtle-dark);
+  --clr-border: var(--clr-border-dark);
+  --clr-shadow: var(--clr-shadow-dark);
+}
+
+/* General Bulma Overrides/Adjustments */
+.button {
+  font-family: "Droid Sans", sans-serif;
+  text-decoration: none;
+}
+.input,
+.textarea,
+.select select,
+.modal-card-body .input,
+.modal-card-body .select select {
+  font-family: "Droid Sans", sans-serif;
+  border-color: var(--clr-border);
+  background-color: #fff; /* White background for inputs in both themes */
+  color: #363636; /* Dark text for inputs in both themes */
+  border-radius: 4px;
+}
+body.dark-theme .input,
+body.dark-theme .textarea,
+body.dark-theme .select select {
+  background-color: #f0f0f0; /* Slightly off-white in dark theme */
+  color: #363636;
+  border-color: var(--clr-border-dark);
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: #aaa;
+} /* Lighter placeholder */
+body.dark-theme .input::placeholder,
+body.dark-theme .textarea::placeholder {
+  color: #888;
+}
+
+.select:not(.is-multiple):not(.is-loading)::after {
+  border-color: var(--clr-link);
+}
+
+/* Notifications */
+.notification {
+  background-color: var(--clr-secondary);
+  color: var(--clr-text);
+  border-radius: 6px;
+  border: 1px solid var(--clr-border);
+  padding: 1rem;
+}
+body.dark-theme .notification {
+  background-color: var(--clr-secondary-dark);
+  color: var(--clr-text-dark);
+  border-color: transparent;
+}
+.notification.is-info {
+  background-color: var(--clr-info);
+  color: white;
+  border: none;
+}
+.notification.is-success {
+  background-color: var(--clr-success);
+  color: white;
+  border: none;
+}
+body.dark-theme .notification.is-info,
+body.dark-theme .notification.is-success {
+  color: #fff;
+}
+
+.subtitle {
+  color: var(--clr-text-subtle);
+  font-weight: 400;
+  margin-bottom: 0.5rem;
+} /* Reduced subtitle margin */
+
+/* --- Timer/Task Display --- */
+#task-wrapper {
+  background-color: var(--clr-primary);
+  color: white;
+  border: none;
+}
+body.dark-theme #task-wrapper {
+  color: var(--clr-text-dark);
+}
+#task,
+#timer {
+  font-weight: 400;
+  line-height: 1.1;
+}
+#task {
+  font-size: 2.5em;
+}
+#timer {
+  font-size: 4em;
+}
+#timer-wrapper {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#status {
+  font-size: 2em;
+  font-weight: 800;
+  padding: 15px;
+}
+#status img {
+  height: 50px;
+}
+
+body.dark-theme #status img {
+  filter: invert(95%) sepia(6%) saturate(136%) hue-rotate(187deg)
+    brightness(115%) contrast(90%);
+}
+
+#total-timer {
+  font-size: 2.5em;
+  font-weight: 400;
+  display: block;
+  margin-top: 0.5rem;
+  float: right;
+  flex-grow: 1;
+  text-align: end;
+}
+#upcoming {
+  font-size: 0.9em;
+  margin-top: 0.5rem;
+  padding-left: 1.2em;
+} /* Added padding */
+#upcoming li {
+  padding: 2px 0;
+}
+
+/* --- Main Controls (Start/Reset/Settings) --- */
+.main-controls {
+  align-items: center;
+}
+.main-controls .level-item {
+  margin: 0 5px;
+  flex-shrink: 0;
+} /* Prevent shrinking */
+.main-controls .button {
+  min-width: 80px;
+} /* Slightly smaller min-width */
+#start-control.is-success {
+  background-color: var(--clr-success);
+  color: white;
+  border: none;
+}
+#start-control.is-warning {
+  background-color: var(--clr-warning);
+  color: rgba(0, 0, 0, 0.8);
+  border: none;
+}
+#reset-control.is-danger {
+  background-color: var(--clr-danger);
+  color: white;
+  border: none;
+}
+#settings-button {
+  background: none;
+  border: none;
+  padding: 0 5px;
+  cursor: pointer;
+  color: var(--clr-text-subtle);
+  font-size: 1.5rem;
+  line-height: 1;
+  vertical-align: middle;
+  text-decoration: none;
+}
+#settings-button:hover {
+  color: var(--clr-link);
+}
+
+/* --- Diagram Area --- */
+#diagram {
+  background-color: #fff;
+  border: 1px solid var(--clr-border);
+  color: #363636;
+  min-height: 200px; /* Ensure minimum height */
+}
+#diagram .subtitle {
+  margin-bottom: 0.5rem;
+  color: #555;
+}
+body.dark-theme #diagram {
+  border-color: var(--clr-border-dark);
+}
+
+/* --- Flash Overlay --- */
+.hidden {
+  display: none;
+  opacity: 0;
+}
+.visible {
+  display: block;
+  opacity: 0.8;
+}
+#overlay {
+  background: var(--clr-danger);
+  height: 100%;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 100%;
+  z-index: 100;
+  transition: opacity 0.15s ease-in-out;
+}
+
+/* --- Schedule Editor --- */
+#schedule-editor-container {
+  background-color: var(--clr-tertiary);
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--clr-border);
+}
+body.dark-theme #schedule-editor-container {
+  background-color: var(--clr-secondary-dark);
+}
+
+#text-editor-wrapper .textarea {
+  background-color: var(--clr-bg);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+/* Config Editor Grid Layout */
+.config-header,
+.config-entry-row {
+  display: grid;
+  grid-template-columns: 70px minmax(100px, 1fr) 130px minmax(150px, 2fr) 40px;
+  gap: 8px;
+  align-items: start;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--clr-border);
+}
+.config-entry-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.config-header {
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding-bottom: 5px;
+  border-bottom: 2px solid var(--clr-border);
+  color: var(--clr-text-subtle);
+  margin-bottom: 8px;
+  align-items: center;
+  text-transform: uppercase;
+}
+.config-header .header-item {
+  padding: 0 4px;
+}
+
+.config-entry-row {
+  background-color: var(--clr-bg);
+  border-radius: 6px;
+  padding: 8px;
+  border: 1px solid transparent;
+  box-shadow: 0 1px 2px var(--clr-shadow);
+  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  align-items: center;
+}
+.config-entry-row:hover {
+  background-color: var(--clr-secondary);
+  border-color: var(--clr-border);
+}
+body.dark-theme .config-entry-row {
+  background-color: var(--clr-tertiary-dark);
+}
+body.dark-theme .config-entry-row:hover {
+  background-color: var(--clr-secondary-dark);
+}
+
+.config-cell {
+  padding: 0 4px;
+}
+.duration-cell,
+.action-cell,
+.config-header .header-item:first-child,
+.config-header .header-item:last-child {
+  text-align: center;
+  align-self: center;
+}
+.feature-args-inner-container {
+  display: flex;
+}
+.feature-args-cell {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-self: start;
+}
+
+/* Feature Argument Styling */
+.feature-arg-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+}
+.feature-arg-wrapper label {
+  font-size: 0.7rem;
+  color: var(--clr-text-subtle);
+  font-weight: 400;
+  display: block;
+  margin-bottom: 2px;
+  text-transform: capitalize;
+}
+.feature-arg-inputs-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.variadic-input-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.config-feature-arg {
+  /* Input/Select */
+  border: 1px solid var(--clr-border);
+  padding: 4px 6px;
+  border-radius: 3px;
+  background-color: #fff;
+  color: #363636;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  height: auto;
+  max-width: 120px;
+}
+body.dark-theme .config-feature-arg {
+  background-color: #f0f0f0;
+  color: #363636;
+  border-color: var(--clr-border-dark);
+}
+.select.is-small {
+  margin: 0;
+}
+.variadic-input-wrapper .select {
+  max-width: 120px;
+}
+
+/* Variadic Buttons */
+.remove-variadic-arg-btn {
+  padding: 0 5px !important;
+  height: 22px !important;
+  line-height: 1 !important;
+  font-size: 0.8rem !important;
+  min-width: auto;
+  color: var(--clr-danger);
+  border-color: var(--clr-danger);
+  background-color: transparent;
+}
+.remove-variadic-arg-btn:hover {
+  background-color: rgba(231, 76, 60, 0.1);
+}
+body.dark-theme .remove-variadic-arg-btn {
+  color: #ff7979;
+  border-color: #ff7979;
+} /* Lighter red in dark */
+
+.add-variadic-group-btn {
+  padding: 0 6px !important;
+  height: 24px !important;
+  line-height: 1 !important;
+  font-size: 0.9rem !important;
+  margin-top: 4px;
+  align-self: flex-start;
+  color: var(--clr-info);
+  border-color: var(--clr-info);
+  background-color: transparent;
+}
+.add-variadic-group-btn:hover {
+  background-color: rgba(52, 152, 219, 0.1);
+}
+body.dark-theme .add-variadic-group-btn {
+  color: #5dade2;
+  border-color: #5dade2;
+} /* Lighter blue in dark */
+
+/* Remove Row Button */
+.remove-interval-btn {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--clr-danger);
+  font-size: 1rem;
+  padding: 0;
+  line-height: 1;
+}
+.config-entry-row:hover .remove-interval-btn {
+  opacity: 1;
+}
+.remove-interval-btn:hover {
+  color: #c0392b;
+}
+body.dark-theme .remove-interval-btn {
+  color: #ff7979;
+}
+body.dark-theme .remove-interval-btn:hover {
+  color: #ff4d4d;
+}
+
+/* Editor Controls Container (Bottom Buttons) */
+#editor-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--clr-border);
+}
+#editor-controls .button {
+  font-weight: 700;
+}
+#editor-controls .button.is-outlined {
+  background-color: transparent;
+}
+#mode-toggle {
+  border-color: var(--clr-link);
+  color: var(--clr-link);
+}
+#add-config-entry {
+  border-color: var(--clr-info);
+  color: var(--clr-info);
+}
+#set-schedule-control {
+  background-color: var(--clr-primary);
+  color: white;
+  border: none;
+}
+#set-schedule-control:hover {
+  opacity: 0.9;
+}
+body.dark-theme #mode-toggle {
+  color: var(--clr-link);
+  border-color: var(--clr-link);
+}
+body.dark-theme #add-config-entry {
+  color: var(--clr-info);
+  border-color: var(--clr-info);
+}
+body.dark-theme #set-schedule-control {
+  background-color: var(--clr-primary);
+  color: var(--clr-text-dark);
+}
+
+/* Drag and Drop Styles */
+.config-entry-row.dragging {
+  opacity: 0.4;
+  background-color: var(--clr-tertiary);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+body.dark-theme .config-entry-row.dragging {
+  background-color: var(--clr-tertiary-dark);
+}
+.drag-over {
+  border-top: 2px dashed var(--clr-link);
+  margin-top: -2px;
+}
+
+/* Settings Modal */
+.modal-card {
+  background-color: var(--clr-bg);
+}
+.modal-card-head {
+  background-color: var(--clr-tertiary);
+  border-bottom: 1px solid var(--clr-border);
+}
+.modal-card-title {
+  color: var(--clr-text);
+}
+.modal-card-foot {
+  background-color: var(--clr-tertiary);
+  border-top: 1px solid var(--clr-border);
+}
+.modal-card-body {
+  color: var(--clr-text);
+}
+body.dark-theme .modal-card {
+  background-color: var(--clr-bg-dark);
+}
+body.dark-theme .modal-card-head {
+  background-color: var(--clr-secondary-dark);
+  border-bottom-color: var(--clr-border-dark);
+}
+body.dark-theme .modal-card-title {
+  color: var(--clr-text-dark);
+}
+body.dark-theme .modal-card-foot {
+  background-color: var(--clr-secondary-dark);
+  border-top-color: var(--clr-border-dark);
+}
+body.dark-theme .modal-card-body {
+  color: var(--clr-text-dark);
+}
+.modal-card-body .field label.label {
+  color: var(--clr-text);
+} /* Ensure labels visible */
+body.dark-theme .modal-card-body .field label.label {
+  color: var(--clr-text-dark);
+}
+.modal-card-foot .button.is-success {
+  background-color: var(--clr-success);
+  color: white;
+  border: none;
+}
+.modal-card-foot .button:not(.is-success) {
+  background-color: var(--clr-secondary);
+  color: var(--clr-text);
+  border: 1px solid var(--clr-border);
+}
+body.dark-theme .modal-card-foot .button:not(.is-success) {
+  background-color: var(--clr-secondary-dark);
+  color: var(--clr-text-dark);
+  border-color: var(--clr-border-dark);
+}
+
+/* Ensure tiles take up space */
+.tile.is-parent {
+  display: flex;
+  flex-direction: column;
+}
+.tile.is-child {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+.tile.is-child > *:last-child {
+  margin-bottom: 0;
+} /* Remove extra margin at bottom */
+#diagram,
+#schedule-editor-container {
+  flex-grow: 1;
+}
+
+/* Accordion Styles */
+.accordion-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: pointer; /* Indicate it's clickable */
+  padding-bottom: 0.5rem; /* Add some space below header */
+  border-bottom: 1px solid var(--clr-border); /* Separator line */
+  margin-bottom: 0.5rem; /* Space before content */
+}
+body.dark-theme .accordion-header {
+  border-bottom-color: var(--clr-border-dark);
+}
+
+.accordion-header .subtitle {
+  margin-bottom: 0;
+} /* Remove default subtitle margin */
+
+.accordion-toggle-icon {
+  transition: transform 0.3s ease; /* Smooth rotation */
+  font-size: 1.2em; /* Make icon slightly larger */
+  color: var(--clr-text-subtle);
+}
+body.dark-theme .accordion-toggle-icon {
+  color: var(--clr-text-subtle-dark);
+}
+
+.accordion-content {
+  max-height: 1000px; /* Set a large max-height for transition */
+  overflow: hidden;
+  transition: max-height 0.5s ease-in-out, padding-top 0.5s ease-in-out,
+    padding-bottom 0.5s ease-in-out;
+  padding-top: 0; /* Start with no padding */
+  padding-bottom: 0;
+}
+
+#schedule-accordion.collapsed .accordion-content {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  overflow: hidden; /* Explicitly hide overflow */
+  /* Remove border/padding from the container *inside* the content area when collapsed */
+  #schedule-editor-container {
+    border: none;
+    padding: 0;
+    margin: 0; /* Adjust if needed */
+    transition: padding 0.5s ease-in-out, border 0.5s ease-in-out;
+  }
+}
+
+#schedule-accordion.collapsed .accordion-header {
+  margin-bottom: 0; /* Remove margin below header when collapsed */
+  border-bottom-color: transparent; /* Hide border when collapsed */
+}
+
+#schedule-accordion.collapsed .accordion-toggle-icon {
+  transform: rotate(-90deg); /* Rotate arrow */
+}
+
+/* Adjust schedule editor container padding when *not* collapsed */
+#schedule-accordion:not(.collapsed) #schedule-editor-container {
+  padding: 1rem; /* Restore padding */
+  border: 1px solid var(--clr-border); /* Restore border */
+  transition: padding 0.5s ease-in-out, border 0.5s ease-in-out;
+}
+body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
+  border-color: var(--clr-border-dark);
+}

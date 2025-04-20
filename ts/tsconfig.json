@@ -1,0 +1,12 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "removeComments": false,
+    "outDir": "../js/",
+    "module": "CommonJS",
+    "preserveConstEnums": true,
+    "sourceRoot": ".",
+    "rootDir": ".",
+    "sourceMap": true
+  }
+}
