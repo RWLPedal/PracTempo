@@ -3,17 +3,20 @@ import { DisplayController, Status } from "./display_controller";
 import { ScheduleEditor } from "./schedule/editor/schedule_editor";
 // Import registry functions and types
 import { FeatureCategoryName, SettingsUISchemaItem } from "./feature";
-import { getAvailableCategories, getDefaultSettingsForCategory } from "./feature_registry";
+import {
+  getAvailableCategories,
+  getDefaultSettingsForCategory,
+} from "./feature_registry";
 // Import settings functions and types
 import {
-    AppSettings,
-    loadSettings,
-    getCategorySettings,
-    CategorySettingsMap,
-    SETTINGS_STORAGE_KEY,
-    LAST_RUN_SCHEDULE_JSON_KEY,
-    RECENT_SCHEDULES_JSON_KEY,
-    MAX_RECENT_SCHEDULES,
+  AppSettings,
+  loadSettings,
+  getCategorySettings,
+  CategorySettingsMap,
+  SETTINGS_STORAGE_KEY,
+  LAST_RUN_SCHEDULE_JSON_KEY,
+  RECENT_SCHEDULES_JSON_KEY,
+  MAX_RECENT_SCHEDULES,
 } from "./settings";
 // Import feature registration files (ensure they run)
 import "./guitar/guitar"; // For Guitar category registration
@@ -287,17 +290,19 @@ export class Main {
   /** Saves the complete AppSettings object to localStorage */
   private saveSettings(newSettings: AppSettings): void {
     try {
-        console.log("[saveSettings] Attempting to save:", JSON.stringify(newSettings));
-        localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
-        this.settings = newSettings; // Update the instance's settings
-        console.log("[saveSettings] Settings object updated in Main instance.");
+      console.log(
+        "[saveSettings] Attempting to save:",
+        JSON.stringify(newSettings)
+      );
+      localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
+      this.settings = newSettings; // Update the instance's settings
+      console.log("[saveSettings] Settings object updated in Main instance.");
     } catch (e) {
-        console.error("Failed to save settings to localStorage:", e);
-        alert("Error saving settings.");
+      console.error("Failed to save settings to localStorage:", e);
+      alert("Error saving settings.");
     }
-}
+  }
 
-  
   /** Applies global settings (like theme) */
   private applySettings(): void {
     if (this.settings.theme === "dark") {
@@ -311,75 +316,124 @@ export class Main {
 
   /** Populates and opens the settings modal */
   private openSettingsModal(): void {
-    if (this.currentSchedule?.isRunning()) { /* ... alert ... */ return; }
+    if (this.currentSchedule?.isRunning()) {
+      /* ... alert ... */ return;
+    }
     if (!this.settingsModalEl) return;
 
     // --- Populate Global Settings ---
-    (document.getElementById("theme-select") as HTMLSelectElement).value = this.settings.theme;
-    (document.getElementById("warmup-input") as HTMLInputElement).value = String(this.settings.warmupPeriod);
+    (document.getElementById("theme-select") as HTMLSelectElement).value =
+      this.settings.theme;
+    (document.getElementById("warmup-input") as HTMLInputElement).value =
+      String(this.settings.warmupPeriod);
 
     // --- Populate Dynamic Category Settings ---
-    const container = this.settingsModalEl.querySelector<HTMLElement>(`#${CATEGORY_SETTINGS_CONTAINER_ID}`);
-    if (!container) { console.error("Cannot find category settings container in modal!"); return; }
-    container.innerHTML = ''; // Clear previous dynamic content
+    const container = this.settingsModalEl.querySelector<HTMLElement>(
+      `#${CATEGORY_SETTINGS_CONTAINER_ID}`
+    );
+    if (!container) {
+      console.error("Cannot find category settings container in modal!");
+      return;
+    }
+    container.innerHTML = ""; // Clear previous dynamic content
 
     const categories = getAvailableCategories();
-    categories.forEach(categoryDesc => {
-        if (typeof categoryDesc.getSettingsUISchema === 'function') {
-            const schemaItems = categoryDesc.getSettingsUISchema();
-            if (schemaItems && schemaItems.length > 0) {
-                const currentCategorySettings = getCategorySettings<any>(this.settings, categoryDesc.categoryName);
-                // --- Create Category Header ---
-                const categoryHeader = document.createElement('h5');
-                categoryHeader.textContent = `${categoryDesc.displayName} Settings`;
-                categoryHeader.classList.add('title', 'is-6', 'category-settings-header', 'mt-4'); // Added margin-top
-                container.appendChild(categoryHeader);
-                // --- Create UI elements ---
-                schemaItems.forEach(item => {
-                    const fieldDiv = document.createElement('div'); fieldDiv.classList.add('field', 'is-horizontal');
-                    const fieldLabel = document.createElement('div'); fieldLabel.classList.add('field-label', 'is-normal');
-                    const label = document.createElement('label'); label.classList.add('label'); label.textContent = item.label; if (item.description) label.title = item.description;
-                    fieldLabel.appendChild(label);
-                    const fieldBody = document.createElement('div'); fieldBody.classList.add('field-body');
-                    const fieldInner = document.createElement('div'); fieldInner.classList.add('field');
-                    const control = document.createElement('div'); control.classList.add('control');
-                    let inputElement: HTMLInputElement | HTMLSelectElement;
-                    const inputId = `setting-${categoryDesc.categoryName}-${item.key}`; // Consistent ID
+    categories.forEach((categoryDesc) => {
+      if (typeof categoryDesc.getSettingsUISchema === "function") {
+        const schemaItems = categoryDesc.getSettingsUISchema();
+        if (schemaItems && schemaItems.length > 0) {
+          const currentCategorySettings = getCategorySettings<any>(
+            this.settings,
+            categoryDesc.categoryName
+          );
+          // --- Create Category Header ---
+          const categoryHeader = document.createElement("h5");
+          categoryHeader.textContent = `${categoryDesc.displayName} Settings`;
+          categoryHeader.classList.add(
+            "title",
+            "is-6",
+            "category-settings-header",
+            "mt-4"
+          ); // Added margin-top
+          container.appendChild(categoryHeader);
+          // --- Create UI elements ---
+          schemaItems.forEach((item) => {
+            const fieldDiv = document.createElement("div");
+            fieldDiv.classList.add("field", "is-horizontal");
+            const fieldLabel = document.createElement("div");
+            fieldLabel.classList.add("field-label", "is-normal");
+            const label = document.createElement("label");
+            label.classList.add("label");
+            label.textContent = item.label;
+            if (item.description) label.title = item.description;
+            fieldLabel.appendChild(label);
+            const fieldBody = document.createElement("div");
+            fieldBody.classList.add("field-body");
+            const fieldInner = document.createElement("div");
+            fieldInner.classList.add("field");
+            const control = document.createElement("div");
+            control.classList.add("control");
+            let inputElement: HTMLInputElement | HTMLSelectElement;
+            const inputId = `setting-${categoryDesc.categoryName}-${item.key}`; // Consistent ID
 
-                    if (item.type === 'select' && item.options) {
-                        inputElement = document.createElement('select'); inputElement.id = inputId;
-                        const selectWrapper = document.createElement('div'); selectWrapper.classList.add('select', 'is-fullwidth');
-                        item.options.forEach(opt => {
-                            const option = document.createElement('option'); option.value = opt.value; option.textContent = opt.text;
-                            if (currentCategorySettings && currentCategorySettings[item.key] === opt.value) option.selected = true;
-                            inputElement.appendChild(option); });
-                        selectWrapper.appendChild(inputElement); control.appendChild(selectWrapper);
-                    } else {
-                        inputElement = document.createElement('input'); inputElement.id = inputId; inputElement.type = item.type;
-                        if (item.type === 'checkbox') {
-                            inputElement.classList.add('checkbox');
-                            inputElement.checked = !!(currentCategorySettings && currentCategorySettings[item.key]);
-                            control.appendChild(inputElement); // Checkbox goes directly into control
-                        } else {
-                            inputElement.classList.add('input');
-                            inputElement.value = (currentCategorySettings && currentCategorySettings[item.key] !== undefined) ? String(currentCategorySettings[item.key]) : '';
-                            if (item.placeholder) inputElement.placeholder = item.placeholder;
-                            if (item.min !== undefined) inputElement.min = String(item.min);
-                            if (item.max !== undefined) inputElement.max = String(item.max);
-                            if (item.step !== undefined) inputElement.step = String(item.step);
-                            control.appendChild(inputElement);
-                        }
-                    }
-                    inputElement.dataset.category = categoryDesc.categoryName; inputElement.dataset.setting = item.key;
-                    label.htmlFor = inputId;
-                    fieldInner.appendChild(control); fieldBody.appendChild(fieldInner); fieldDiv.appendChild(fieldLabel); fieldDiv.appendChild(fieldBody);
-                    container.appendChild(fieldDiv);
-                });
+            if (item.type === "select" && item.options) {
+              inputElement = document.createElement("select");
+              inputElement.id = inputId;
+              const selectWrapper = document.createElement("div");
+              selectWrapper.classList.add("select", "is-fullwidth");
+              item.options.forEach((opt) => {
+                const option = document.createElement("option");
+                option.value = opt.value;
+                option.textContent = opt.text;
+                if (
+                  currentCategorySettings &&
+                  currentCategorySettings[item.key] === opt.value
+                )
+                  option.selected = true;
+                inputElement.appendChild(option);
+              });
+              selectWrapper.appendChild(inputElement);
+              control.appendChild(selectWrapper);
+            } else {
+              inputElement = document.createElement("input");
+              inputElement.id = inputId;
+              inputElement.type = item.type;
+              if (item.type === "checkbox") {
+                inputElement.classList.add("checkbox");
+                inputElement.checked = !!(
+                  currentCategorySettings && currentCategorySettings[item.key]
+                );
+                control.appendChild(inputElement); // Checkbox goes directly into control
+              } else {
+                inputElement.classList.add("input");
+                inputElement.value =
+                  currentCategorySettings &&
+                  currentCategorySettings[item.key] !== undefined
+                    ? String(currentCategorySettings[item.key])
+                    : "";
+                if (item.placeholder)
+                  inputElement.placeholder = item.placeholder;
+                if (item.min !== undefined) inputElement.min = String(item.min);
+                if (item.max !== undefined) inputElement.max = String(item.max);
+                if (item.step !== undefined)
+                  inputElement.step = String(item.step);
+                control.appendChild(inputElement);
+              }
             }
+            inputElement.dataset.category = categoryDesc.categoryName;
+            inputElement.dataset.setting = item.key;
+            label.htmlFor = inputId;
+            fieldInner.appendChild(control);
+            fieldBody.appendChild(fieldInner);
+            fieldDiv.appendChild(fieldLabel);
+            fieldDiv.appendChild(fieldBody);
+            container.appendChild(fieldDiv);
+          });
         }
+      }
     });
     this.settingsModalEl.classList.add("is-active");
-}
+  }
 
   // closeSettingsModal remains the same
   private closeSettingsModal(): void {
@@ -395,68 +449,91 @@ export class Main {
     if (!saveBtn || !cancelBtn || !closeBtn || !this.settingsModalEl) return;
 
     saveBtn.onclick = () => {
-        // 1. Create a deep copy of current settings to modify
-        const newSettings: AppSettings = JSON.parse(JSON.stringify(this.settings));
+      // 1. Create a deep copy of current settings to modify
+      const newSettings: AppSettings = JSON.parse(
+        JSON.stringify(this.settings)
+      );
 
-        // 2. Update global settings
-        newSettings.theme = (document.getElementById("theme-select") as HTMLSelectElement).value as "light" | "dark";
-        newSettings.warmupPeriod = Math.max(0, parseInt((document.getElementById("warmup-input") as HTMLInputElement).value, 10) || 0);
+      // 2. Update global settings
+      newSettings.theme = (
+        document.getElementById("theme-select") as HTMLSelectElement
+      ).value as "light" | "dark";
+      newSettings.warmupPeriod = Math.max(
+        0,
+        parseInt(
+          (document.getElementById("warmup-input") as HTMLInputElement).value,
+          10
+        ) || 0
+      );
 
-        // 3. Update Category Settings Dynamically
-        const container = this.settingsModalEl.querySelector<HTMLElement>(`#${CATEGORY_SETTINGS_CONTAINER_ID}`);
-        if (container) {
-            // Find all input/select elements within the dynamic container
-            const settingElements = container.querySelectorAll<HTMLInputElement | HTMLSelectElement>('input[data-setting], select[data-setting]');
+      // 3. Update Category Settings Dynamically
+      const container = this.settingsModalEl.querySelector<HTMLElement>(
+        `#${CATEGORY_SETTINGS_CONTAINER_ID}`
+      );
+      if (container) {
+        // Find all input/select elements within the dynamic container
+        const settingElements = container.querySelectorAll<
+          HTMLInputElement | HTMLSelectElement
+        >("input[data-setting], select[data-setting]");
 
-            settingElements.forEach(element => {
-                const categoryKey = element.dataset.category;
-                const settingKey = element.dataset.setting;
+        settingElements.forEach((element) => {
+          const categoryKey = element.dataset.category;
+          const settingKey = element.dataset.setting;
 
-                if (categoryKey && settingKey) {
-                    // Ensure the category object exists in the settings map
-                    if (!newSettings.categorySettings[categoryKey]) {
-                        // Initialize with defaults if it's missing (shouldn't happen if loadSettings works)
-                        const defaults = getDefaultSettingsForCategory<any>(categoryKey as FeatureCategoryName) ?? {};
-                        newSettings.categorySettings[categoryKey] = { ...defaults };
-                         console.warn(`Initialized missing settings for category: ${categoryKey}`);
-                    }
+          if (categoryKey && settingKey) {
+            // Ensure the category object exists in the settings map
+            if (!newSettings.categorySettings[categoryKey]) {
+              // Initialize with defaults if it's missing (shouldn't happen if loadSettings works)
+              const defaults =
+                getDefaultSettingsForCategory<any>(
+                  categoryKey as FeatureCategoryName
+                ) ?? {};
+              newSettings.categorySettings[categoryKey] = { ...defaults };
+              console.warn(
+                `Initialized missing settings for category: ${categoryKey}`
+              );
+            }
 
-                    // Get the value based on element type
-                    let value: string | number | boolean;
-                    if (element.type === 'checkbox') {
-                        value = (element as HTMLInputElement).checked;
-                    } else if (element.type === 'number') {
-                        value = parseFloat(element.value) || 0; // Or handle NaN appropriately
-                         // Optional: Clamp value based on min/max attributes
-                         const min = element.getAttribute('min');
-                         const max = element.getAttribute('max');
-                         if (min !== null) value = Math.max(parseFloat(min), value);
-                         if (max !== null) value = Math.min(parseFloat(max), value);
-                    } else {
-                        value = element.value;
-                    }
+            // Get the value based on element type
+            let value: string | number | boolean;
+            if (element.type === "checkbox") {
+              value = (element as HTMLInputElement).checked;
+            } else if (element.type === "number") {
+              value = parseFloat(element.value) || 0; // Or handle NaN appropriately
+              // Optional: Clamp value based on min/max attributes
+              const min = element.getAttribute("min");
+              const max = element.getAttribute("max");
+              if (min !== null) value = Math.max(parseFloat(min), value);
+              if (max !== null) value = Math.min(parseFloat(max), value);
+            } else {
+              value = element.value;
+            }
 
-                    // Update the specific setting
-                    newSettings.categorySettings[categoryKey][settingKey] = value;
-                    console.log(`[Settings Save] Updated ${categoryKey}.${settingKey} to:`, value);
-                }
-            });
-        } else {
-             console.error("Category settings container not found during save!");
-        }
+            // Update the specific setting
+            newSettings.categorySettings[categoryKey][settingKey] = value;
+            console.log(
+              `[Settings Save] Updated ${categoryKey}.${settingKey} to:`,
+              value
+            );
+          }
+        });
+      } else {
+        console.error("Category settings container not found during save!");
+      }
 
-        // 4. Save, Apply, Close, Reset
-        this.saveSettings(newSettings);
-        this.applySettings();
-        this.closeSettingsModal();
-        this.reset();
+      // 4. Save, Apply, Close, Reset
+      this.saveSettings(newSettings);
+      this.applySettings();
+      this.closeSettingsModal();
+      this.reset();
     };
 
     cancelBtn.onclick = () => this.closeSettingsModal();
     closeBtn.onclick = () => this.closeSettingsModal();
-    this.settingsModalEl.querySelector(".modal-background")?.addEventListener("click", () => this.closeSettingsModal());
-}
-
+    this.settingsModalEl
+      .querySelector(".modal-background")
+      ?.addEventListener("click", () => this.closeSettingsModal());
+  }
 
   // --- Accordion Logic (Remains the same) ---
   private addAccordionHandlers(): void {

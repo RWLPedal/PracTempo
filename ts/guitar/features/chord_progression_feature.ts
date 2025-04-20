@@ -4,30 +4,25 @@ import {
   Feature,
   FeatureCategoryName,
   ConfigurationSchema,
-  ConfigurationSchemaArg, // Import ConfigurationSchemaArg
+  ConfigurationSchemaArg,
 } from "../../feature";
-import { GuitarFeature } from "../guitar_base";
+// Import the NEW base class
+import {
+  BaseChordDiagramFeature,
+  ChordAndTitle,
+} from "./base_chord_diagram_feature";
 import { Chord, chord_library } from "../chords";
-import { Fretboard } from "../fretboard";
+// Removed Fretboard import
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
-import {
-  START_PX,
-  NOTE_RADIUS_PX,
-  OPEN_NOTE_RADIUS_FACTOR,
-  MUSIC_NOTES,
-  getKeyIndex,
-  getIntervalLabel,
-  addHeader, // No longer needed if base class handles header?
-  clearAllChildren,
-  CANVAS_SUBTITLE_HEIGHT_PX, // No longer needed if base class handles clear?
-} from "../guitar_utils";
+// Removed utils imports handled by base
+import { MUSIC_NOTES, getKeyIndex } from "../guitar_utils";
 import { getChordInKey } from "../progressions";
-import { MetronomeView } from "../views/metronome_view";
-import { FretboardColorScheme } from "../colors";
+// Removed MetronomeView import (handled by base)
 
 /** Displays chord diagrams for a Roman numeral progression in a given key. */
-export class ChordProgressionFeature extends GuitarFeature {
+// Extend the new base class
+export class ChordProgressionFeature extends BaseChordDiagramFeature {
   static readonly category = FeatureCategoryName.Guitar;
   static readonly typeName = "Chord Progression";
   static readonly displayName = "Chord Progression";
@@ -37,19 +32,19 @@ export class ChordProgressionFeature extends GuitarFeature {
   readonly typeName = ChordProgressionFeature.typeName;
   private readonly rootNoteName: string;
   private readonly progression: string[]; // Array of Roman numerals
-  private readonly headerText: string;
+  // Removed headerText property
 
   constructor(
     config: ReadonlyArray<string>, // Config now contains [RootNote, Numeral1, Numeral2,...]
     rootNoteName: string,
     progression: string[],
-    headerText: string,
+    // Removed headerText parameter
     settings: AppSettings,
     metronomeBpmOverride?: number,
     audioController?: AudioController,
-    maxCanvasHeight?: number // Add maxCanvasHeight
+    maxCanvasHeight?: number
   ) {
-    // Pass the modified config (RootNote + Numerals) and maxCanvasHeight to base
+    // Pass relevant parameters up to base class constructor
     super(
       config,
       settings,
@@ -59,9 +54,9 @@ export class ChordProgressionFeature extends GuitarFeature {
     );
     this.rootNoteName = rootNoteName;
     this.progression = progression;
-    this.headerText = headerText;
   }
 
+  // Static methods remain the same
   static getConfigurationSchema(): ConfigurationSchema {
     const availableKeys = MUSIC_NOTES.flat();
     // Define the button labels for the custom UI component
@@ -85,10 +80,7 @@ export class ChordProgressionFeature extends GuitarFeature {
         uiComponentData: {
           buttonLabels: progressionButtonLabels,
         },
-        // This is conceptually variadic in terms of data extraction/creation,
-        // even though the UI is custom. Keep true for parsing logic consistency.
         isVariadic: true,
-        // Example shows the format used by text parser/generator
         example: "I-vi-IV-V",
         description:
           "Build the progression sequence using the Roman numeral buttons.",
@@ -104,7 +96,6 @@ export class ChordProgressionFeature extends GuitarFeature {
             type: "number",
             description: "Metronome BPM (0=off)",
           },
-          // Color scheme is handled globally
         ],
       },
     ];
@@ -120,11 +111,9 @@ export class ChordProgressionFeature extends GuitarFeature {
     audioController: AudioController,
     settings: AppSettings,
     metronomeBpmOverride?: number,
-    maxCanvasHeight?: number // Add maxCanvasHeight
+    maxCanvasHeight?: number
   ): Feature {
-    // Config: [RootNote, Numeral1, Numeral2, ...]
     if (config.length < 2) {
-      // Need at least RootNote and one Numeral
       throw new Error(
         `Invalid config for ${
           this.typeName
@@ -133,10 +122,8 @@ export class ChordProgressionFeature extends GuitarFeature {
     }
 
     const rootNoteName = config[0];
-    // The rest of the config array elements are the progression numerals
     const progressionNumerals = config.slice(1);
 
-    // --- Validation ---
     const keyIndex = getKeyIndex(rootNoteName);
     if (keyIndex === -1) throw new Error(`Unknown key: "${rootNoteName}"`);
     const validRootName = MUSIC_NOTES[keyIndex]?.[0] ?? rootNoteName;
@@ -144,300 +131,58 @@ export class ChordProgressionFeature extends GuitarFeature {
     if (progressionNumerals.length === 0) {
       throw new Error(`Progression cannot be empty.`);
     }
-    // TODO: Optionally validate each numeral against MAJOR_KEY_ROMAN_MAP keys?
 
-    const headerText = `${progressionNumerals.join(
-      "-"
-    )} Progression in ${validRootName}`;
-
-    // Pass the original config array, validated data, and maxCanvasHeight
+    // Header text generation moved to base class
     return new ChordProgressionFeature(
       config,
       validRootName,
       progressionNumerals,
-      headerText,
+      // No headerText needed here
       settings,
       metronomeBpmOverride,
       audioController,
-      maxCanvasHeight // Pass height to constructor
+      maxCanvasHeight
     );
   }
 
-  render(container: HTMLElement): void {
-    // --- Initial Setup & Clear ---
-    const { canvas, ctx } = this.clearAndAddCanvas(container, this.headerText);
-    const config = this.fretboardConfig;
-    const scaleFactor = config.scaleFactor;
-    const scaledStartPx = START_PX * scaleFactor;
-
-    // --- Get Chords ---
+  /** Implement the abstract method to provide chords and titles for the progression. */
+  protected getChordsAndTitles(): ChordAndTitle[] {
     const rootNoteIndex = getKeyIndex(this.rootNoteName);
     if (rootNoteIndex === -1) {
-      /* ... error handling ... */ return;
-    }
-
-    const progressionChords = this.progression.map((numeral) => ({
-      numeral: numeral,
-      details: getChordInKey(rootNoteIndex, numeral),
-    }));
-
-    const chordsToDraw = progressionChords
-      .map((item) => ({
-        numeral: item.numeral,
-        chordName: item.details.chordName,
-        chordData: item.details.chordKey
-          ? chord_library[item.details.chordKey]
-          : null,
-      }))
-      .filter((item) => item.chordData !== null);
-
-    const numChords = chordsToDraw.length;
-    if (numChords === 0) {
-      /* ... handle no chords found ... */ return;
-    }
-
-    // --- Dynamic Layout Calculation (same as ChordFeature) ---
-    const availableWidth = Math.max(
-      300,
-      container.clientWidth - scaledStartPx * 2
-    );
-    const fretCount = 5; // Standard chord diagram fret count
-    const scaledNoteRadius = config.noteRadiusPx;
-    const diagramContentWidth =
-      config.stringSpacingPx * 5 + scaledNoteRadius * 2;
-    const diagramContentHeight =
-      fretCount * config.fretLengthPx + scaledNoteRadius * 3;
-    const titleHeight = CANVAS_SUBTITLE_HEIGHT_PX * scaleFactor;
-    const horizontalSpacing = Math.max(20 * scaleFactor, 80 * scaleFactor);
-    const verticalSpacing = Math.max(30 * scaleFactor, 100 * scaleFactor);
-    const fullDiagramWidth = diagramContentWidth + horizontalSpacing;
-    const fullDiagramHeight =
-      diagramContentHeight + titleHeight + verticalSpacing;
-
-    const chordsPerRow = Math.max(
-      1,
-      Math.floor(availableWidth / fullDiagramWidth)
-    );
-    const numRows = Math.ceil(numChords / chordsPerRow);
-
-    const requiredWidth =
-      chordsPerRow * fullDiagramWidth - horizontalSpacing + scaledStartPx * 2;
-    let requiredHeight = scaledStartPx;
-    requiredHeight += numRows * fullDiagramHeight;
-    requiredHeight -= verticalSpacing;
-    requiredHeight += 65 * scaleFactor;
-
-    const metronomeView = this.views.find(
-      (view) => view instanceof MetronomeView
-    );
-    const METRONOME_ESTIMATED_HEIGHT = 120;
-    if (metronomeView) {
-      requiredHeight += METRONOME_ESTIMATED_HEIGHT * scaleFactor;
-    }
-
-    canvas.width = Math.max(350, requiredWidth);
-    canvas.height = Math.max(300, requiredHeight);
-
-    console.log(
-      `[ChordProgression Render] AvailableW: ${availableWidth.toFixed(
-        0
-      )}, DiagramW: ${diagramContentWidth.toFixed(
-        0
-      )}, HSpacing: ${horizontalSpacing.toFixed(
-        0
-      )}, ChordsPerRow: ${chordsPerRow}, NumRows: ${numRows}, CanvasW: ${
-        canvas.width
-      }, CanvasH: ${canvas.height}`
-    );
-
-    // --- Clear & Translate ---
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.resetTransform();
-    ctx.translate(0.5, 0.5);
-
-    // --- Draw each chord ---
-    chordsToDraw.forEach((item, i) => {
-      if (!item.chordData) return;
-      const title = `${item.chordName} (${item.numeral})`; // Include numeral in title
-      // Pass the dynamically calculated chordsPerRow and fretCount
-      this.drawSingleChordDiagram(
-        canvas,
-        ctx,
-        item.chordData,
-        title,
-        i,
-        chordsPerRow,
-        numRows,
-        fretCount // Pass fret count
+      console.error(
+        `Invalid root note in getChordsAndTitles: ${this.rootNoteName}`
       );
-    });
+      return []; // Return empty if root note is invalid
+    }
 
-    // MetronomeView renders via DisplayController
+    return this.progression
+      .map((numeral) => {
+        const chordDetails = getChordInKey(rootNoteIndex, numeral);
+        const chordData = chordDetails.chordKey
+          ? chord_library[chordDetails.chordKey]
+          : null;
+        if (chordData) {
+          return {
+            chord: chordData,
+            title: `${chordDetails.chordName} (${numeral})`, // Specific title format
+          };
+        } else {
+          console.warn(
+            `Chord data not found for ${chordDetails.chordName} (numeral ${numeral}) in key ${this.rootNoteName}`
+          );
+          return null; // Return null if chord data not found
+        }
+      })
+      .filter((item): item is ChordAndTitle => item !== null); // Filter out nulls and type guard
   }
 
-  /** Draws a single chord diagram (Same logic as in ChordFeature) */
-  private drawSingleChordDiagram(
-    canvasEl: HTMLCanvasElement,
-    ctx: CanvasRenderingContext2D,
-    chord: Chord,
-    title: string, // Title now includes numeral
-    index: number,
-    chordsPerRow: number,
-    numRows: number,
-    fretCount: number = 5 // Default to 5 frets
-  ): void {
-    const config = this.fretboardConfig;
-    const scaleFactor = config.scaleFactor;
-    const fontSize = 16 * scaleFactor;
-    const titleFontSize = 18 * scaleFactor;
-    const sideFretFontSize = 16 * scaleFactor;
-    const scaledNoteRadius = config.noteRadiusPx;
-    const scaledStartPx = START_PX * scaleFactor;
-
-    // --- Layout Calculations ---
-    const colIndex = index % chordsPerRow;
-    const rowIndex = Math.floor(index / chordsPerRow);
-    const diagramContentWidth =
-      config.stringSpacingPx * 5 + scaledNoteRadius * 2;
-    const diagramContentHeight =
-      fretCount * config.fretLengthPx + scaledNoteRadius * 3;
-    const titleHeight = CANVAS_SUBTITLE_HEIGHT_PX * scaleFactor;
-    const horizontalSpacing = Math.max(20 * scaleFactor, 80 * scaleFactor);
-    const verticalSpacing = Math.max(30 * scaleFactor, 100 * scaleFactor);
-    const fullDiagramWidth = diagramContentWidth + horizontalSpacing;
-    const fullDiagramHeight =
-      diagramContentHeight + titleHeight + verticalSpacing;
-    const leftPos = scaledStartPx + colIndex * fullDiagramWidth;
-    const topPosDiagramContent =
-      scaledStartPx + rowIndex * fullDiagramHeight + titleHeight;
-    const openNoteClearance = scaledNoteRadius * 1.5 + 5 * scaleFactor;
-    const absoluteNutLineY = topPosDiagramContent + openNoteClearance;
-
-    // --- Draw Title ---
-    ctx.font = `${titleFontSize}px Sans-serif`;
-    ctx.fillStyle = "#444";
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    const titleX = leftPos + diagramContentWidth / 2;
-    const titleY = topPosDiagramContent - titleHeight / 2;
-    ctx.fillText(title, titleX, titleY);
-
-    // --- Fretboard and Notes ---
-    // ** Calculate startFret based on furthest fretted note **
-    let minFret = fretCount + 1;
-    let maxFret = 0;
-    chord.strings.forEach((fret) => {
-      if (fret > 0) {
-        minFret = Math.min(minFret, fret);
-        maxFret = Math.max(maxFret, fret);
-      }
-    });
-    let startFret = 0;
-    if (maxFret > 3) {
-      if (minFret > 0 && maxFret - minFret < fretCount) {
-        startFret = minFret - 1;
-      }
-    }
-    console.log(
-      `[DEBUG Prog] Chord: ${chord.name}, MaxFret: ${maxFret}, MinFret: ${minFret}, Calculated StartFret: ${startFret}`
-    );
-
-    const fretboard = new Fretboard(
-      config,
-      leftPos,
-      topPosDiagramContent,
-      fretCount
-    );
-    fretboard.render(ctx);
-
-    // --- Starting Fret Number ---
-    if (startFret > 0) {
-      ctx.font = `${sideFretFontSize}px Sans-serif`;
-      ctx.fillStyle = "#666";
-      ctx.textAlign = "right";
-      ctx.textBaseline = "middle";
-      const sideNumberX = leftPos - 10 * scaleFactor;
-      const sideNumberY = absoluteNutLineY + 0.5 * config.fretLengthPx;
-      ctx.fillText(`${startFret + 1}`, sideNumberX, sideNumberY);
-    }
-
-    // --- Draw Fingerings/Notes ---
-    const chordRootName = this.getChordRootNote(chord.name);
-    const chordRootIndex = chordRootName ? getKeyIndex(chordRootName) : -1;
-    ctx.font = `${fontSize}px Sans-serif`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-
-    for (
-      let stringIndex = 0;
-      stringIndex < chord.strings.length;
-      stringIndex++
-    ) {
-      if (stringIndex >= config.tuning.tuning.length) continue;
-      const fret = chord.strings[stringIndex]; // Actual fret number
-      const finger = chord.fingers[stringIndex];
-
-      const fingerLabel = finger > 0 ? `${finger}` : "";
-      const isMuted = fret === -1;
-      const isOpen = fret === 0;
-      let noteName = "?";
-      let intervalLabel = "?";
-      let radiusOverride: number | undefined = undefined;
-
-      if (!isMuted) {
-        const noteOffsetFromA = (config.tuning.tuning[stringIndex] + fret) % 12;
-        noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
-        if (chordRootIndex !== -1) {
-          const noteRelativeToKey =
-            (noteOffsetFromA - chordRootIndex + 12) % 12;
-          intervalLabel = getIntervalLabel(noteRelativeToKey);
-        }
-        if (isOpen) {
-          radiusOverride = scaledNoteRadius * OPEN_NOTE_RADIUS_FACTOR;
-        }
-      }
-
-      // **Call renderFingering for ALL strings**
-      fretboard.renderFingering(
-        ctx,
-        fret, // Pass actual fret value
-        stringIndex,
-        noteName,
-        intervalLabel,
-        fingerLabel,
-        scaledNoteRadius,
-        fontSize,
-        false, // drawStar
-        "black", // strokeColor
-        1, // lineWidth
-        radiusOverride,
-        config.colorScheme // Use global scheme
-      );
-    } // End string loop
-  } // End drawSingleChordDiagram
-
-  /** Helper to get chord root note - adapted from ChordFeature */
-  private getChordRootNote(chordName: string): string | null {
-    if (!chordName) return null;
-    const match = chordName.match(/^([A-G])([#b]?)/);
-    if (match) {
-      const rootName = `${match[1]}${match[2] || ""}`;
-      if (getKeyIndex(rootName) !== -1) return rootName;
-    }
-    // Fallback for keys like "Fsharp_MINOR" potentially stored in chord_library
-    const keyMatch = Object.keys(chord_library).find(
-      (key) => chord_library[key].name === chordName
-    );
-    if (keyMatch) {
-      const underscoreIndex = keyMatch.indexOf("_");
-      if (underscoreIndex > 0) {
-        const potentialRoot = keyMatch
-          .substring(0, underscoreIndex)
-          .replace("sharp", "#");
-        if (getKeyIndex(potentialRoot) !== -1) return potentialRoot;
-      }
-    }
-    console.warn(`Could not determine root note for chord name: ${chordName}`);
-    return null;
+  // Override getHeaderText for a more specific title for progressions
+  protected getHeaderText(chordsAndTitles: ChordAndTitle[]): string {
+    // We can reconstruct the numeral string from the titles if needed,
+    // or use the stored progression array.
+    const numeralString = this.progression.join("-");
+    return `${numeralString} Progression in ${this.rootNoteName}`;
   }
+
+  // render, drawSingleChordDiagram, and getChordRootNote are removed - inherited from base.
 }
