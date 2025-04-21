@@ -59,7 +59,9 @@ export class Main {
     // Initialize Controllers
     this.audioController = new AudioController(
       document.querySelector("#intro-end-sound") as HTMLAudioElement,
-      document.querySelector("#interval-end-sound") as HTMLAudioElement
+      document.querySelector("#interval-end-sound") as HTMLAudioElement,
+      document.querySelector("#metronome-sound") as HTMLAudioElement,
+      document.querySelector("#metronome-accent-sound") as HTMLAudioElement
     );
     this.displayController = new DisplayController(
       document.querySelector("#timer") as HTMLElement,
@@ -317,7 +319,7 @@ export class Main {
   /** Populates and opens the settings modal */
   private openSettingsModal(): void {
     if (this.currentSchedule?.isRunning()) {
-      /* ... alert ... */ return;
+      return;
     }
     if (!this.settingsModalEl) return;
 

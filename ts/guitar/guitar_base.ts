@@ -98,8 +98,7 @@ export abstract class GuitarFeature implements Feature {
         } else {
           const metronomeView = new MetronomeView(
             this.metronomeBpm,
-            this.audioController,
-            metronomeAudioEl
+            this.audioController
           );
           this.views = [metronomeView];
           console.log(

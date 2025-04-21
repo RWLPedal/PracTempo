@@ -49,7 +49,7 @@ export class ChordFeature extends GuitarFeature {
     if (this.metronomeBpm > 0 && this.audioController) {
        const metronomeAudioEl = document.getElementById("metronome-sound") as HTMLAudioElement;
        if (metronomeAudioEl) {
-           views.push(new MetronomeView(this.metronomeBpm, this.audioController, metronomeAudioEl));
+           views.push(new MetronomeView(this.metronomeBpm, this.audioController));
        } else {
             console.error("Metronome audio element not found for ChordFeature.");
        }

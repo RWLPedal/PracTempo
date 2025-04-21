@@ -660,3 +660,115 @@ body.dark-theme .accordion-toggle-icon {
 body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
   border-color: var(--clr-border-dark);
 }
+
+/* --- Metronome View (Compact & Contained) --- */
+.metronome-view {
+  max-width: 250px; /* <<< SET MAX WIDTH */
+  margin: 15px auto; /* Center horizontally, keep vertical margin */
+  padding: 12px 15px; /* Adjusted padding */
+  border: 1px solid var(--clr-border);
+  border-radius: 8px; /* <<< ROUNDED CORNERS */
+  box-shadow: 0 2px 5px var(--clr-shadow); /* <<< DROPSHADOW */
+  background-color: var(--clr-background-offset);
+  margin-top: 15px;
+  margin-bottom: 15px; /* Consistent vertical margin */
+  box-sizing: border-box; /* Include padding/border in width */
+}
+
+/* Dark theme adjustments for the view container */
+body.dark-theme .metronome-view {
+  border-color: var(--clr-border-dark);
+  box-shadow: 0 2px 5px var(--clr-shadow-dark);
+  background-color: var(--clr-tertiary-dark); /* Match other dark backgrounds */
+}
+
+/* Adjust beats container padding slightly if needed */
+.metronome-beats-container {
+  display: flex;
+  justify-content: space-around; /* Space around might look better in compact */
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 0;
+  /* Removed bottom border/margin for compactness inside the view */
+  border-bottom: none;
+  margin-bottom: 10px; /* Reduced space before controls */
+}
+
+/* Adjust beat sizes slightly if needed for the smaller width */
+.metronome-beat.beat-downbeat {
+  width: 20px; /* Slightly smaller */
+  height: 20px;
+}
+.metronome-beat.beat-subdivision {
+  width: 16px; /* Slightly smaller */
+  height: 16px;
+  opacity: 0.75;
+}
+
+/* Keep existing beat state styles (.beat-normal, .beat-accent, etc.) */
+/* ... */
+.metronome-beat.beat-normal {
+  background-color: var(--clr-text-subtle);
+  opacity: 0.6;
+}
+.metronome-beat.beat-accent {
+  background-color: var(--clr-info);
+  opacity: 1.0;
+}
+.metronome-beat.beat-silent {
+  background-color: transparent;
+  border: 2px dashed var(--clr-warning);
+  opacity: 0.4;
+}
+body.dark-theme .metronome-beat.beat-normal {
+    background-color: var(--clr-text-subtle-dark);
+}
+body.dark-theme .metronome-beat.beat-accent {
+    background-color: var(--clr-info);
+}
+body.dark-theme .metronome-beat.beat-silent {
+    border-color: var(--clr-border-dark);
+}
+.metronome-beat.beat-current {
+  border-color: var(--clr-warning);
+  transform: scale(1.15);
+  box-shadow: 0 0 5px var(--clr-warning);
+}
+.metronome-beat.beat-current.beat-normal,
+.metronome-beat.beat-current.beat-silent {
+    opacity: 1.0;
+}
+
+/* Controls might need adjusting */
+.metronome-controls {
+  display: flex;
+  flex-wrap: wrap; /* Allow controls to wrap if needed */
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px; /* Reduced gap */
+}
+
+.metronome-controls > div { /* Target the left/right control groups */
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+/* Ensure slider doesn't overflow */
+.metronome-bpm-slider {
+  flex-grow: 1; /* Allow shrinking */
+  max-width: 100px; /* Further reduce max width */
+  min-width: 60px; /* Prevent excessive shrinking */
+}
+
+.metronome-bpm-display {
+    min-width: 50px; /* Slightly smaller min-width */
+}
+
+/* Keep other control styles (.metronome-mute-btn, etc.) */
+/* ... */
+.metronome-mute-btn.is-warning {
+    background-color: var(--clr-warning);
+    color: rgba(0,0,0,0.8);
+    border-color: transparent;
+}

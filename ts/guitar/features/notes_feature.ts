@@ -72,8 +72,7 @@ export class NotesFeature extends GuitarFeature {
         views.push(
           new MetronomeView(
             this.metronomeBpm,
-            this.audioController,
-            metronomeAudioEl
+            this.audioController
           )
         );
       } else {
