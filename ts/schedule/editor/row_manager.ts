@@ -10,7 +10,6 @@ import {
 } from "./interval/types";
 import { buildGroupRowElement } from "./interval/group_row_ui";
 import { buildIntervalRowElement } from "./interval/interval_row_ui";
-// *** REMOVED GuitarIntervalSettings import ***
 import { SelectionManager } from "./selection_manager";
 import { applyIndentation } from './interval/common_ui_elements';
 import { FeatureCategoryName } from "../../feature"; // Import enum

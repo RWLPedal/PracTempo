@@ -1,6 +1,6 @@
 import { FretboardConfig, Fretboard } from "./fretboard";
 import { MUSIC_NOTES, getKeyIndex, getIntervalLabel, START_PX } from "./guitar_utils";
-import { NoteRenderData, LineData } from "./views/fretboard_view";
+import { NoteRenderData, LineData } from "./fretboard";
 
 export type TriadQuality = "Major" | "Minor" | "Diminished" | "Augmented";
 export type TriadInversion = "Root" | "1st" | "2nd";
@@ -120,15 +120,16 @@ const INVERSION_LINE_COLORS: Record<TriadInversion, string> = {
 /**
  * Finds all occurrences of triads for a given key and quality on a specific 3-string group.
  * Uses the TRIAD_SHAPE_CATALOG for relative shapes.
+ * Returns data optimized for FretboardView rendering.
  *
- * @returns An object containing arrays of notes and lines for the FretboardView.
+ * @returns An object containing arrays of notes (NoteRenderData without x/y) and lines (LineData with calculated coords).
  */
 export function getTriadNotesAndLinesForGroup(
   rootNoteName: string,
   quality: TriadQuality,
   stringGroup: [number, number, number],
   fretCount: number,
-  fretboardConfig: FretboardConfig
+  fretboardConfig: FretboardConfig // Pass the config for coordinate calculations
 ): { notes: NoteRenderData[], lines: LineData[] } {
 
   const rootNoteIndex = getKeyIndex(rootNoteName);
@@ -142,6 +143,7 @@ export function getTriadNotesAndLinesForGroup(
   const tuning = fretboardConfig.tuning.tuning;
   const scaledStartPx = START_PX * fretboardConfig.scaleFactor;
 
+  // Instantiate a temporary Fretboard object ONLY for coordinate calculations
   const coordCalculator = new Fretboard(fretboardConfig, scaledStartPx, scaledStartPx, fretCount);
 
   const relevantShapes = TRIAD_SHAPE_CATALOG.filter(
@@ -149,66 +151,91 @@ export function getTriadNotesAndLinesForGroup(
            s.stringGroup.every((val, index) => val === stringGroup[index])
   );
 
-  const targetIntervalMap = new Map<number, number>();
-  triadIntervals.forEach(interval => targetIntervalMap.set(((12+rootNoteIndex) + interval) % 12, interval));
+  // No longer needed: const targetIntervalMap = new Map<number, number>();
+  // triadIntervals.forEach(interval => targetIntervalMap.set(((12+rootNoteIndex) + interval) % 12, interval));
 
   const addedInstances = new Set<string>(); // To prevent adding exact same shape at same location
 
   for (const shape of relevantShapes) {
       const anchorStringAbsoluteIndex = shape.stringGroup[shape.rootStringIndexInGroup];
       const anchorStringTuning = tuning[anchorStringAbsoluteIndex];
-      const requiredNoteIndexForAnchor = (12+rootNoteIndex) % 12;
+      const requiredNoteIndexForAnchor = (12+rootNoteIndex) % 12; // Root note index (0-11)
 
       for (let anchorFret = 0; anchorFret <= fretCount; anchorFret++) {
           const noteAtAnchorFret = (anchorStringTuning + anchorFret) % 12;
 
- 
-
           if (noteAtAnchorFret === requiredNoteIndexForAnchor) {
-              const instanceNotes: NoteRenderData[] = [];
+              // Found a potential root note at anchorFret on the anchor string
+              const instanceNotesData: NoteRenderData[] = [];
+              const instanceCoords: { x: number; y: number }[] = []; // Store coords temporarily for lines
               let isValidInstance = true;
-              const absoluteFrets: number[] = [-1, -1, -1];
+              // const absoluteFrets: number[] = [-1, -1, -1]; // Not needed to store
 
-              for (let i = 0; i < 3; i++) {
+              for (let i = 0; i < 3; i++) { // Iterate through the 3 strings in the shape's group
                   const currentStringAbsoluteIndex = shape.stringGroup[i];
                   const currentStringTuning = tuning[currentStringAbsoluteIndex];
+                  // Calculate the absolute fret for the current string based on the anchor fret and the relative shape
                   const absFret = anchorFret + shape.relativeFrets[i] - shape.relativeFrets[shape.rootStringIndexInGroup];
-                  absoluteFrets[i] = absFret;
+                  // absoluteFrets[i] = absFret; // Not needed
 
                   if (absFret < 0 || absFret > fretCount) {
-                      isValidInstance = false; break;
+                      isValidInstance = false; // Note is outside the fretboard range
+                      break;
                   }
-                  const resultingNoteIndex = (currentStringTuning + absFret) % 12;
+                  const resultingNoteIndex = (currentStringTuning + absFret) % 12; // Calculate the note index (0-11)
+
+                  // Check if this note belongs to the target triad (redundant if shape catalog is correct, but good validation)
+                  // const intervalOffset = (resultingNoteIndex - rootNoteIndex + 12) % 12;
+                  // if (!triadIntervals.includes(intervalOffset)) {
+                  //     isValidInstance = false; // Note doesn't belong to the triad
+                  //     console.warn(`Shape validation failed: Shape ${shape.inversion}/${shape.quality} on ${shape.stringGroup} produced note ${MUSIC_NOTES[resultingNoteIndex][0]} (offset ${intervalOffset}) at string ${currentStringAbsoluteIndex}, fret ${absFret}, which is not in triad intervals [${triadIntervals.join(',')}] for root ${rootNoteName}`);
+                  //     break;
+                  // }
+
 
                   const noteName = MUSIC_NOTES[resultingNoteIndex]?.[0] ?? "?";
-                  const intervalSemitones = Math.abs(resultingNoteIndex - rootNoteIndex) % 12;
+                   // Corrected interval calculation:
+                  const intervalSemitones = (resultingNoteIndex - rootNoteIndex + 12) % 12;
                   const intervalLabel = getIntervalLabel(intervalSemitones);
-                  const coords = coordCalculator.getNoteCoordinates(currentStringAbsoluteIndex, absFret);
 
-                  instanceNotes.push({
+                  // Get coordinates for this note *before* adding NoteRenderData
+                  const coords = coordCalculator.getNoteCoordinates(currentStringAbsoluteIndex, absFret);
+                  instanceCoords.push(coords); // Store for line drawing
+
+                  // Push NoteRenderData *without* x/y
+                  instanceNotesData.push({
                       fret: absFret, stringIndex: currentStringAbsoluteIndex,
                       noteName: noteName, intervalLabel: intervalLabel,
-                      displayLabel: intervalLabel, colorSchemeOverride: "interval",
-                      isRoot: intervalLabel === "R",
-                      x: coords.x, y: coords.y
+                      displayLabel: intervalLabel, // Display interval label for triads
+                      colorSchemeOverride: "interval", // Use interval colors
                   });
               }
 
-              if (isValidInstance && instanceNotes.length === 3) {
-                  // Create a unique key for this instance based on frets
-                  const instanceKey = instanceNotes.map(n => `${n.stringIndex}:${n.fret}`).sort().join(',');
+              if (isValidInstance && instanceNotesData.length === 3) {
+                  // Create a unique key for this instance based on frets and strings
+                  const instanceKey = instanceNotesData.map(n => `${n.stringIndex}:${n.fret}`).sort().join(',');
                   if (!addedInstances.has(instanceKey)) {
-                      allNotesForGroup.push(...instanceNotes);
+                      allNotesForGroup.push(...instanceNotesData);
                       addedInstances.add(instanceKey); // Mark as added
 
-                      // Add connecting lines
+                      // Add connecting lines using the calculated coords
                       const lineColor = INVERSION_LINE_COLORS[shape.inversion] || 'grey';
-                      instanceNotes.sort((a, b) => a.stringIndex - b.stringIndex);
+                      // Sort COORDS based on corresponding note string index for consistent line drawing
+                      const sortedCoords = instanceCoords.sort((a, b) => {
+                          // Find the corresponding notes to get their string indices for sorting
+                          const noteA = instanceNotesData.find(n => n.fret === instanceNotesData[instanceCoords.indexOf(a)].fret && n.stringIndex === instanceNotesData[instanceCoords.indexOf(a)].stringIndex);
+                          const noteB = instanceNotesData.find(n => n.fret === instanceNotesData[instanceCoords.indexOf(b)].fret && n.stringIndex === instanceNotesData[instanceCoords.indexOf(b)].stringIndex);
+                           // Basic sort if notes aren't found (shouldn't happen)
+                          if (!noteA || !noteB) return 0;
+                           return noteA.stringIndex - noteB.stringIndex;
+                      });
+
                       for (let i = 0; i < 2; i++) {
+                           // Use sortedCoords for line data
                           allLinesForGroup.push({
-                              startX: instanceNotes[i].x!, startY: instanceNotes[i].y!,
-                              endX: instanceNotes[i+1].x!, endY: instanceNotes[i+1].y!,
-                              color: lineColor, dashed: true, lineWidth: 1.5
+                              startX: sortedCoords[i].x, startY: sortedCoords[i].y,
+                              endX: sortedCoords[i+1].x, endY: sortedCoords[i+1].y,
+                              color: lineColor, dashed: true, strokeWidth: 1.5 // Use unscaled width
                           });
                       }
                   }

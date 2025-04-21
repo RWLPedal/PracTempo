@@ -1,8 +1,6 @@
 import { FeatureCategoryName } from "../../feature";
 // Import interval settings types from core types
 import { IntervalSettings, IntervalSettingsJSON } from "./interval/types";
-// Import specific settings class needed for fromJSON factory logic (Still needed here for parsing)
-// TODO: Refactor parsing to be truly category-agnostic for settings instantiation
 import { GuitarIntervalSettings } from "../../guitar/guitar_interval_settings";
 import { getIntervalSettingsFactory } from "../../feature_registry";
 

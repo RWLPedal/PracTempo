@@ -1,43 +1,15 @@
-/* ts/guitar/views/fretboard_view.ts */
-
 import { View } from "../../view";
-import { Fretboard, FretboardConfig } from "../fretboard";
-import { FretboardColorScheme } from "../colors";
-import { addCanvas, OPEN_NOTE_RADIUS_FACTOR } from "../guitar_utils";
-import { START_PX } from "../guitar_utils";
-
-/** Interface defining the data needed to render a single note/fingering. */
-export interface NoteRenderData {
-  fret: number; // -1 for muted, 0 for open
-  stringIndex: number;
-  noteName: string; // For coloring or display
-  intervalLabel: string; // For coloring or display
-  displayLabel: string; // Text to show inside the dot (often noteName or finger)
-  colorSchemeOverride?: FretboardColorScheme; // Optional override for this note
-  isRoot?: boolean; // Explicit flag if needed (though intervalLabel often covers this)
-  radiusOverride?: number; // For open strings etc.
-  strokeColor?: string;
-  lineWidth?: number;
-  drawStar?: boolean;
-  // Add optional coordinate cache if needed, but calculate dynamically preferably
-  x?: number;
-  y?: number;
-}
-
-/** Interface defining data needed to render a line segment. */
-export interface LineData {
-    startX: number;
-    startY: number;
-    endX: number;
-    endY: number;
-    color: string;
-    lineWidth?: number;
-    dashed?: boolean;
-}
-
+import {
+  Fretboard,
+  FretboardConfig,
+  NoteRenderData,
+  LineData,
+} from "../fretboard"; // Import types from fretboard.ts
+import { addCanvas, START_PX } from "../guitar_utils";
 
 /**
- * A View responsible for rendering the fretboard grid, notes/fingerings, and lines provided to it.
+ * A View that wraps a Fretboard instance, sets up its canvas,
+ * and delegates rendering and data updates to it.
  */
 export class FretboardView implements View {
   private fretboardConfig: FretboardConfig;
@@ -45,10 +17,8 @@ export class FretboardView implements View {
   private fretboard: Fretboard; // Internal Fretboard logic instance
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
-  private notesToDraw: NoteRenderData[] = []; // Data for notes to render
-  private linesToDraw: LineData[] = []; // Data for lines to render
 
-  // Store calculated dimensions
+  // Store calculated dimensions (mostly for canvas creation)
   private requiredWidth: number = 0;
   private requiredHeight: number = 0;
 
@@ -60,50 +30,65 @@ export class FretboardView implements View {
   constructor(fretboardConfig: FretboardConfig, fretCount: number) {
     this.fretboardConfig = fretboardConfig;
     this.fretCount = fretCount > 0 ? fretCount : 12;
+
+    // Calculate dimensions needed for the canvas based on config and fret count
     this.calculateDimensions();
 
-    const scaledStartPx = START_PX * this.fretboardConfig.scaleFactor;
+    // Instantiate the Fretboard logic class
+    // The Fretboard class itself uses START_PX internally for drawing padding
     this.fretboard = new Fretboard(
       this.fretboardConfig,
-      scaledStartPx,
-      scaledStartPx,
+      this.fretboardConfig.scaleFactor * START_PX, // Pass scaled start X
+      this.fretboardConfig.scaleFactor * START_PX, // Pass scaled start Y
       this.fretCount
     );
   }
 
+  /** Calculates the required canvas dimensions. */
   private calculateDimensions(): void {
-      const config = this.fretboardConfig;
-      const scaleFactor = config.scaleFactor;
-      const scaledNoteRadius = config.noteRadiusPx;
-      const scaledStartPx = START_PX * scaleFactor;
-      const openNoteClearance = scaledNoteRadius * 1.5 + (5 * scaleFactor);
-      const fretboardLinesHeight = this.fretCount * config.fretLengthPx;
-      const bottomClearance = scaledNoteRadius + (5 * scaleFactor);
-      this.requiredWidth = scaledStartPx + (config.stringSpacingPx * 5) + scaledStartPx;
-      this.requiredHeight = scaledStartPx + openNoteClearance + fretboardLinesHeight + bottomClearance + scaledStartPx;
+    const config = this.fretboardConfig;
+    const scaleFactor = config.scaleFactor;
+    const scaledNoteRadius = config.noteRadiusPx;
+    const scaledStartPx = START_PX * scaleFactor;
+    const openNoteClearance = scaledNoteRadius * 1.5 + 5 * scaleFactor;
+    const fretboardLinesHeight = this.fretCount * config.fretLengthPx;
+    const bottomClearance = scaledNoteRadius + 5 * scaleFactor;
+    this.requiredWidth =
+      scaledStartPx + config.stringSpacingPx * 5 + scaledStartPx;
+    this.requiredHeight =
+      scaledStartPx +
+      openNoteClearance +
+      fretboardLinesHeight +
+      bottomClearance +
+      scaledStartPx;
   }
 
+  /** Creates the canvas and triggers the initial render via the Fretboard instance. */
   render(container: HTMLElement): void {
     if (!this.canvas) {
       this.createCanvas(container);
     } else {
       if (!this.canvas.parentNode) {
+        // Re-attach if detached
         container.appendChild(this.canvas);
       }
     }
+
+    // Always delegate rendering to the Fretboard instance
     if (this.ctx) {
-      this.drawContent();
+      this.fretboard.render(this.ctx);
     } else {
-      console.error("Canvas context not available for FretboardView.");
+      console.error("Canvas context not available for FretboardView render.");
     }
   }
 
+  /** Creates the canvas element. */
   private createCanvas(container: HTMLElement): void {
     const canvasIdSuffix = `fretboard-${Date.now()}`;
     this.canvas = addCanvas(container, canvasIdSuffix);
     this.canvas.width = Math.max(150, this.requiredWidth);
     this.canvas.height = Math.max(150, this.requiredHeight);
-    this.canvas.classList.add('fretboard-view-canvas');
+    this.canvas.classList.add("fretboard-view-canvas");
 
     this.ctx = this.canvas.getContext("2d");
     if (!this.ctx) {
@@ -112,118 +97,45 @@ export class FretboardView implements View {
     }
   }
 
-  /** Draws the grid, notes, and lines onto the canvas. */
-  private drawContent(): void {
-    if (!this.ctx || !this.canvas) return;
+  // --- Public Methods to Pass Data to Fretboard Instance ---
 
-    // Clear canvas and translate
-    this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
-    this.ctx.resetTransform();
-    this.ctx.translate(0.5, 0.5);
-
-    // 1. Draw the Grid
-    this.fretboard.render(this.ctx);
-
-    // 2. Draw the Lines (drawn under the notes)
-    this.drawLines();
-
-    // 3. Draw the Notes
-    this.drawNotes();
-  }
-
-  /** Draws the stored notes onto the canvas context. */
-  private drawNotes(): void {
-      if (!this.ctx) return;
-      const scaleFactor = this.fretboardConfig.scaleFactor;
-      const baseFontSize = 16 * scaleFactor;
-      const baseNoteRadius = this.fretboardConfig.noteRadiusPx;
-
-      this.notesToDraw.forEach(noteData => {
-          const radiusOverride = noteData.fret === 0 && noteData.radiusOverride === undefined
-              ? baseNoteRadius * OPEN_NOTE_RADIUS_FACTOR
-              : noteData.radiusOverride;
-
-          this.fretboard.renderFingering(
-              this.ctx!,
-              noteData.fret, noteData.stringIndex, noteData.noteName,
-              noteData.intervalLabel, noteData.displayLabel, baseNoteRadius,
-              baseFontSize, noteData.drawStar ?? false, noteData.strokeColor ?? "black",
-              noteData.lineWidth ?? 1, radiusOverride, noteData.colorSchemeOverride
-          );
-      });
-  }
-
-  /** Draws the stored lines onto the canvas context. */
-  private drawLines(): void {
-    if (!this.ctx) return;
-    const scaleFactor = this.fretboardConfig.scaleFactor;
-    this.ctx.save();
-    this.linesToDraw.forEach(line => {
-        this.ctx!.strokeStyle = line.color || 'grey';
-        this.ctx!.lineWidth = (line.lineWidth || 2) * scaleFactor; // Scale line width
-        if (line.dashed) {
-            // Scale dash pattern
-            const dashLength = 4 * scaleFactor;
-            this.ctx!.setLineDash([dashLength, dashLength]);
-        } else {
-            this.ctx!.setLineDash([]);
-        }
-        this.ctx!.beginPath();
-        this.ctx!.moveTo(line.startX, line.startY);
-        this.ctx!.lineTo(line.endX, line.endY);
-        this.ctx!.stroke();
-    });
-    this.ctx.restore(); // Restore line dash and other context settings
-  }
-
-
-  // --- Public Methods to Control Data ---
-
-  /** Sets the notes to be drawn on the fretboard. */
   public setNotes(notes: NoteRenderData[]): void {
-    this.notesToDraw = notes;
-    this.redrawIfReady();
+    this.fretboard.setNotes(notes);
+    this.redrawIfReady(); // Trigger redraw after data update
   }
 
-  /** Sets the lines to be drawn on the fretboard. */
   public setLines(lines: LineData[]): void {
-      this.linesToDraw = lines;
-      this.redrawIfReady();
-  }
-
-  /** Clears all notes from the fretboard display. */
-  public clearNotes(): void {
-    this.notesToDraw = [];
+    this.fretboard.setLines(lines);
     this.redrawIfReady();
   }
 
-  /** Clears all lines from the fretboard display. */
-  public clearLines(): void {
-      this.linesToDraw = [];
-      this.redrawIfReady();
+  public clearMarkings(): void {
+    this.fretboard.clearMarkings();
+    this.redrawIfReady();
   }
 
-  /** Clears both notes and lines. */
-  public clearAllMarkings(): void {
-      this.notesToDraw = [];
-      this.linesToDraw = [];
-      this.redrawIfReady();
-  }
-
-  /** Helper to redraw the canvas content if context is available. */
+  /** Helper to redraw the canvas content via the Fretboard instance. */
   private redrawIfReady(): void {
-      if (this.ctx && this.canvas?.parentNode) {
-          requestAnimationFrame(() => this.drawContent());
-      }
+    if (this.ctx && this.canvas?.parentNode) {
+      // Use rAF for potentially smoother updates if rapid changes occur
+      requestAnimationFrame(() => {
+        if (this.ctx) this.fretboard.render(this.ctx);
+      });
+    }
   }
 
-  // --- Expose Methods/Properties ---
-  public getFretboard(): Fretboard { return this.fretboard; }
-  public getCanvasElement(): HTMLCanvasElement | null { return this.canvas; }
+  // --- Expose Methods/Properties (Optional) ---
+  // May not be needed if Fretboard handles all drawing
+  public getFretboard(): Fretboard {
+    return this.fretboard;
+  }
+  public getCanvasElement(): HTMLCanvasElement | null {
+    return this.canvas;
+  }
 
   // --- View Lifecycle Methods ---
-  start(): void {}
-  stop(): void {}
+  start(): void {} // No dynamic behavior
+  stop(): void {} // No dynamic behavior
 
   destroy(): void {
     if (this.canvas && this.canvas.parentNode) {
@@ -231,7 +143,6 @@ export class FretboardView implements View {
     }
     this.canvas = null;
     this.ctx = null;
-    this.notesToDraw = [];
-    this.linesToDraw = [];
+    this.fretboard.clearMarkings(); // Clear data in underlying fretboard
   }
 }

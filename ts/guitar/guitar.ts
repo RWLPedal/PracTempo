@@ -9,6 +9,7 @@ import { FretboardColorScheme } from "./colors";
 import { NotesFeature } from "./features/notes_feature";
 import { ScaleFeature } from "./features/scale_feature";
 import { ChordFeature } from "./features/chord_feature";
+import { CagedFeature } from "./features/caged_feature";
 import { MetronomeFeature } from "./features/metronome_feature";
 import { TriadFeature } from "./features/triad_feature";
 import { ChordProgressionFeature } from "./features/chord_progression_feature";
@@ -27,6 +28,7 @@ const guitarFeatureTypes = new Map<string, FeatureTypeDescriptor>([
     [ChordProgressionFeature.typeName, ChordProgressionFeature as unknown as FeatureTypeDescriptor],
     [TriadFeature.typeName, TriadFeature as unknown as FeatureTypeDescriptor],
     [MetronomeFeature.typeName, MetronomeFeature as unknown as FeatureTypeDescriptor],
+    [CagedFeature.typeName, CagedFeature as unknown as FeatureTypeDescriptor],
 ]);
 
 // getGuitarSettingsUISchema function remains the same
