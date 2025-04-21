@@ -1,9 +1,7 @@
-// ts/guitar/guitar_settings.ts
 import { TuningName } from "./fretboard";
 import { FretboardColorScheme } from "./colors";
-import { FeatureCategoryName } from "../feature"; // Import the enum
 
-/** Defines the settings specifically for the Guitar feature category. */
+/** Defines the settings specifically for the Guitar category. */
 export interface GuitarSettings {
   handedness: "right" | "left";
   tuning: TuningName;
@@ -19,6 +17,6 @@ export const DEFAULT_GUITAR_SETTINGS: GuitarSettings = {
 
 /**
  * Storage key for guitar-specific settings within AppSettings' categorySettings map.
- * Use the FeatureCategoryName enum value for consistency.
+ * Uses the string name of the category.
  */
-export const GUITAR_SETTINGS_KEY = FeatureCategoryName.Guitar; // Use the enum value
+export const GUITAR_SETTINGS_KEY = "Guitar";

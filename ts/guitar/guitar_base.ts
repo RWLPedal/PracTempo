@@ -1,6 +1,7 @@
+// ts/guitar/guitar_base.ts
 import {
   Feature,
-  FeatureCategoryName,
+  // --- REMOVED: FeatureCategoryName import ---
   ConfigurationSchemaArg,
 } from "../feature"; // Added ConfigurationSchemaArg
 import { View } from "../view";
@@ -9,10 +10,14 @@ import {
   FretboardConfig,
   AVAILABLE_TUNINGS,
   STANDARD_TUNING,
-  TuningName, // Import TuningName if needed for casting/validation, though FretboardConfig handles it now
+  TuningName,
 } from "./fretboard";
-import { AppSettings, getCategorySettings } from "../settings";
-import { GuitarSettings, GUITAR_SETTINGS_KEY } from "./guitar_settings";
+import { AppSettings, getCategorySettings } from "../settings"; // getCategorySettings now takes string
+import {
+  GuitarSettings,
+  GUITAR_SETTINGS_KEY,
+  DEFAULT_GUITAR_SETTINGS,
+} from "./guitar_settings"; // Import defaults too
 import { GuitarIntervalSettings } from "./guitar_interval_settings";
 import { AudioController } from "../audio_controller";
 import {
@@ -21,13 +26,14 @@ import {
   addCanvas,
   START_PX,
 } from "./guitar_utils";
+import { IntervalSettings } from "../schedule/editor/interval/types"; // Import base type
 
 /**
  * Base class for all Guitar-related features.
  * Handles common setup like FretboardConfig and conditional MetronomeView creation based on interval settings.
  */
 export abstract class GuitarFeature implements Feature {
-  readonly category = FeatureCategoryName.Guitar;
+  // --- REMOVED: readonly category property ---
   abstract readonly typeName: string;
   readonly config: ReadonlyArray<string>; // Config args specific to the subclass feature type
   protected settings: AppSettings;
@@ -35,138 +41,121 @@ export abstract class GuitarFeature implements Feature {
   protected fretboardConfig: FretboardConfig;
   readonly maxCanvasHeight?: number;
 
-  // Define views as a mutable array initially, then make readonly externally
   protected _views: View[] = [];
   get views(): ReadonlyArray<View> {
     return this._views;
   }
   protected metronomeBpm: number = 0;
 
-  // --- Base Configuration for Guitar Settings ---
+  // --- Base Configuration for Guitar Settings (remains same) ---
   static readonly BASE_GUITAR_SETTINGS_CONFIG_ARG: ConfigurationSchemaArg = {
-    name: "Guitar Settings", // This name might not be directly shown if using ellipsis UI
-    type: "ellipsis", // Underlying type marker
-    uiComponentType: "ellipsis", // Specify the UI component
+    name: "Guitar Settings",
+    type: "ellipsis",
+    uiComponentType: "ellipsis",
     description: "Configure interval-specific guitar settings (Metronome).",
     nestedSchema: [
       {
-        name: "metronomeBpm", // Must match property in GuitarIntervalSettings
+        name: "metronomeBpm",
         type: "number",
         description: "Metronome BPM (0=off)",
-        // Optional: Add min/max/placeholder if desired
       },
-      // Add other common interval settings here if they arise
     ],
   };
 
-  /**
-   * Base constructor for Guitar features.
-   * @param config Raw configuration arguments *specific* to the subclass feature type.
-   * @param settings Current application settings.
-   * @param intervalSettings Settings specific to this interval (e.g., metronome BPM). << CHANGED
-   * @param audioController Optional AudioController, required if metronome is used.
-   * @param maxCanvasHeight Optional maximum height for the feature's canvas.
-   */
   constructor(
     config: ReadonlyArray<string>,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings, // <<< CHANGED: Accept full interval settings object
+    intervalSettings: GuitarIntervalSettings, // Constructor still receives specific type from createFeature assertion
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
-    this.config = config; // Store only the feature-specific args
+    this.config = config;
     this.settings = settings;
     this.maxCanvasHeight = maxCanvasHeight;
-    this.audioController = audioController;
+    this.audioController = audioController; // Store the passed controller
 
-    // Get global guitar settings
-    const guitarSettings = getCategorySettings<GuitarSettings>(
-      settings,
-      FeatureCategoryName.Guitar
-    );
-    const tuningName = AVAILABLE_TUNINGS[guitarSettings.tuning]
-      ? guitarSettings.tuning
+    // Get global guitar settings using string name
+    // Use GUITAR_SETTINGS_KEY which is now "Guitar"
+    const guitarGlobalSettings =
+      getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ??
+      DEFAULT_GUITAR_SETTINGS;
+
+    // Validate tuning name before using it
+    const tuningName = AVAILABLE_TUNINGS[guitarGlobalSettings.tuning]
+      ? guitarGlobalSettings.tuning
       : "Standard";
-    const tuning = AVAILABLE_TUNINGS[tuningName];
+    const tuning = AVAILABLE_TUNINGS[tuningName]; // Use validated name
 
     this.fretboardConfig = new FretboardConfig(
       tuning,
-      guitarSettings.handedness,
-      guitarSettings.colorScheme,
-      undefined, // markerDots (use default)
-      undefined, // sideNumbers (use default)
-      undefined, // stringWidths (use default)
-      this.maxCanvasHeight // Pass the max height constraint
+      guitarGlobalSettings.handedness,
+      guitarGlobalSettings.colorScheme,
+      undefined,
+      undefined,
+      undefined,
+      this.maxCanvasHeight
     );
 
-    // --- Metronome Handling ---
-    // Extract BPM from the interval settings object
+    // --- Metronome Handling (FIXED) ---
     this.metronomeBpm = intervalSettings?.metronomeBpm ?? 0;
-
     if (this.metronomeBpm > 0) {
-      if (!this.audioController) {
+      // Check if audioController exists AND has the required audio elements
+      if (
+        this.audioController &&
+        this.audioController.metronomeAudioEl &&
+        this.audioController.accentMetronomeAudioEl
+      ) {
+        // Create the view using the valid audioController
+        const metronomeView = new MetronomeView(
+          this.metronomeBpm,
+          this.audioController
+        );
+        this._views.push(metronomeView);
+        console.log(
+          `MetronomeView added by GuitarFeature base with BPM: ${this.metronomeBpm}`
+        );
+      } else if (this.audioController) {
+        // Log error if controller exists but elements are missing *within it*
+        console.error(
+          "Required metronome audio element(s) missing in AudioController. MetronomeView will not be created."
+        );
+      } else {
+        // Log warning if controller itself is missing
         console.warn(
           `Metronome requested (BPM: ${this.metronomeBpm}) but AudioController was not provided. MetronomeView will not be created.`
         );
-      } else {
-        const metronomeAudioEl = document.getElementById(
-          "metronome-sound"
-        ) as HTMLAudioElement | null;
-        const accentMetronomeAudioEl = document.getElementById(
-          "accent-metronome-sound"
-        ) as HTMLAudioElement | null; // Get accent element
-
-        if (!metronomeAudioEl || !accentMetronomeAudioEl) {
-          // Check both
-          console.error(
-            "Required metronome audio element(s) (#metronome-sound, #accent-metronome-sound) not found. MetronomeView will not be created."
-          );
-        } else {
-          // Pass the full audio controller to MetronomeView constructor
-          const metronomeView = new MetronomeView(
-            this.metronomeBpm,
-            this.audioController
-          );
-          this._views.push(metronomeView); // Add to mutable array
-          console.log(
-            `MetronomeView added by GuitarFeature base with BPM: ${this.metronomeBpm}`
-          );
-        }
       }
     }
-    // Note: Subclass constructors can add *their own* views to this._views after calling super()
   }
 
-  // Abstract render method - subclasses implement drawing feature specifics
+
+  // Abstract render method
   abstract render(container: HTMLElement): void;
 
-  // Common lifecycle methods - propagate to views
+  // Common lifecycle methods (remain same)
   prepare?(): void {
     this._views.forEach((view) => {
-      // Use _views
       if (typeof (view as any).prepare === "function") {
         (view as any).prepare();
       }
     });
   }
-
   start?(): void {
-    this._views.forEach((view) => view.start()); // Use _views
+    this._views.forEach((view) => view.start());
   }
-
   stop?(): void {
-    this._views.forEach((view) => view.stop()); // Use _views
+    this._views.forEach((view) => view.stop());
   }
-
   destroy?(): void {
-    this._views.forEach((view) => view.destroy()); // Use _views
+    this._views.forEach((view) => view.destroy());
   }
 
-  /** Clears the container, adds a header, adds a canvas, and returns canvas+context. */
+  // clearAndAddCanvas helper (remains same)
   protected clearAndAddCanvas(
     container: HTMLElement,
     headerText: string
   ): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
+    // ... (implementation remains same) ...
     clearAllChildren(container);
     addHeader(container, headerText);
     const uniqueSuffix = `${this.typeName}-${this.config.join("-")}`.replace(

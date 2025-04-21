@@ -1,6 +1,6 @@
 import {
   Feature,
-  FeatureCategoryName,
+  // FeatureCategoryName removed
   ConfigurationSchema,
   ConfigurationSchemaArg,
 } from "../../feature";
@@ -9,9 +9,11 @@ import {
   FretboardConfig,
   AVAILABLE_TUNINGS,
   STANDARD_TUNING,
-} from "../fretboard"; // <<< Import types from fretboard
+} from "../fretboard";
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
+// Import generic and specific interval settings types
+import { IntervalSettings } from "../../schedule/editor/interval/types";
 import { GuitarIntervalSettings } from "../guitar_interval_settings";
 import {
   MUSIC_NOTES,
@@ -19,11 +21,9 @@ import {
   addHeader,
   clearAllChildren,
 } from "../guitar_utils";
-import {
-  TriadQuality,
-  getTriadNotesAndLinesForGroup, // Use refined function
-} from "../triads"; // triad calculation logic is here now
+import { TriadQuality, getTriadNotesAndLinesForGroup } from "../triads";
 import { FretboardView } from "../views/fretboard_view";
+import { DEFAULT_GUITAR_SETTINGS, GuitarSettings } from "../guitar_settings";
 
 // String groups and names remain the same...
 const STRING_GROUPS: [number, number, number][] = [
@@ -41,7 +41,8 @@ const STRING_GROUP_NAMES: { [key: string]: string } = {
 
 /** Displays triad shapes across four 3-string groups using FretboardView. */
 export class TriadFeature extends GuitarFeature {
-  static readonly category = FeatureCategoryName.Guitar;
+  // Static properties (category removed, others unchanged)
+  // static readonly category = FeatureCategoryName.Guitar; // Removed
   static readonly typeName = "Triad Shapes";
   static readonly displayName = "Triad Shapes (3-String Sets)";
   static readonly description =
@@ -58,21 +59,21 @@ export class TriadFeature extends GuitarFeature {
     quality: TriadQuality,
     mainHeaderText: string,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings, // <<< Use interval settings
+    intervalSettings: GuitarIntervalSettings, // Constructor expects specific type
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
-    // Create scaled-down config first
+    // --- Fretboard Config Scaling (remains the same) ---
+    // TODO: This logic directly accesses category settings using the old enum key.
+    // It should ideally use the string name "Guitar" or access settings passed down.
+    // For now, leaving it, but it's inconsistent with the refactor.
+    const guitarGlobalSettings =
+      (settings.categorySettings["Guitar"] as GuitarSettings | undefined) ??
+      DEFAULT_GUITAR_SETTINGS;
     const baseFretboardConfig = new FretboardConfig(
-      settings.categorySettings[FeatureCategoryName.Guitar]?.tuning
-        ? AVAILABLE_TUNINGS[
-            settings.categorySettings[FeatureCategoryName.Guitar].tuning
-          ]
-        : STANDARD_TUNING,
-      settings.categorySettings[FeatureCategoryName.Guitar]?.handedness ||
-        "right",
-      settings.categorySettings[FeatureCategoryName.Guitar]?.colorScheme ||
-        "default",
+      AVAILABLE_TUNINGS[guitarGlobalSettings.tuning] ?? STANDARD_TUNING,
+      guitarGlobalSettings.handedness,
+      guitarGlobalSettings.colorScheme,
       undefined,
       undefined,
       undefined,
@@ -88,9 +89,10 @@ export class TriadFeature extends GuitarFeature {
       maxCanvasHeight,
       0.6 // Apply scaling multiplier
     );
+    // --- End Fretboard Config ---
 
     // Call super, passing interval settings
-    super(config, settings, intervalSettings, audioController, maxCanvasHeight);
+    super(config, settings, intervalSettings, audioController, maxCanvasHeight); // Pass specific type
     // Override config with the scaled-down one
     this.fretboardConfig = featureFretboardConfig;
 
@@ -129,10 +131,16 @@ export class TriadFeature extends GuitarFeature {
     });
   }
 
-  // --- Static Methods --- (Unchanged from previous version)
+  // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
+    // Unchanged
     const availableKeys = MUSIC_NOTES.flat();
-    const qualities: TriadQuality[] = ["Major", "Minor"];
+    const qualities: TriadQuality[] = [
+      "Major",
+      "Minor",
+      "Diminished",
+      "Augmented",
+    ]; // Include all defined qualities
     const specificArgs: ConfigurationSchemaArg[] = [
       {
         name: "Root Note",
@@ -146,38 +154,54 @@ export class TriadFeature extends GuitarFeature {
         type: "enum",
         required: true,
         enum: qualities,
-        description: "Quality of the triad (Major, Minor).",
+        description: "Quality of the triad (Major, Minor, etc.).",
       },
     ];
     return {
       description: `Config: ${this.typeName},RootNote,Quality[,GuitarSettings]`,
-      args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG], // Merge with base
+      args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
+  // **** UPDATED createFeature Signature ****
   static createFeature(
-    config: ReadonlyArray<string>, // Raw config [RootNote, Quality, ...]
+    config: ReadonlyArray<string>,
     audioController: AudioController,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings, // <<< Use interval settings
-    maxCanvasHeight?: number
+    intervalSettings: IntervalSettings, // <<< CHANGED: Accept generic base type
+    maxCanvasHeight: number | undefined,
+    categoryName: string // <<< ADDED: Accept category name string
   ): Feature {
     if (config.length < 2) {
       throw new Error(
-        `Invalid config for ${this.typeName}. Expected [RootNote, Quality].`
+        `[${this.typeName}] Invalid config. Expected [RootNote, Quality].`
       );
     }
     const rootNoteName = config[0];
     const quality = config[1] as TriadQuality;
-    const featureSpecificConfig = [rootNoteName, quality];
+    const featureSpecificConfig = [rootNoteName, quality]; // Keep only feature-specific args
 
     const keyIndex = getKeyIndex(rootNoteName);
-    if (keyIndex === -1) throw new Error(`Unknown key: "${rootNoteName}"`);
+    if (keyIndex === -1)
+      throw new Error(`[${this.typeName}] Unknown key: "${rootNoteName}"`);
     const validRootName = MUSIC_NOTES[keyIndex]?.[0] ?? rootNoteName;
-    const validQualities: TriadQuality[] = ["Major", "Minor"];
-    if (!validQualities.includes(quality))
-      throw new Error(`Invalid triad quality: "${quality}"`);
+
+    // Validate quality against the enum values defined in triads.ts or globally
+    const validQualities: TriadQuality[] = [
+      "Major",
+      "Minor",
+      "Diminished",
+      "Augmented",
+    ]; // Use TriadQuality type
+    if (!validQualities.includes(quality)) {
+      throw new Error(`[${this.typeName}] Invalid triad quality: "${quality}"`);
+    }
+
     const mainHeaderText = `${validRootName} ${quality} Triads (3-String Sets)`;
+
+    // --- Type Assertion for Constructor ---
+    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
+    // --- End Type Assertion ---
 
     return new TriadFeature(
       featureSpecificConfig,
@@ -185,15 +209,16 @@ export class TriadFeature extends GuitarFeature {
       quality,
       mainHeaderText,
       settings,
-      intervalSettings,
+      guitarIntervalSettings, // Pass asserted specific type
       audioController,
-      maxCanvasHeight // Pass interval settings
+      maxCanvasHeight
     );
   }
 
   render(container: HTMLElement): void {
+    // Unchanged
     clearAllChildren(container);
     addHeader(container, this.mainHeaderText);
     // DisplayController renders the FretboardViews added in constructor
   }
-} // End TriadFeature Class
+}

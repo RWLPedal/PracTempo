@@ -1,19 +1,23 @@
+// ts/guitar/features/metronome_feature.ts
 import {
   Feature,
-  FeatureCategoryName,
+  // FeatureCategoryName removed
   ConfigurationSchema,
-  ConfigurationSchemaArg, // Import if needed
+  ConfigurationSchemaArg,
 } from "../../feature";
 import { GuitarFeature } from "../guitar_base";
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
-import { GuitarIntervalSettings } from "../guitar_interval_settings"; // Import interval settings type
+// Import generic and specific interval settings types
+import { IntervalSettings } from "../../schedule/editor/interval/types";
+import { GuitarIntervalSettings } from "../guitar_interval_settings";
 import { addHeader, clearAllChildren } from "../guitar_utils";
-import { View } from "../../view";
+import { View } from "../../view"; // Keep View import if used by base class logic
 
 /** A simple feature that only displays a MetronomeView (if BPM > 0). */
 export class MetronomeFeature extends GuitarFeature {
-  static readonly category = FeatureCategoryName.Guitar;
+  // Static properties (category removed, others unchanged)
+  // static readonly category = FeatureCategoryName.Guitar; // Removed
   static readonly typeName = "Metronome";
   static readonly displayName = "Metronome Only";
   static readonly description =
@@ -22,25 +26,33 @@ export class MetronomeFeature extends GuitarFeature {
 
   // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
-    // This feature has no specific args, only the base guitar settings
+    // Unchanged
     return {
       description: `Config: ${this.typeName}[,GuitarSettings]\nDisplays a metronome. BPM set via Guitar Settings.`,
-      args: [GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG], // <<< Use base config arg directly
+      args: [GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
+  // **** UPDATED createFeature Signature ****
   static createFeature(
-    config: ReadonlyArray<string>, // Config now only contains potential Guitar Settings args
+    config: ReadonlyArray<string>,
     audioController: AudioController,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings,
-    maxCanvasHeight?: number
+    intervalSettings: IntervalSettings, // <<< CHANGED: Accept generic base type
+    maxCanvasHeight: number | undefined,
+    categoryName: string // <<< ADDED: Accept category name string
   ): Feature {
-    // Pass intervalSettings object to constructor
+    // --- Type Assertion for Constructor ---
+    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
+    // --- End Type Assertion ---
+
+    // Metronome feature has no specific config args itself
+    const featureSpecificConfig: ReadonlyArray<string> = [];
+
     return new MetronomeFeature(
-      config, // Pass specific args (empty for this feature)
+      featureSpecificConfig, // Pass empty array for specific config
       settings,
-      intervalSettings,
+      guitarIntervalSettings, // Pass asserted specific type
       audioController,
       maxCanvasHeight
     );
@@ -48,41 +60,51 @@ export class MetronomeFeature extends GuitarFeature {
 
   // Constructor calls super, which handles metronome view creation
   constructor(
-    config: ReadonlyArray<string>,
+    config: ReadonlyArray<string>, // Expects empty array or potentially filtered settings args
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings,
+    intervalSettings: GuitarIntervalSettings, // Constructor expects specific type
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
     // Pass intervalSettings up to the base constructor
     // The base constructor will extract BPM and create MetronomeView if needed
-    super(config, settings, intervalSettings, audioController, maxCanvasHeight);
+    super(config, settings, intervalSettings, audioController, maxCanvasHeight); // Pass specific type
     // No feature-specific views to add here
   }
 
   /** Render just adds a header; DisplayController handles the MetronomeView. */
   render(container: HTMLElement): void {
-    clearAllChildren(container);
-    const headerText =
-      this.metronomeBpm > 0
-        ? `Metronome @ ${this.metronomeBpm} BPM`
-        : "Metronome (Off)";
-    addHeader(container, headerText);
-    // DisplayController renders the view(s) added by the base constructor
+    // **** FIX: Only add header if it doesn't exist ****
+    // Check if a header already exists to avoid duplicates if render is called multiple times
+    if (!container.querySelector(".feature-header")) {
+      const headerText =
+        this.metronomeBpm > 0
+          ? `Metronome @ ${this.metronomeBpm} BPM`
+          : "Metronome (Off)";
+      const headerEl = addHeader(container, headerText);
+      headerEl.classList.add("feature-header"); // Add class for identification
+    }
+
+    // Optional messages can still be added if needed, but don't clear
     if (this.views.length === 0 && this.metronomeBpm > 0) {
-      // Optional: Display a message if view creation failed (e.g., missing audio element)
-      const errorMsg = document.createElement("p");
-      errorMsg.textContent =
-        "Metronome view could not be created (check console for errors).";
-      errorMsg.style.padding = "10px";
-      errorMsg.style.color = "var(--clr-danger)";
-      container.appendChild(errorMsg);
+      if (!container.querySelector(".metronome-error-msg")) {
+        const errorMsg = document.createElement("p");
+        errorMsg.textContent =
+          "Metronome view could not be created (check console for errors).";
+        errorMsg.style.padding = "10px";
+        errorMsg.style.color = "var(--clr-danger)";
+        errorMsg.classList.add("metronome-error-msg");
+        container.appendChild(errorMsg);
+      }
     } else if (this.views.length === 0 && this.metronomeBpm <= 0) {
-      const offMsg = document.createElement("p");
-      offMsg.textContent = "Metronome BPM is set to 0.";
-      offMsg.style.padding = "10px";
-      offMsg.style.color = "var(--clr-text-subtle)";
-      container.appendChild(offMsg);
+      if (!container.querySelector(".metronome-off-msg")) {
+        const offMsg = document.createElement("p");
+        offMsg.textContent = "Metronome BPM is set to 0.";
+        offMsg.style.padding = "10px";
+        offMsg.style.color = "var(--clr-text-subtle)";
+        offMsg.classList.add("metronome-off-msg");
+        container.appendChild(offMsg);
+      }
     }
   }
 }

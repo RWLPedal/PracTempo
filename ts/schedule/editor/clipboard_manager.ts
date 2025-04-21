@@ -6,15 +6,16 @@ import {
   GroupDataJSON,
   IntervalRowData,
   GroupRowData,
-  IntervalSettings // Import base settings type
+  IntervalSettings, // Use generic base type
+  IntervalSettingsJSON, // Needed for parsing/creating settings
 } from "./interval/types";
 import { SelectionManager } from "./selection_manager";
-// Import factory getter and FeatureCategoryName enum
-import { getIntervalSettingsFactory } from "../../feature_registry";
-import { FeatureCategoryName } from "../../feature";
+// Import registry functions for generic handling
+import { getIntervalSettingsParser, getCategory } from "../../feature_registry"; // Use getIntervalSettingsParser
 // Import the builder for interval rows
 import { buildIntervalRowElement } from "./interval/interval_row_ui";
-
+// --- Removed direct import of GuitarIntervalSettings ---
+// --- Removed FeatureCategoryName import ---
 
 export class ClipboardManager {
   private selectionManager: SelectionManager;
@@ -36,7 +37,7 @@ export class ClipboardManager {
   public clearClipboard(): void {
     this.clipboardData = [];
     console.log("Internal clipboard cleared.");
-    this.onClipboardChangeCallback(this.hasCopiedData()); // Update UI
+    this.onClipboardChangeCallback(this.hasCopiedData());
   }
 
   /** Copies the currently selected rows' data to the internal clipboard. */
@@ -46,16 +47,16 @@ export class ClipboardManager {
       console.log("Nothing selected to copy.");
       return;
     }
-    // Use RowManager.getRowData which now includes featureCategoryName for intervals
+    // Use RowManager.getRowData which now includes categoryName string
     this.clipboardData = selectedRows
       .map((row) => this.rowManager.getRowData(row))
-      .filter((data): data is ScheduleRowJSONData => data !== null); // Type guard
+      .filter((data): data is ScheduleRowJSONData => data !== null);
 
     console.log(
       `Copied ${this.clipboardData.length} rows to internal clipboard:`,
-      JSON.stringify(this.clipboardData) // Log stringified data for inspection
+      JSON.stringify(this.clipboardData)
     );
-    this.onClipboardChangeCallback(this.hasCopiedData()); // Update UI
+    this.onClipboardChangeCallback(this.hasCopiedData());
   }
 
   /** Pastes rows from the internal clipboard after the last selected element. */
@@ -66,48 +67,59 @@ export class ClipboardManager {
     }
 
     console.log(`Pasting ${this.clipboardData.length} rows...`);
-    // Determine insertion point
-    const insertAfterElement = this.selectionManager.getLastSelectedElementInDomOrder();
-    let lastPastedElement: HTMLElement | null = insertAfterElement; // Track insertion point
+    const insertAfterElement =
+      this.selectionManager.getLastSelectedElementInDomOrder();
+    let lastPastedElement: HTMLElement | null = insertAfterElement;
 
     this.clipboardData.forEach((rowDataJSON) => {
       let newRowElement: HTMLElement | null = null;
       try {
         if (rowDataJSON.rowType === "group") {
-          // Pasting a group row (category doesn't apply here)
-          const groupUIData: GroupRowData = { ...rowDataJSON }; // Simple copy
+          // Pasting group data (no category needed)
+          const groupUIData: GroupRowData = { ...rowDataJSON };
           newRowElement = this.rowManager.addGroupRow(
             groupUIData.level,
             groupUIData.name,
             lastPastedElement
           );
         } else if (rowDataJSON.rowType === "interval") {
-          // Pasting an interval row
-          const intervalJsonData = rowDataJSON as IntervalDataJSON; // Cast for easier access
+          // Pasting interval data
+          const intervalJsonData = rowDataJSON as IntervalDataJSON;
+          const categoryName = intervalJsonData.categoryName; // Get category name string
 
-          // --- Determine Category and Settings Instance ---
-          const category = intervalJsonData.featureCategoryName ?? FeatureCategoryName.Guitar; // Default if missing (shouldn't happen)
-          if (!intervalJsonData.featureCategoryName) {
-              console.warn("Pasting interval row missing categoryName, defaulting to Guitar.");
+          // Validate category exists
+          if (!getCategory(categoryName)) {
+            console.warn(
+              `Cannot paste interval row: Category "${categoryName}" not registered. Skipping row.`
+            );
+            return; // Skip this row if category invalid
           }
 
+          // --- Create Settings Instance using Parser ---
           let settingsInstance: IntervalSettings;
-          const settingsFactory = getIntervalSettingsFactory(category);
+          const settingsParser = getIntervalSettingsParser(categoryName); // Get parser
           const settingsJsonData = intervalJsonData.intervalSettings;
 
-          // TODO: This still requires a category-aware way to create settings *from JSON*.
-          // Using the factory directly only creates *default* settings.
-          // For now, create default and attempt to overlay JSON data generically.
-          if (settingsFactory) {
-              settingsInstance = settingsFactory();
-              if (settingsJsonData) {
-                  Object.assign(settingsInstance, settingsJsonData);
-                  console.warn(`Pasted interval settings for ${category} applied generically. Specific parsing logic might be needed.`);
-              }
+          if (settingsParser) {
+            try {
+              settingsInstance = settingsParser(settingsJsonData); // Use parser
+            } catch (parseError) {
+              console.error(
+                `Error parsing pasted interval settings for ${categoryName}. Using default.`,
+                parseError
+              );
+              const factory =
+                this.rowManager["getIntervalSettingsFactory"](categoryName); // Access factory via RowManager or registry
+              settingsInstance = factory ? factory() : { toJSON: () => ({}) }; // Fallback
+            }
           } else {
-              console.error(`Cannot paste settings: No factory for category ${category}. Using basic object.`);
-              settingsInstance = { toJSON: () => (settingsJsonData || {}) };
-               if (settingsJsonData) { Object.assign(settingsInstance, settingsJsonData); }
+            console.error(
+              `Cannot paste settings: No parser for category ${categoryName}. Using basic object.`
+            );
+            settingsInstance = { toJSON: () => settingsJsonData || {} };
+            if (settingsJsonData) {
+              Object.assign(settingsInstance, settingsJsonData);
+            }
           }
           // --- End Settings Instance Creation ---
 
@@ -116,30 +128,27 @@ export class ClipboardManager {
             rowType: "interval",
             duration: intervalJsonData.duration,
             task: intervalJsonData.task,
-            featureCategoryName: category, // Use determined category
+            categoryName: categoryName, // Use category name string
             featureTypeName: intervalJsonData.featureTypeName,
             featureArgsList: intervalJsonData.featureArgsList,
             intervalSettings: settingsInstance, // Use created instance
           };
 
-          // Build the element, passing the correct category
-          newRowElement = buildIntervalRowElement(intervalUIData, category); // Pass category
+          // Build the element, passing the category name string
+          newRowElement = buildIntervalRowElement(intervalUIData, categoryName);
           this.rowManager.insertRowElement(newRowElement, lastPastedElement); // Insert it
-
         }
 
         if (newRowElement) {
-          lastPastedElement = newRowElement; // Update insertion point for the next row
+          lastPastedElement = newRowElement; // Update insertion point
         }
       } catch (error) {
         console.error("Error pasting row:", rowDataJSON, error);
-        // Optionally add UI feedback about the error
       }
     });
 
-    // Select the newly pasted rows? Optional. For now, clear selection.
     this.selectionManager.clearSelection();
-    this.rowManager.updateAllRowIndentation(); // Update indent after pasting all rows
+    this.rowManager.updateAllRowIndentation();
   }
 
   /** Checks if there is data in the internal clipboard. */

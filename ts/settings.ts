@@ -1,13 +1,13 @@
 // ts/settings.ts
 import {
-  getAllDefaultCategorySettings,
-  getDefaultSettingsForCategory,
+  getAllDefaultGlobalSettings, // Use new registry function
+  getDefaultGlobalSettingsForCategory, // Use new registry function
 } from "./feature_registry";
-import { FeatureCategoryName } from "./feature"; // Import enum for key type safety if desired
+// --- FeatureCategoryName enum is removed ---
 
-/** Defines the structure for category-specific settings. */
+/** Defines the structure for category-specific settings (keyed by category name string). */
 export interface CategorySettingsMap {
-  [key: string]: any;
+  [categoryName: string]: any; // Key is now string
 }
 
 /** Defines the structure for all application-level settings. */
@@ -17,27 +17,24 @@ export interface AppSettings {
   categorySettings: CategorySettingsMap;
 }
 
-/** Initial default values for *global* settings. */
+/** Initial default values for *global* settings (excluding category-specific ones). */
 export const BASE_DEFAULT_SETTINGS: Omit<AppSettings, "categorySettings"> = {
   theme: "light",
   warmupPeriod: 0,
 };
 
-// --- Storage Constants ---
-/** Storage key for application settings in localStorage. */
+// --- Storage Constants --- (Remain the same)
 export const SETTINGS_STORAGE_KEY = "categoryTimerAppSettings";
-/** Storage key for the last successfully run schedule JSON string. */
 export const LAST_RUN_SCHEDULE_JSON_KEY = "lastRunScheduleJSON";
-/** Storage key for the array of recent schedule JSON strings. */
 export const RECENT_SCHEDULES_JSON_KEY = "recentSchedulesJSON";
-/** Maximum number of recent schedules to store. */
 export const MAX_RECENT_SCHEDULES = 5;
 // --- End Storage Constants ---
 
-/** Loads settings from localStorage, merging with current defaults from the registry. */
+/** Loads settings from localStorage, merging with current defaults from the category registry. */
 export function loadSettings(): AppSettings {
   let loadedSettings: AppSettings | null = null;
-  const currentDefaults = getAllDefaultCategorySettings(); // Get defaults from registry
+  // Get defaults from registry (now uses string keys internally)
+  const currentDefaultsByCategory = getAllDefaultGlobalSettings();
 
   try {
     const storedSettingsJson = localStorage.getItem(SETTINGS_STORAGE_KEY);
@@ -47,12 +44,14 @@ export function loadSettings(): AppSettings {
       // Start with a structure combining base defaults and registry category defaults
       loadedSettings = {
         ...BASE_DEFAULT_SETTINGS,
-        categorySettings: { ...currentDefaults }, // Deep copy defaults initially
+        // Deep copy defaults initially, using the map returned by the registry
+        categorySettings: JSON.parse(JSON.stringify(currentDefaultsByCategory)),
       };
 
-      // Merge stored global settings
+      // Merge stored global settings (theme, warmupPeriod)
       for (const key in BASE_DEFAULT_SETTINGS) {
         if (Object.prototype.hasOwnProperty.call(parsedStored, key)) {
+          // Ensure type compatibility if needed, though basic types are likely fine
           (loadedSettings as any)[key] = parsedStored[key];
         }
       }
@@ -62,22 +61,29 @@ export function loadSettings(): AppSettings {
         parsedStored.categorySettings &&
         typeof parsedStored.categorySettings === "object"
       ) {
-        for (const categoryKey in currentDefaults) {
-          // Iterate over known categories from registry
+        // Iterate over KNOWN categories from the registry's defaults
+        for (const categoryKey in currentDefaultsByCategory) {
           if (
             Object.prototype.hasOwnProperty.call(
               parsedStored.categorySettings,
-              categoryKey
-            )
+              categoryKey // Check if stored settings contain this category key (string)
+            ) &&
+            typeof parsedStored.categorySettings[categoryKey] === "object" // Ensure it's an object
           ) {
             // Merge stored settings for this category onto the defaults
+            // Ensure the target exists before merging
+            if (!loadedSettings.categorySettings[categoryKey]) {
+              loadedSettings.categorySettings[categoryKey] = {}; // Initialize if missing
+            }
+            // Merge: Start with current defaults for the category, overlay stored values
             loadedSettings.categorySettings[categoryKey] = {
-              ...currentDefaults[categoryKey], // Start with current defaults
+              ...(currentDefaultsByCategory[categoryKey] ?? {}), // Start with current defaults
               ...(parsedStored.categorySettings[categoryKey] ?? {}), // Merge stored values
             };
           }
+          // If a category exists in defaults but not in storage, it keeps the defaults.
+          // Categories present only in storage are ignored (prevents orphaned settings).
         }
-        // Discard unknown categories found in storage to keep settings clean.
       }
       console.log("Successfully loaded and merged settings from localStorage.");
     }
@@ -91,22 +97,35 @@ export function loadSettings(): AppSettings {
     console.log("Using default settings (no valid stored settings found).");
     loadedSettings = {
       ...BASE_DEFAULT_SETTINGS,
-      categorySettings: { ...currentDefaults }, // Use a fresh copy of defaults
+      // Use a fresh copy of defaults from the registry
+      categorySettings: JSON.parse(JSON.stringify(currentDefaultsByCategory)),
     };
   }
 
   return loadedSettings;
 }
 
-/** Helper function to safely get category-specific settings for a given category key. */
+/**
+ * Helper function to safely get category-specific global settings for a given category name.
+ * Merges stored settings over registered defaults.
+ * @param settings - The current AppSettings object.
+ * @param categoryName - The string name of the category (e.g., "Guitar").
+ * @returns The merged settings object for the category.
+ */
 export function getCategorySettings<T>(
   settings: AppSettings,
-  categoryKey: FeatureCategoryName
+  categoryName: string // **** CHANGED: Use string name ****
 ): T {
-  // Get the registered defaults for this category
-  const defaults = getDefaultSettingsForCategory<T>(categoryKey) ?? ({} as T);
-  // Get the currently stored settings for this category
-  const storedCategorySettings = settings.categorySettings?.[categoryKey] ?? {};
+  // Get the registered defaults for this category name from the registry
+  const defaults =
+    getDefaultGlobalSettingsForCategory<T>(categoryName) ?? ({} as T);
+
+  // Get the currently stored settings for this category name
+  const storedCategorySettings =
+    settings.categorySettings?.[categoryName] ?? {};
+
   // Merge: Start with defaults, overlay stored settings
-  return { ...defaults, ...storedCategorySettings };
+  // Use a deep copy if settings might be nested, otherwise shallow is fine
+  // return JSON.parse(JSON.stringify({ ...defaults, ...storedCategorySettings }));
+  return { ...defaults, ...storedCategorySettings }; // Shallow merge assuming flat settings objects
 }

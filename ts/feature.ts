@@ -1,21 +1,52 @@
-// ts/feature.ts
 import { View } from "./view";
 import { AudioController } from "./audio_controller";
 import { AppSettings } from "./settings";
+import {
+  IntervalSettings,
+  IntervalSettingsJSON,
+} from "./schedule/editor/interval/types";
 
-export enum FeatureCategoryName {
-  Guitar = "Guitar",
-  /* Add other categories here */
+/**
+ * Represents a category of features (e.g., Guitar, Piano).
+ * Encapsulates category-specific features, settings, and factories.
+ */
+export interface Category {
+  /** Unique identifier string for the category (e.g., "Guitar") */
+  getName(): string;
+
+  /** User-friendly display name (e.g., "Guitar Tools") */
+  getDisplayName(): string;
+
+  /** Returns a map of FeatureTypeDescriptors belonging to this category */
+  getFeatureTypes(): ReadonlyMap<string, FeatureTypeDescriptor>;
+
+  /** Returns the default *global* settings data object for this category */
+  getDefaultGlobalSettings(): any;
+
+  /** Returns a factory function to create a default *interval-specific* settings object */
+  getIntervalSettingsFactory(): () => IntervalSettings;
+
+  /**
+   * Creates an interval-specific settings object from parsed JSON data.
+   * Handles potential undefined/null input.
+   * @param json - The parsed JSON object for interval settings, or undefined/null.
+   * @returns An instance implementing IntervalSettings.
+   */
+  createIntervalSettingsFromJSON(
+    json: IntervalSettingsJSON | undefined | null
+  ): IntervalSettings;
+
+  /** Optional: Returns a schema for the category's *global* settings UI */
+  getGlobalSettingsUISchema?(): SettingsUISchemaItem[];
 }
 
-// --- Feature Interface --- (remains the same)
+// --- Feature Interface --- (Category property removed)
 export interface Feature {
-  // ...
-  readonly category: FeatureCategoryName;
   readonly typeName: string;
-  readonly config: ReadonlyArray<string>;
+  readonly config: ReadonlyArray<string>; // Feature-specific config args
   readonly views?: ReadonlyArray<View>;
   readonly maxCanvasHeight?: number;
+  // render, prepare, start, stop, destroy methods remain
   render(container: HTMLElement): void;
   prepare?(): void;
   start?(): void;
@@ -23,73 +54,65 @@ export interface Feature {
   destroy?(): void;
 }
 
-export interface ConfigurationSchemaArg {
-  name: string;
-  // Defines the underlying data type (string, number, etc.)
-  type: "string" | "number" | "boolean" | "enum" | "ellipsis";
-   // Optional: Specify a custom UI component to render instead of the default for 'type'
-  uiComponentType?: 'text' | 'number' | 'enum' | 'toggle_button_selector' | 'ellipsis';
-  // Optional: Data needed by the custom UI component (e.g., button labels)
-  uiComponentData?: {
-      buttonLabels?: string[];
-      // Add other potential data keys here if needed for future components
-  };
-  required?: boolean;
-  enum?: string[]; // Still used for standard 'enum' type or as data for custom components
-  description?: string;
-  example?: string;
-  isVariadic?: boolean;
-  nestedSchema?: ConfigurationSchemaArg[]; // Defines the inputs within the ellipsis dropdown
-}
-
-export type ConfigurationSchema =
-  | { description: string; args: ConfigurationSchemaArg[] }
-  | string;
-
-// --- NEW: Settings UI Schema Definition ---
-/** Describes a single UI element for the settings modal */
-export interface SettingsUISchemaItem {
-  /** The key within the category's settings object (e.g., "tuning", "handedness") */
-  key: string;
-  /** The user-visible label for the setting (e.g., "Guitar Tuning") */
-  label: string;
-  /** The type of HTML input element to render */
-  type: "select" | "number" | "text" | "checkbox"; // Add more types as needed (e.g., 'color')
-  /** Options for 'select' type. Value is what's stored, text is what's displayed. */
-  options?: { value: string; text: string }[];
-  /** Placeholder text for 'text' or 'number' inputs */
-  placeholder?: string;
-  /** Minimum value for 'number' type */
-  min?: number;
-  /** Maximum value for 'number' type */
-  max?: number;
-  /** Step value for 'number' type */
-  step?: number;
-  /** Description for tooltips */
-  description?: string;
-}
-
-// --- Feature Type Descriptor --- (remains the same)
+// --- Feature Type Descriptor --- (Category property removed, createFeature updated)
+// Describes a specific type of feature within a category (e.g., "Scale" within "Guitar")
 export interface FeatureTypeDescriptor {
-  readonly category: FeatureCategoryName;
-  readonly typeName: string;
-  readonly displayName: string;
+  // readonly category: FeatureCategoryName; // Removed
+  readonly typeName: string; // Unique name within the category (e.g., "Scale", "Chord")
+  readonly displayName: string; // User-friendly name (e.g., "Scale Diagram")
   readonly description: string;
-  getConfigurationSchema(): ConfigurationSchema;
+  getConfigurationSchema(): ConfigurationSchema; // How to configure this feature type
+  /**
+   * Factory method to create an instance of the feature.
+   * @param config - Feature-specific configuration arguments from the schedule editor.
+   * @param audioController - Global audio controller.
+   * @param settings - Global application settings (contains global category settings).
+   * @param intervalSettings - The specific interval settings instance for this feature instance.
+   * @param maxCanvasHeight - Optional maximum height for rendering.
+   * @param categoryName - The name of the category this feature belongs to. (Added for context)
+   * @returns A new Feature instance.
+   */
   createFeature(
     config: ReadonlyArray<string>,
     audioController: AudioController,
     settings: AppSettings,
-    metronomeBpmOverride?: number,
-    maxCanvasHeight?: number
+    intervalSettings: IntervalSettings, // Use the generic base type
+    maxCanvasHeight: number | undefined,
+    categoryName: string // Pass category name for context if needed by features
   ): Feature;
 }
 
-// --- Feature Category Descriptor ---
-export interface FeatureCategoryDescriptor {
-  readonly categoryName: FeatureCategoryName;
-  readonly displayName: string;
-  readonly featureTypes: ReadonlyMap<string, FeatureTypeDescriptor>;
-  /** Optional: Returns a schema describing UI elements for this category's settings. */
-  getSettingsUISchema?(): SettingsUISchemaItem[];
+export interface ConfigurationSchemaArg {
+  name: string;
+  type: "string" | "number" | "boolean" | "enum" | "ellipsis";
+  uiComponentType?:
+    | "text"
+    | "number"
+    | "enum"
+    | "toggle_button_selector"
+    | "ellipsis";
+  uiComponentData?: { buttonLabels?: string[] };
+  required?: boolean;
+  enum?: string[];
+  description?: string;
+  example?: string;
+  isVariadic?: boolean;
+  nestedSchema?: ConfigurationSchemaArg[];
+}
+
+export type ConfigurationSchema =
+  | { description: string; args: ConfigurationSchemaArg[] }
+  | string; // Can be just a description string if no args
+
+/** Describes a single UI element for the *global* settings modal for a category */
+export interface SettingsUISchemaItem {
+  key: string;
+  label: string;
+  type: "select" | "number" | "text" | "checkbox";
+  options?: { value: string; text: string }[];
+  placeholder?: string;
+  min?: number;
+  max?: number;
+  step?: number;
+  description?: string;
 }

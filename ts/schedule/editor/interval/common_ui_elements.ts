@@ -1,5 +1,5 @@
 // ts/schedule/editor/interval/common_ui_elements.ts
-import { ConfigurationSchemaArg, FeatureCategoryName } from "../../../feature";
+import { ConfigurationSchemaArg } from "../../../feature";
 import { IntervalSettings } from "./types";
 
 // --- Generic UI Element Creation Functions ---

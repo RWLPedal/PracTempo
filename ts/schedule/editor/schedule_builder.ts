@@ -1,23 +1,23 @@
-/* ts/schedule/editor/schedule_builder.ts */
-
+// ts/schedule/editor/schedule_builder.ts
 import { Schedule, Interval } from "../schedule";
 import { DisplayController } from "../../display_controller";
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
+import { Feature } from "../../feature"; // Keep Feature interface
+// Import registry functions for generic handling
 import {
-  Feature,
-  FeatureCategoryName,
-} from "../../feature"; // Import FeatureTypeDescriptor
-import { getFeatureTypeDescriptor } from "../../feature_registry";
+  getFeatureTypeDescriptor,
+  getIntervalSettingsParser,
+} from "../../feature_registry";
 import { parseDurationString } from "../../guitar/guitar_utils";
-// Import specific interval settings class needed for instantiation
-import { GuitarIntervalSettings } from "../../guitar/guitar_interval_settings";
+// --- REMOVED direct import of GuitarIntervalSettings ---
 import { ErrorDisplay } from "./error_display";
 import {
   GroupDataJSON,
   IntervalDataJSON,
-  IntervalSettings,
-} from "./interval/types"; // Import IntervalSettings base
+  IntervalSettings, // Use generic base type
+  ScheduleRowJSONData, // Type returned by rowManager
+} from "./interval/types";
 import { RowManager } from "./row_manager";
 
 export class ScheduleBuilder {
@@ -37,6 +37,7 @@ export class ScheduleBuilder {
 
   /**
    * Builds the Schedule object from the current state of the config editor UI rows.
+   * Uses the feature registry for generic feature/settings instantiation.
    * @returns A new Schedule instance or null if errors occur.
    */
   public buildSchedule(
@@ -46,7 +47,7 @@ export class ScheduleBuilder {
     maxCanvasHeight: number
   ): Schedule | null {
     console.log("[ScheduleBuilder] Starting buildSchedule...");
-    this.errorDisplay.removeMessage();
+    this.errorDisplay.removeMessage(); // Clear previous errors
     const schedule = new Schedule(displayController, audioController);
     const rows =
       this.configEntriesContainerEl.querySelectorAll<HTMLElement>(
@@ -54,10 +55,12 @@ export class ScheduleBuilder {
       );
     let hasErrors = false;
     let totalDurationSeconds = 0;
-    const MAX_TOTAL_DURATION_SECONDS = 3 * 60 * 60;
+    const MAX_TOTAL_DURATION_SECONDS = 3 * 60 * 60; // 3 hours
 
     rows.forEach((rowElement, index) => {
-      if (hasErrors) return;
+      if (hasErrors) return; // Stop processing if an error occurred
+
+      // Get row data using RowManager (which now includes categoryName)
       const rowData = this.rowManager.getRowData(rowElement);
       if (!rowData) {
         console.warn(
@@ -65,21 +68,27 @@ export class ScheduleBuilder {
             index + 1
           } due to data extraction error.`
         );
+        // Optionally report this as an error? For now, just skip.
+        // this.errorDisplay.showMessage(`Error reading data for row ${index + 1}.`);
+        // hasErrors = true;
         return;
       }
 
       if (rowData.rowType === "interval") {
+        // Type assertion is safe here because rowType is checked
         const intervalData = rowData as IntervalDataJSON;
+        const categoryName = intervalData.categoryName; // Get category name string
+
         console.log(
-          `[ScheduleBuilder] Processing interval ${index + 1}: Cat='${
-            intervalData.featureCategoryName
-          }', Type='${intervalData.featureTypeName || "None"}', Task='${
-            intervalData.task
-          }', Duration='${intervalData.duration}'`
+          `[ScheduleBuilder] Processing interval ${
+            index + 1
+          }: Cat='${categoryName}', Type='${
+            intervalData.featureTypeName || "None"
+          }', Task='${intervalData.task}', Duration='${intervalData.duration}'`
         );
         let durationSeconds = 0;
         let feature: Feature | null = null;
-        let intervalSettings: IntervalSettings | null = null; // Use base type initially
+        let intervalSettings: IntervalSettings | null = null;
 
         try {
           // 1. Parse Duration
@@ -95,60 +104,55 @@ export class ScheduleBuilder {
             );
           }
 
-          // 2. Instantiate Interval Settings (Specific to Category if possible)
-          // TODO: Need a more robust way to get the correct settings class based on category
-          // For now, assuming Guitar category uses GuitarIntervalSettings
-          if (intervalData.featureCategoryName === FeatureCategoryName.Guitar) {
-            intervalSettings = GuitarIntervalSettings.fromJSON(
-              intervalData.intervalSettings
-            );
+          // 2. Instantiate Interval Settings Generically using Parser from Registry
+          const settingsParser = getIntervalSettingsParser(categoryName);
+          if (settingsParser) {
+            intervalSettings = settingsParser(intervalData.intervalSettings); // Use the parser
           } else {
-            // Handle other categories or provide a generic fallback if needed
+            // Fallback or error if no parser is found for the category
             console.warn(
-              `[ScheduleBuilder] Interval settings parsing not implemented for category: ${intervalData.featureCategoryName}. Using raw data.`
+              `[ScheduleBuilder] No interval settings parser found for category "${categoryName}". Using raw data or default fallback.`
             );
-            // In a truly generic system, you might have a registry mapping categoryName to settings classes/parsers
-            intervalSettings =
-              (intervalData.intervalSettings as IntervalSettings) ?? {
-                toJSON: () => ({}),
-              }; // Basic fallback
+            // Create a basic object that satisfies the interface minimally
+            intervalSettings = {
+              toJSON: () => intervalData.intervalSettings || {},
+            };
+            if (intervalData.intervalSettings) {
+              Object.assign(intervalSettings, intervalData.intervalSettings); // Attempt generic assignment
+            }
           }
 
-          // 3. Create Feature if specified
-          if (
-            intervalData.featureTypeName &&
-            intervalData.featureCategoryName
-          ) {
+          // 3. Create Feature if specified (Generically)
+          if (intervalData.featureTypeName) {
+            // Use categoryName string for lookup
             const descriptor = getFeatureTypeDescriptor(
-              intervalData.featureCategoryName, // Use category from data
+              categoryName,
               intervalData.featureTypeName
             );
             if (!descriptor) {
               throw new Error(
-                `Unknown feature type: "${intervalData.featureTypeName}" in category "${intervalData.featureCategoryName}"`
+                `Unknown feature type: "${intervalData.featureTypeName}" in category "${categoryName}"`
               );
             }
             console.log(
               `[ScheduleBuilder] Found descriptor for '${descriptor.typeName}'. Attempting createFeature...`
             );
 
-            // --- Call createFeature with intervalSettings object --- <<<< CHANGED
-            // Ensure the settings object passed matches the type expected by the feature's constructor
-            // (e.g., GuitarFeature expects GuitarIntervalSettings)
-            // This might require casting or ensuring the correct type was instantiated above.
-            // We assume here intervalSettings is the correct type based on the category check above.
+            // --- Call createFeature with parsed intervalSettings and categoryName ---
             if (intervalSettings) {
               feature = descriptor.createFeature(
                 intervalData.featureArgsList,
                 audioController,
                 settings,
-                intervalSettings as any, // Pass the full settings object (cast needed if types don't align perfectly)
-                maxCanvasHeight
+                intervalSettings, // Pass the parsed settings object
+                maxCanvasHeight,
+                categoryName // Pass category name string
               );
               console.log(
                 `[ScheduleBuilder] Successfully created feature instance for '${descriptor.typeName}'.`
               );
             } else {
+              // This case should be less likely now due to fallback in step 2
               throw new Error(
                 `Could not create feature "${descriptor.typeName}" due to missing interval settings.`
               );
@@ -164,9 +168,11 @@ export class ScheduleBuilder {
           // 4. Create Interval and add to Schedule
           const interval = new Interval(
             durationSeconds,
-            settings.warmupPeriod,
-            intervalData.task || intervalData.featureTypeName || "Interval",
-            feature
+            settings.warmupPeriod, // Use global warmup setting
+            intervalData.task ||
+              intervalData.featureTypeName ||
+              `Interval ${index + 1}`, // Task name fallback
+            feature // Add the created feature (or null)
           );
           schedule.addInterval(interval);
           console.log(
@@ -182,9 +188,10 @@ export class ScheduleBuilder {
           }): ${error.message}`;
           console.error(errorMessage, error);
           this.errorDisplay.showMessage(errorMessage);
-          hasErrors = true;
+          hasErrors = true; // Set flag to stop processing
         }
       } else if (rowData.rowType === "group") {
+        // Groups are currently ignored during schedule building
         console.log(
           `[ScheduleBuilder] Skipping group row ${index + 1}: '${
             (rowData as GroupDataJSON).name
@@ -197,12 +204,23 @@ export class ScheduleBuilder {
       console.error(
         "[ScheduleBuilder] Schedule building failed due to errors."
       );
-      return null;
+      return null; // Return null if any errors occurred
     }
 
-    console.log(
-      `[ScheduleBuilder] Schedule built successfully with ${schedule.intervals.length} intervals.`
-    );
+    if (schedule.intervals.length === 0) {
+      console.warn(
+        "[ScheduleBuilder] Schedule built successfully, but contains no intervals."
+      );
+      this.errorDisplay.showMessage(
+        "Schedule is empty. Add some intervals.",
+        "warning"
+      );
+      // Return the empty schedule or null? Returning schedule for now.
+    } else {
+      console.log(
+        `[ScheduleBuilder] Schedule built successfully with ${schedule.intervals.length} intervals.`
+      );
+    }
     return schedule;
   }
 }

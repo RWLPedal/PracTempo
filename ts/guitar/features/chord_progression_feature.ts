@@ -1,27 +1,30 @@
+// ts/guitar/features/chord_progression_feature.ts
 import {
   Feature,
-  FeatureCategoryName,
+  // FeatureCategoryName removed
   ConfigurationSchema,
   ConfigurationSchemaArg,
 } from "../../feature";
-import { GuitarFeature } from "../guitar_base"; // Import base class
+import { GuitarFeature } from "../guitar_base";
 import { Chord, chord_library } from "../chords";
-// Removed Fretboard import
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
-import { GuitarIntervalSettings } from "../guitar_interval_settings"; // Import interval settings type
+// Import generic and specific interval settings types
+import { IntervalSettings } from "../../schedule/editor/interval/types";
+import { GuitarIntervalSettings } from "../guitar_interval_settings";
 import {
-    MUSIC_NOTES,
-    getKeyIndex,
-    addHeader,
-    clearAllChildren,
+  MUSIC_NOTES,
+  getKeyIndex,
+  addHeader,
+  clearAllChildren,
 } from "../guitar_utils";
 import { getChordInKey } from "../progressions";
 import { ChordDiagramView } from "../views/chord_diagram_view";
 
 /** Displays chord diagrams for a Roman numeral progression in a given key. */
 export class ChordProgressionFeature extends GuitarFeature {
-  static readonly category = FeatureCategoryName.Guitar;
+  // Static properties (category removed, others unchanged)
+  // static readonly category = FeatureCategoryName.Guitar; // Removed
   static readonly typeName = "Chord Progression";
   static readonly displayName = "Chord Progression";
   static readonly description =
@@ -33,19 +36,19 @@ export class ChordProgressionFeature extends GuitarFeature {
   private readonly headerText: string;
 
   constructor(
-    config: ReadonlyArray<string>,
+    config: ReadonlyArray<string>, // Should contain only progression numerals now
     rootNoteName: string,
     progression: string[],
     headerText: string,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings,
+    intervalSettings: GuitarIntervalSettings, // Constructor expects specific type
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
     super(
-      config,
+      config, // Pass specific config
       settings,
-      intervalSettings,
+      intervalSettings, // Pass specific type
       audioController,
       maxCanvasHeight
     );
@@ -56,87 +59,127 @@ export class ChordProgressionFeature extends GuitarFeature {
     // Create ChordDiagramViews (metronome view is handled by base constructor)
     const rootNoteIndex = getKeyIndex(this.rootNoteName);
     if (rootNoteIndex !== -1) {
-        this.progression.forEach(numeral => {
-            const chordDetails = getChordInKey(rootNoteIndex, numeral);
-            const chordData = chordDetails.chordKey ? chord_library[chordDetails.chordKey] : null;
-            if (chordData) {
-                const title = `${chordDetails.chordName} (${numeral})`;
-                // Add view to the mutable _views array from base class
-                this._views.push(new ChordDiagramView(chordData, title, this.fretboardConfig));
-            } else {
-                 console.warn(`Chord data not found for ${chordDetails.chordName} (${numeral}) in key ${this.rootNoteName}`);
-            }
-        });
+      this.progression.forEach((numeral) => {
+        const chordDetails = getChordInKey(rootNoteIndex, numeral);
+        const chordData = chordDetails.chordKey
+          ? chord_library[chordDetails.chordKey]
+          : null;
+        if (chordData) {
+          const title = `${chordDetails.chordName} (${numeral})`;
+          // Add view to the mutable _views array from base class
+          this._views.push(
+            new ChordDiagramView(chordData, title, this.fretboardConfig)
+          );
+        } else {
+          console.warn(
+            `[${this.typeName}] Chord data not found for ${chordDetails.chordName} (${numeral}) in key ${this.rootNoteName}`
+          );
+        }
+      });
     } else {
-        console.error(`Invalid root note provided to ChordProgressionFeature: ${this.rootNoteName}`);
+      console.error(
+        `[${this.typeName}] Invalid root note provided: ${this.rootNoteName}`
+      );
     }
   }
 
   // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
+    // Unchanged
     const availableKeys = MUSIC_NOTES.flat();
-    const progressionButtonLabels = ["I", "ii", "iii", "IV", "V", "vi", "vii°"];
+    // Corrected progression labels based on actual schema definition in progressions.ts
+    const progressionButtonLabels = [
+      "I",
+      "ii",
+      "iii",
+      "IV",
+      "V",
+      "vi",
+      "vii°",
+      "Imaj7",
+      "ii7",
+      "iii7",
+      "IVmaj7",
+      "V7",
+      "vi7",
+      "viiø7",
+    ];
 
-    // Define arguments specific to ChordProgressionFeature
     const specificArgs: ConfigurationSchemaArg[] = [
-       {
-        name: "RootNote", type: "enum", required: true, enum: availableKeys,
+      {
+        name: "RootNote",
+        type: "enum",
+        required: true,
+        enum: availableKeys,
         description: "Root note (key) of the progression.",
       },
       {
-        name: "Progression", type: "string", required: true,
-        uiComponentType: "toggle_button_selector",
-        uiComponentData: { buttonLabels: progressionButtonLabels, },
-        isVariadic: true, example: "I-vi-IV-V",
-        description: "Build the progression sequence using the Roman numeral buttons.",
-      }
+        name: "Progression",
+        type: "string",
+        required: true, // Underlying type is string (joined later if needed)
+        uiComponentType: "toggle_button_selector", // Use toggle buttons
+        uiComponentData: { buttonLabels: progressionButtonLabels }, // Provide labels
+        isVariadic: true, // Allow multiple selections
+        description:
+          "Build the progression sequence using the Roman numeral buttons.",
+      },
     ];
-
-    // Combine specific args with the base Guitar Settings arg
     return {
       description: `Config: ${this.typeName},RootNote,ProgressionSequence...[,GuitarSettings]`,
       args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
+  // **** UPDATED createFeature Signature ****
   static createFeature(
-    config: ReadonlyArray<string>, // Raw config list from editor row
+    config: ReadonlyArray<string>,
     audioController: AudioController,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings, // <<< CHANGED: Receive full object
-    maxCanvasHeight?: number
+    intervalSettings: IntervalSettings, // <<< CHANGED: Accept generic base type
+    maxCanvasHeight: number | undefined,
+    categoryName: string // <<< ADDED: Accept category name string
   ): Feature {
+    // --- Parse Config Args ---
+    // Assume RootNote is first, Progression numerals follow.
+    if (config.length < 2) {
+      // Need at least RootNote and one Numeral
+      throw new Error(
+        `[${
+          this.typeName
+        }] Invalid config. Expected [RootNote, Numeral1, ...], received: [${config.join(
+          ", "
+        )}]`
+      );
+    }
+    const rootNoteName = config[0];
+    const progressionNumerals = config.slice(1); // Rest are numerals
 
-     // --- Parse Config Args ---
-     // We need to separate RootNote and Progression numerals from potential GuitarSettings args
-     // This requires knowledge of the schema or a more robust parsing mechanism.
-     // For now, assume RootNote is first, Progression numerals follow, and settings are last if present.
-     if (config.length < 2) { // Need at least RootNote and one Numeral
-       throw new Error(`Invalid config for ${this.typeName}. Expected [RootNote, Numeral1, ...], received: [${config.join(", ")}]`);
-     }
-     const rootNoteName = config[0];
-     // Assume remaining args before the potential settings object are numerals
-     // This is fragile if the schema order changes or optional args are added before the ellipsis.
-     const progressionNumerals = config.slice(1); // Simplistic assumption for now
+    const keyIndex = getKeyIndex(rootNoteName);
+    if (keyIndex === -1)
+      throw new Error(`[${this.typeName}] Unknown key: "${rootNoteName}"`);
+    const validRootName = MUSIC_NOTES[keyIndex]?.[0] ?? rootNoteName;
 
-     const keyIndex = getKeyIndex(rootNoteName);
-     if (keyIndex === -1) throw new Error(`Unknown key: "${rootNoteName}"`);
-     const validRootName = MUSIC_NOTES[keyIndex]?.[0] ?? rootNoteName;
+    if (progressionNumerals.length === 0) {
+      throw new Error(`[${this.typeName}] Progression cannot be empty.`);
+    }
+    // Basic validation of numerals? Maybe not here. getChordInKey will handle unknown ones.
 
-     if (progressionNumerals.length === 0) {
-       throw new Error(`Progression cannot be empty.`);
-     }
+    const headerText = `${progressionNumerals.join(
+      "-"
+    )} Progression in ${validRootName}`;
 
-     const headerText = `${progressionNumerals.join("-")} Progression in ${validRootName}`;
+    // --- Type Assertion for Constructor ---
+    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
+    // --- End Type Assertion ---
 
     // Pass only the progression numerals as the feature-specific config to the constructor
     return new ChordProgressionFeature(
-      progressionNumerals, 
+      progressionNumerals, // Feature specific args
       validRootName,
       progressionNumerals,
       headerText,
       settings,
-      intervalSettings,
+      guitarIntervalSettings, // Pass asserted specific type
       audioController,
       maxCanvasHeight
     );
@@ -144,6 +187,7 @@ export class ChordProgressionFeature extends GuitarFeature {
 
   /** Render method now just adds the header. Views are rendered by DisplayController. */
   render(container: HTMLElement): void {
+    // Unchanged
     clearAllChildren(container);
     addHeader(container, this.headerText);
     // DisplayController renders the views (_views) added in the constructor

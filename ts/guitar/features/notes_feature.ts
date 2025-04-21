@@ -2,15 +2,17 @@
 
 import {
   Feature,
-  FeatureCategoryName,
+  // FeatureCategoryName removed
   ConfigurationSchema,
   ConfigurationSchemaArg,
 } from "../../feature";
 import { GuitarFeature } from "../guitar_base";
 import { AppSettings } from "../../settings";
 import { AudioController } from "../../audio_controller";
+// Import generic and specific interval settings types
+import { IntervalSettings } from "../../schedule/editor/interval/types";
 import { GuitarIntervalSettings } from "../guitar_interval_settings";
-import { NoteRenderData } from "../fretboard";
+import { NoteRenderData, FretboardConfig } from "../fretboard"; // Import FretboardConfig
 import {
   MUSIC_NOTES,
   getKeyIndex,
@@ -24,24 +26,26 @@ import { FretboardView } from "../views/fretboard_view";
 
 /** A guitar feature for displaying all notes on the fretboard using FretboardView. */
 export class NotesFeature extends GuitarFeature {
-  static readonly category = FeatureCategoryName.Guitar;
+  // Static properties (category removed, others unchanged)
+  // static readonly category = FeatureCategoryName.Guitar; // Removed
   static readonly typeName = "Notes";
   static readonly displayName = "Fretboard Notes";
   static readonly description =
     "Displays all notes on the fretboard. Select 'None' for note-based colors, or a root note for interval-based colors.";
+
   readonly typeName = NotesFeature.typeName;
   private readonly rootNoteName: string | null;
-  private fretboardViewInstance: FretboardView; // Hold the instance
+  private fretboardViewInstance: FretboardView;
 
   constructor(
-    config: ReadonlyArray<string>,
+    config: ReadonlyArray<string>, // Should be empty now for NotesFeature specific args
     settings: AppSettings,
-    rootNoteName: string | null,
-    intervalSettings: GuitarIntervalSettings,
+    rootNoteName: string | null, // Pass the parsed rootNoteName
+    intervalSettings: GuitarIntervalSettings, // Constructor expects specific type
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
-    super(config, settings, intervalSettings, audioController, maxCanvasHeight);
+    super(config, settings, intervalSettings, audioController, maxCanvasHeight); // Pass specific type
     this.rootNoteName = rootNoteName;
     const fretCount = 18;
 
@@ -50,21 +54,20 @@ export class NotesFeature extends GuitarFeature {
       this.fretboardConfig,
       fretCount
     );
-    this._views.push(this.fretboardViewInstance); // Add to views managed by base class
+    this._views.push(this.fretboardViewInstance);
 
     this.calculateAndSetNotes(fretCount);
   }
 
-  // Static methods (getConfigurationSchema, createFeature) remain unchanged from previous version
-
   // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
+    // Unchanged
     const availableKeys = ["None", ...MUSIC_NOTES.flat()];
     const specificArgs: ConfigurationSchemaArg[] = [
       {
         name: "RootNote",
         type: "enum",
-        required: false,
+        required: false, // Optional argument
         enum: availableKeys,
         description:
           "Select 'None' (default) to color by note name, or a root note to color by interval.",
@@ -76,41 +79,48 @@ export class NotesFeature extends GuitarFeature {
     };
   }
 
+  // **** UPDATED createFeature Signature ****
   static createFeature(
-    config: ReadonlyArray<string>, // Raw config list [OptionalRootNote, ...]
+    config: ReadonlyArray<string>,
     audioController: AudioController,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings, // <<< Use interval settings
-    maxCanvasHeight?: number
+    intervalSettings: IntervalSettings, // <<< CHANGED: Accept generic base type
+    maxCanvasHeight: number | undefined,
+    categoryName: string // <<< ADDED: Accept category name string
   ): Feature {
     let rootNoteName: string | null = null;
-    let featureSpecificConfig: ReadonlyArray<string> = [];
+    let featureSpecificConfig: ReadonlyArray<string> = []; // NotesFeature has no specific args to pass down
 
+    // Notes feature has only one optional specific argument: RootNote
     if (config.length > 0 && config[0]) {
       const potentialRoot = config[0];
       if (potentialRoot.toLowerCase() === "none") {
         rootNoteName = null;
-        featureSpecificConfig = config.slice(1);
+        // featureSpecificConfig remains empty
       } else if (getKeyIndex(potentialRoot) !== -1) {
         rootNoteName = potentialRoot;
-        featureSpecificConfig = config.slice(1);
+        // featureSpecificConfig remains empty
       } else {
         console.warn(
-          `[NotesFeature.createFeature] Invalid RootNote value "${potentialRoot}", using note-based coloring.`
+          `[${this.typeName}] Invalid RootNote value "${potentialRoot}", using note-based coloring.`
         );
         rootNoteName = null;
-        featureSpecificConfig = config;
+        // featureSpecificConfig remains empty
       }
     } else {
+      // No argument provided, default to note-based coloring
       rootNoteName = null;
-      featureSpecificConfig = config;
     }
 
+    // --- Type Assertion for Constructor ---
+    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
+    // --- End Type Assertion ---
+
     return new NotesFeature(
-      featureSpecificConfig,
+      featureSpecificConfig, // Pass empty array
       settings,
-      rootNoteName,
-      intervalSettings,
+      rootNoteName, // Pass parsed root note
+      guitarIntervalSettings, // Pass asserted specific type
       audioController,
       maxCanvasHeight
     );
@@ -118,6 +128,8 @@ export class NotesFeature extends GuitarFeature {
 
   /** Calculates all note data and passes it to the FretboardView instance. */
   private calculateAndSetNotes(fretCount: number): void {
+    // Unchanged
+    // ... (Implementation from previous response) ...
     const notesData: NoteRenderData[] = [];
     const rootNoteIndex = this.rootNoteName
       ? getKeyIndex(this.rootNoteName)
@@ -126,52 +138,45 @@ export class NotesFeature extends GuitarFeature {
       ? "interval"
       : "note";
     const config = this.fretboardConfig;
-
     for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
       if (stringIndex >= config.tuning.tuning.length) continue;
+      const stringTuning = config.tuning.tuning[stringIndex];
       for (let fretIndex = 0; fretIndex <= fretCount; fretIndex++) {
-        const noteOffsetFromA =
-          (config.tuning.tuning[stringIndex] + fretIndex) % 12;
+        const noteOffsetFromA = (stringTuning + fretIndex) % 12;
         const noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
         let intervalLabel = "?";
         if (rootNoteIndex !== -1) {
           const noteRelativeToKey = (noteOffsetFromA - rootNoteIndex + 12) % 12;
           intervalLabel = getIntervalLabel(noteRelativeToKey);
         }
-
         notesData.push({
           fret: fretIndex,
           stringIndex: stringIndex,
           noteName: noteName,
           intervalLabel: intervalLabel,
-          displayLabel: noteName, // Display note name for this feature
-          // icon: NoteIcon.None, // Default is no icon
+          displayLabel: noteName,
           colorSchemeOverride: schemeOverride,
-          // strokeWidth: 1, // Use default stroke width
           radiusOverride:
             fretIndex === 0
               ? config.noteRadiusPx * OPEN_NOTE_RADIUS_FACTOR
               : undefined,
-          // fillColor: undefined, // Use scheme color
-          // strokeColor: undefined // Use default stroke
         });
       }
     }
-    // Use rAF for smoother updates
     requestAnimationFrame(() => {
       if (this.fretboardViewInstance) {
         this.fretboardViewInstance.setNotes(notesData);
-        this.fretboardViewInstance.setLines([]); // Ensure no lines are drawn
+        this.fretboardViewInstance.setLines([]);
       }
     });
   }
 
   render(container: HTMLElement): void {
+    // Unchanged
     clearAllChildren(container);
     const headerText = this.rootNoteName
       ? `Notes (Interval Colors Relative to ${this.rootNoteName})`
       : "Notes (Note Name Colors)";
     addHeader(container, headerText);
-    // DisplayController renders the FretboardView added in constructor
   }
 }

@@ -1,5 +1,7 @@
 import { Feature } from "./feature";
 import { Interval } from "./schedule/schedule";
+// Import MetronomeView to identify it
+import { MetronomeView } from "./guitar/views/metronome_view";
 
 export enum Status {
   Play = "Play",
@@ -111,7 +113,7 @@ export class DisplayController {
 
   /**
    * Renders the feature and its views into the diagram container.
-   * Passes handedness setting to guitar features.
+   * Explicitly renders MetronomeView last if present.
    * @param feature The feature instance to render.
    * @param handedness The current handedness setting ('left' or 'right').
    */
@@ -119,31 +121,55 @@ export class DisplayController {
     feature: Feature,
     handedness: "left" | "right" = "right" // Handedness is likely handled by config now
   ): void {
-    // --- Log Entry ---
-    console.log(`[DisplayController.renderFeature] Attempting to render feature: ${feature?.typeName || 'UNKNOWN'}`);
-    // --- End Log ---
-
+    console.log(
+      `[DisplayController.renderFeature] Attempting to render feature: ${
+        feature?.typeName || "UNKNOWN"
+      }`
+    );
     this.clearFeature(); // Clear the main container first
 
     if (!feature) {
-        console.error("[DisplayController.renderFeature] Cannot render null/undefined feature.");
-        return;
+      console.error(
+        "[DisplayController.renderFeature] Cannot render null/undefined feature."
+      );
+      return;
     }
 
     try {
-        // The feature's render method uses its internal fretboardConfig which includes handedness and scaling
-        feature.render(this.diagramEl); // Feature renders itself
-        console.log(`[DisplayController.renderFeature] Successfully called feature.render() for ${feature.typeName}`); // Log success
+      // Feature's render method might add headers or other base content
+      feature.render(this.diagramEl);
+      console.log(
+        `[DisplayController.renderFeature] Successfully called feature.render() for ${feature.typeName}`
+      );
 
-        // Render associated views (like Metronome)
-        feature.views?.forEach((view) => {
-        console.log(`[DisplayController.renderFeature]   Rendering view: ${view.constructor.name}`);
-        view.render(this.diagramEl);
-        });
+      let metronomeViewInstance: MetronomeView | null = null;
+
+      // Render non-metronome views first
+      feature.views?.forEach((view) => {
+        if (view instanceof MetronomeView) {
+          metronomeViewInstance = view; // Store metronome view for later
+        } else {
+          // Render other views (like FretboardView, ChordDiagramView)
+          console.log(
+            `[DisplayController.renderFeature]   Rendering view: ${view.constructor.name}`
+          );
+          view.render(this.diagramEl);
+        }
+      });
+
+      // Render MetronomeView last if it exists
+      if (metronomeViewInstance) {
+        console.log(
+          `[DisplayController.renderFeature]   Rendering MetronomeView last.`
+        );
+        metronomeViewInstance.render(this.diagramEl);
+      }
     } catch (error) {
-        console.error(`[DisplayController.renderFeature] Error during rendering feature ${feature.typeName}:`, error);
-        // Optionally display an error message in the UI
-        this.diagramEl.innerHTML = `<p style="color: red; padding: 10px;">Error rendering feature: ${feature.typeName}</p>`;
+      console.error(
+        `[DisplayController.renderFeature] Error during rendering feature ${feature.typeName}:`,
+        error
+      );
+      this.diagramEl.innerHTML = `<p style="color: red; padding: 10px;">Error rendering feature: ${feature.typeName}</p>`;
     }
   }
 

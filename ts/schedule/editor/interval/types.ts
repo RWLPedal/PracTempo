@@ -1,16 +1,12 @@
-// ts/schedule/editor/interval/types.ts
-import { GuitarIntervalSettings, GuitarIntervalSettingsJSON } from "../../../guitar/guitar_interval_settings";
-import { FeatureCategoryName } from "../../../feature";
-
 /** Data structure representing the state of a single interval row (Input/Output for UI build) */
 export interface IntervalRowData {
   rowType: "interval";
   duration: string;
   task: string;
-  featureCategoryName: FeatureCategoryName; // **** ADDED ****
+  categoryName: string;
   featureTypeName: string;
   featureArgsList: string[];
-  intervalSettings: IntervalSettings;
+  intervalSettings: IntervalSettings; // Use the base interface type
 }
 
 /** Data structure representing a group header row (Input/Output for UI build) */
@@ -37,7 +33,7 @@ export interface IntervalDataJSON {
   rowType: "interval";
   duration: string;
   task: string;
-  featureCategoryName?: FeatureCategoryName;
+  categoryName: string;
   featureTypeName: string;
   featureArgsList: string[];
   intervalSettings?: IntervalSettingsJSON;
@@ -49,13 +45,11 @@ export type ScheduleRowJSONData = GroupDataJSON | IntervalDataJSON;
 // Define a base interface for all interval-specific settings
 export interface IntervalSettings {
   // Common properties can go here if any, otherwise it's a marker interface
-  // Example: metronomeBpm might be common? Or keep it specific?
-  // For now, keep it simple. Subclasses will add specific properties.
-  toJSON(): IntervalSettingsJSON; // Ensure all settings can be serialized
+  toJSON(): IntervalSettingsJSON | undefined; // Ensure all settings can be serialized (return undefined if default)
+  // Optionally add: isDefault?(): boolean;
 }
 
 // Define a base interface for the JSON representation of settings
-// (Included for context as it's used by IntervalSettings)
 export interface IntervalSettingsJSON {
   // No common properties needed here currently, structure defined by specific implementations
   [key: string]: any; // Allow arbitrary properties in JSON

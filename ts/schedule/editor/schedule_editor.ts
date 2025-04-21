@@ -4,13 +4,18 @@ import { DisplayController } from "../../display_controller";
 import { Schedule } from "../schedule";
 import { AppSettings, LAST_RUN_SCHEDULE_JSON_KEY } from "../../settings";
 // Use JSON serializer functions
-import { parseScheduleJSON, generateScheduleJSON } from "./schedule_serializer";
+import {
+  parseScheduleJSON,
+  generateScheduleJSON,
+  ScheduleDocument,
+} from "./schedule_serializer"; // Import ScheduleDocument
 // Import types and UI builders from interval directory
 import {
   ScheduleRowData,
   GroupRowData,
   IntervalRowData,
   ScheduleRowJSONData,
+  IntervalSettings, // Keep base type if needed
 } from "./interval/types";
 import { buildIntervalRowElement } from "./interval/interval_row_ui";
 import { buildGroupRowElement } from "./interval/group_row_ui";
@@ -25,8 +30,7 @@ import { DragDropManager } from "./drag_drop_manager";
 import { KeyboardShortcutManager } from "./keyboard_shortcut_manager";
 import { ScheduleBuilder } from "./schedule_builder";
 
-// Import FeatureCategoryName to specify default category
-import { FeatureCategoryName } from "../../feature";
+// --- Removed FeatureCategoryName import ---
 
 enum EditorMode {
   JSON = "json",
@@ -34,13 +38,15 @@ enum EditorMode {
 }
 
 const DEFAULT_SCHEDULE_NAME = "Untitled Schedule";
+// Define a default category to use when adding new rows via button
+// TODO: Make this selectable in the UI later
+const DEFAULT_CATEGORY_FOR_NEW_ROWS = "Guitar";
 
 export class ScheduleEditor {
+  // ... (Properties remain the same) ...
   public containerEl: HTMLElement;
   private updateAction: () => void;
   private audioController: AudioController;
-
-  // Managers
   private uiManager: EditorUIManager;
   public errorDisplay: ErrorDisplay;
   private selectionManager: SelectionManager;
@@ -49,12 +55,8 @@ export class ScheduleEditor {
   private dndManager: DragDropManager;
   private keyboardManager: KeyboardShortcutManager;
   private scheduleBuilder: ScheduleBuilder;
-
-  // UI Elements for Name Editing
-  private scheduleNameDisplayEl!: HTMLElement;
-  private editScheduleNameBtnEl!: HTMLElement;
-
-  // State
+  private scheduleNameDisplayEl!: HTMLElement | null; // Nullable
+  private editScheduleNameBtnEl!: HTMLElement | null; // Nullable
   private currentMode: EditorMode = EditorMode.Config;
   private scheduleName: string = DEFAULT_SCHEDULE_NAME;
 
@@ -63,15 +65,14 @@ export class ScheduleEditor {
     updateAction: () => void,
     audioController: AudioController
   ) {
+    // ... (Initialization of managers remains the same) ...
     if (!containerEl)
       throw new Error("ScheduleEditor: Container element is required.");
     this.containerEl = containerEl;
     this.updateAction = updateAction;
     this.audioController = audioController;
-
-    // Instantiate Managers
     this.uiManager = new EditorUIManager(this.containerEl);
-    this._findNameEditElements(); // Find name elements early
+    this._findNameEditElements(); // Find elements before attaching handlers
     this.errorDisplay = new ErrorDisplay(
       this.containerEl,
       this.uiManager.editorControlsContainerEl
@@ -107,178 +108,132 @@ export class ScheduleEditor {
     );
 
     this._attachButtonHandlers();
-    this._attachNameEditHandlers();
-    this.setEditorMode(this.currentMode, true); // Set initial mode without syncing
-    this._loadInitialState(); // Load initial data
-    this._updateScheduleNameDisplay(); // Set initial name display
+    this._attachNameEditHandlers(); // Attach name handlers
+    this.setEditorMode(this.currentMode, true);
+    this._loadInitialState();
+    this._updateScheduleNameDisplay();
 
-    // Ensure config UI is populated if starting in config mode after initial load
+    // Ensure config UI reflects loaded state if starting in config mode
     if (this.currentMode === EditorMode.Config) {
-      // If text area has content from load, sync it to config view
       if (this.uiManager.textEl.value.trim().length > 0) {
-        this.syncJSONViewToConfig();
+        this.syncJSONViewToConfig(); // Sync if JSON text area has content
       }
-      // Ensure there's at least one row if config view is still empty
+      // Add default row ONLY if config view is STILL empty AFTER potential sync
       if (this.uiManager.configEntriesContainerEl.childElementCount === 0) {
         console.log(
-          "Config view empty after load, adding default interval row."
+          "Config view empty after load/sync, adding default interval row."
         );
-        // Provide default category when adding initial row
-        this.rowManager.addEmptyIntervalRow(FeatureCategoryName.Guitar); // Pass default category
+        // Provide default category name string when adding initial row
+        this.rowManager.addEmptyIntervalRow(DEFAULT_CATEGORY_FOR_NEW_ROWS);
       }
     }
   }
 
-  /** Finds UI elements related to schedule name editing */
+  /** Finds the schedule name display and edit button elements */
   private _findNameEditElements(): void {
-    const headerEl = this.containerEl
-      .closest("#schedule-accordion")
-      ?.querySelector(".accordion-header");
-    if (headerEl) {
-      this.scheduleNameDisplayEl = headerEl.querySelector(
-        "#schedule-name-display"
-      ) as HTMLElement;
-      this.editScheduleNameBtnEl = headerEl.querySelector(
-        "#edit-schedule-name-btn"
-      ) as HTMLElement;
+    // Query within the main container or document if elements are outside editor container
+    this.scheduleNameDisplayEl = document.getElementById("schedule-name-display");
+    this.editScheduleNameBtnEl = document.getElementById("edit-schedule-name-btn");
+
+    if (!this.scheduleNameDisplayEl) {
+      console.warn("Schedule name display element (#schedule-name-display) not found.");
     }
-    if (!this.scheduleNameDisplayEl || !this.editScheduleNameBtnEl) {
-      console.warn(
-        "ScheduleEditor: Schedule name display/edit elements not found. Name editing disabled."
-      );
-      if (this.editScheduleNameBtnEl)
-        this.editScheduleNameBtnEl.style.display = "none";
+    if (!this.editScheduleNameBtnEl) {
+      console.warn("Edit schedule name button (#edit-schedule-name-btn) not found.");
     }
   }
 
-  /** Updates the schedule name display text */
+  /** Updates the schedule name display element */
   private _updateScheduleNameDisplay(): void {
     if (this.scheduleNameDisplayEl) {
-      this.scheduleNameDisplayEl.textContent = `Schedule: ${
-        this.scheduleName || DEFAULT_SCHEDULE_NAME
-      }`;
-      this.scheduleNameDisplayEl.style.display = ""; // Ensure visible
-    }
-    if (this.editScheduleNameBtnEl) {
-      this.editScheduleNameBtnEl.style.display = ""; // Ensure visible
+      this.scheduleNameDisplayEl.textContent = `Schedule: ${this.scheduleName}`;
+      this.scheduleNameDisplayEl.title = `Current schedule: ${this.scheduleName}. Click Edit button to rename.`;
     }
   }
 
-  /** Attaches handlers for the inline name editing UI */
+   /** Attaches handlers for editing the schedule name */
   private _attachNameEditHandlers(): void {
-    if (!this.editScheduleNameBtnEl || !this.scheduleNameDisplayEl) return;
-    this.editScheduleNameBtnEl.onclick = () => {
+    if (!this.editScheduleNameBtnEl || !this.scheduleNameDisplayEl) {
+      return; // Do nothing if elements are missing
+    }
+
+    this.editScheduleNameBtnEl.onclick = (event) => {
+      // **** FIX: Stop event propagation ****
+      event.stopPropagation();
+
       const currentName = this.scheduleName;
-      const parent = this.scheduleNameDisplayEl.parentNode;
-      if (!parent) return;
-      const input = document.createElement("input");
-      input.type = "text";
-      input.classList.add("input", "is-small", "schedule-name-edit-input");
-      input.value = currentName;
-      input.style.marginLeft = "8px";
-      input.style.flexGrow = "1";
-      this.scheduleNameDisplayEl.style.display = "none";
-      this.editScheduleNameBtnEl.style.display = "none";
-      parent.insertBefore(input, this.scheduleNameDisplayEl.nextSibling);
-      input.focus();
-      input.select();
-      const finishEdit = (save: boolean) => {
-        if (save) {
-          this.scheduleName = input.value.trim() || DEFAULT_SCHEDULE_NAME;
-        }
-        parent.removeChild(input);
+      const newName = prompt("Enter new schedule name:", currentName);
+      if (newName !== null && newName.trim() !== "") {
+        this.scheduleName = newName.trim();
         this._updateScheduleNameDisplay();
-      };
-      input.onblur = () => finishEdit(true);
-      input.onkeydown = (e) => {
-        if (e.key === "Enter") {
-          e.preventDefault();
-          finishEdit(true);
-        } else if (e.key === "Escape") {
-          e.preventDefault();
-          finishEdit(false);
-        }
-      };
+        console.log("Schedule name updated to:", this.scheduleName);
+      } else if (newName !== null) { // User entered blank name
+        alert("Schedule name cannot be empty.");
+      }
     };
+
+    // Optional: Make the display itself clickable? (less clear UX)
+    // this.scheduleNameDisplayEl.onclick = (event) => { ... };
   }
+
 
   // --- Mode Switching & Syncing ---
   private toggleMode(): void {
-    const newMode =
-      this.currentMode === EditorMode.JSON
-        ? EditorMode.Config
-        : EditorMode.JSON;
-    this.setEditorMode(newMode);
+    const nextMode =
+      this.currentMode === EditorMode.Config ? EditorMode.JSON : EditorMode.Config;
+    this.setEditorMode(nextMode);
   }
 
   private setEditorMode(mode: EditorMode, skipSync: boolean = false): void {
+    this.currentMode = mode;
+    const isTextMode = mode === EditorMode.JSON;
+    this.uiManager.setModeUI(isTextMode);
+
     if (!skipSync) {
-      if (mode === EditorMode.Config && this.currentMode === EditorMode.JSON) {
-        this.syncJSONViewToConfig();
-      } else if (
-        mode === EditorMode.JSON &&
-        this.currentMode === EditorMode.Config
-      ) {
+      if (isTextMode) {
         this.syncConfigToJSONView();
+      } else {
+        this.syncJSONViewToConfig();
       }
     }
-    this.currentMode = mode;
-    this.uiManager.setModeUI(mode === EditorMode.JSON);
-    console.log("Editor mode set to:", mode);
-    if (mode === EditorMode.Config) {
-      setTimeout(() => this.uiManager.configEntriesContainerEl.focus(), 0);
-    }
+    console.log(`Editor mode set to ${mode}. Skip sync: ${skipSync}`);
   }
 
   private syncConfigToJSONView(): void {
     try {
-      // Use RowManager to get JSON data from each row element
-      const rows =
-        this.uiManager.configEntriesContainerEl.querySelectorAll<HTMLElement>(
-          ".schedule-row"
-        );
-      const rowDataArray = Array.from(rows)
-        .map((row) => this.rowManager.getRowData(row))
-        .filter((d): d is ScheduleRowJSONData => d !== null); // Filter out nulls & type guard
-
-      const scheduleJSON = generateScheduleJSON(
-        this.scheduleName,
-        rowDataArray
-      );
-      this.uiManager.textEl.value = scheduleJSON;
+      const jsonString = this._generateJSONFromConfigView();
+      this.uiManager.textEl.value = jsonString;
       this.errorDisplay.removeMessage();
     } catch (error: any) {
-      console.error("Error generating schedule JSON:", error);
-      this.errorDisplay.showMessage(
-        `Error switching to JSON view: ${error.message}`
-      );
+      console.error("Error syncing config to JSON:", error);
+      this.errorDisplay.showMessage(`Error generating JSON: ${error.message}`);
     }
   }
 
   private syncJSONViewToConfig(): void {
     try {
       const scheduleJSON = this.uiManager.textEl.value;
-      // Parse JSON string into ScheduleRowData[] (using the updated parser)
+      // Parse JSON string into ScheduleRowData[] (uses updated parser)
       const parsedDoc = parseScheduleJSON(scheduleJSON);
       this.scheduleName = parsedDoc.name || DEFAULT_SCHEDULE_NAME;
       this._updateScheduleNameDisplay();
 
-      // Populate UI using the parsed ScheduleRowData array and the builder function
+      // Populate UI using the parsed ScheduleRowData array and the updated builder function
       this.uiManager.populateConfigUI(
-        this._buildRowElement.bind(this),
+        this._buildRowElement.bind(this), // Uses updated helper
         parsedDoc.items
       );
 
-      this.rowManager.updateAllRowIndentation(); // Apply indentation after populating
-      this.selectionManager.clearSelection(); // Clear selection
-      this.errorDisplay.removeMessage(); // Clear errors
+      this.rowManager.updateAllRowIndentation();
+      this.selectionManager.clearSelection();
+      this.errorDisplay.removeMessage();
     } catch (error: any) {
       console.error("Error parsing schedule JSON:", error);
       this.errorDisplay.showMessage(
         `Error parsing JSON input: ${error.message}`
       );
-      // Optionally clear the config view or leave it in its previous state?
-      // this.uiManager.populateConfigUI(this._buildRowElement.bind(this), []); // Clear UI on error
+      // Optionally clear config view or leave as is?
+      // this._clearConfigEntries();
     }
   }
 
@@ -293,7 +248,7 @@ export class ScheduleEditor {
       console.log(
         "No last run schedule found, loading default example (JSON)."
       );
-      // Default example schedule (assuming Guitar category for features)
+      // Default example now includes categoryName
       initialJSON = JSON.stringify(
         {
           name: "Default Example Schedule",
@@ -302,7 +257,7 @@ export class ScheduleEditor {
               rowType: "interval",
               duration: "5:00",
               task: "Warmup",
-              featureCategoryName: "Guitar",
+              categoryName: "Guitar",
               featureTypeName: "Notes",
               featureArgsList: [],
             },
@@ -311,29 +266,27 @@ export class ScheduleEditor {
               rowType: "interval",
               duration: "3:00",
               task: "C Major Scale",
-              featureCategoryName: "Guitar",
+              categoryName: "Guitar",
               featureTypeName: "Scale",
-              featureArgsList: ["C"],
-            },
+              featureArgsList: ["Major", "C"],
+            }, // Corrected args order assumption
             {
               rowType: "interval",
               duration: "3:00",
               task: "G Major Scale",
-              featureCategoryName: "Guitar",
+              categoryName: "Guitar",
               featureTypeName: "Scale",
-              featureArgsList: ["G"],
+              featureArgsList: ["Major", "G"],
             },
           ],
-        },
+        } satisfies ScheduleDocument, // Add type assertion for stricter checking
         null,
         2
       );
     }
     // Set initial state (will parse name and items)
-    // Use skipSync=true because we manually sync if needed right after constructor
+    // Pass skipSync=true because we manually sync if needed right after constructor
     this.setScheduleJSON(initialJSON, true);
-
-    // Note: Syncing and adding default row if needed now happens at the end of the constructor
   }
 
   /** Helper to build row elements based on data type, passing necessary context */
@@ -343,22 +296,21 @@ export class ScheduleEditor {
       return buildGroupRowElement(rowData as GroupRowData);
     } else if (rowData.rowType === "interval") {
       const intervalData = rowData as IntervalRowData;
-      // Extract category from the row data
-      const category = intervalData.featureCategoryName; // Should exist now
-      if (!category) {
+      // Extract category name string from the row data
+      const categoryName = intervalData.categoryName; // Should exist now
+      if (!categoryName) {
         console.error(
-          "Cannot build interval row: Missing featureCategoryName in rowData",
+          "Cannot build interval row: Missing categoryName in rowData",
           intervalData
         );
-        // Return a placeholder or null?
         const errorDiv = document.createElement("div");
         errorDiv.textContent = "[Error: Missing Category]";
         errorDiv.style.color = "red";
-        errorDiv.classList.add("schedule-row"); // Add class for consistency
+        errorDiv.classList.add("schedule-row");
         return errorDiv;
       }
-      // Pass the category to the builder function
-      return buildIntervalRowElement(intervalData, category);
+      // Pass the category name string to the builder function
+      return buildIntervalRowElement(intervalData, categoryName);
     }
     console.warn("Trying to build unknown row type:", rowData);
     return null;
@@ -369,9 +321,8 @@ export class ScheduleEditor {
     this.uiManager.modeToggleEl.onclick = () => this.toggleMode();
     this.uiManager.newScheduleButtonEl.onclick = () => this.newSchedule();
     this.uiManager.addConfigEntryButtonEl.onclick = () => {
-      // Provide default category when adding via button
-      // TODO: Add UI to select category for new rows
-      this.rowManager.addEmptyIntervalRow(FeatureCategoryName.Guitar);
+      // Pass default category name string when adding via button
+      this.rowManager.addEmptyIntervalRow(DEFAULT_CATEGORY_FOR_NEW_ROWS);
     };
     this.uiManager.addGroupButtonEl.onclick = () =>
       this.rowManager.addGroupRow();
@@ -386,49 +337,43 @@ export class ScheduleEditor {
     // Load/Save button handler is attached in main.ts if modal exists
   }
 
-  /** Callback for selection changes */
+  /** Callback when selection changes (passed to SelectionManager) */
   private _onSelectionChange(): void {
+    const canCopy = this.selectionManager.getSelectedElements().size > 0;
     this.uiManager.updateCopyPasteButtonState(
-      this.selectionManager.getSelectedElements().size > 0,
+      canCopy,
       this.clipboardManager.hasCopiedData()
     );
   }
 
-  /** Callback for clipboard changes */
+  /** Callback when clipboard content changes (passed to ClipboardManager) */
   private _onClipboardChange(canPaste: boolean): void {
-    this.uiManager.updateCopyPasteButtonState(
-      this.selectionManager.getSelectedElements().size > 0,
-      canPaste
-    );
+    const canCopy = this.selectionManager.getSelectedElements().size > 0;
+    this.uiManager.updateCopyPasteButtonState(canCopy, canPaste);
   }
 
   /** Clears the editor content and resets state for a new schedule. */
   public newSchedule(): void {
-    if (!confirm("Clear the current schedule and start a new one?")) {
-      return;
-    }
+    if (!confirm("Clear the current schedule and start a new one?")) return;
+
     console.log("Starting new schedule...");
+    this._clearConfigEntries();
+    this.uiManager.textEl.value = "";
+    this.scheduleName = DEFAULT_SCHEDULE_NAME;
+    this._updateScheduleNameDisplay();
+    this.selectionManager.clearSelection(true);
+    this.clipboardManager.clearClipboard();
 
-    this._clearConfigEntries(); // Clear Config UI Rows
-    this.uiManager.textEl.value = ""; // Clear Text Editor
-    this.scheduleName = DEFAULT_SCHEDULE_NAME; // Reset Schedule Name State
-    this._updateScheduleNameDisplay(); // Update UI
-    this.selectionManager.clearSelection(true); // Clear Selection
-    this.clipboardManager.clearClipboard(); // Clear Clipboard
+    // Add a default starting row, passing the category name string
+    this.rowManager.addEmptyIntervalRow(DEFAULT_CATEGORY_FOR_NEW_ROWS);
 
-    // Add a default starting row, specifying the category
-    // TODO: Make default category configurable or selectable
-    this.rowManager.addEmptyIntervalRow(FeatureCategoryName.Guitar);
-
-    this.errorDisplay.removeMessage(); // Clear errors
-
-    // Ensure editor is in config mode
+    this.errorDisplay.removeMessage();
     if (this.currentMode !== EditorMode.Config) {
-      this.setEditorMode(EditorMode.Config, true); // Switch without sync
+      this.setEditorMode(EditorMode.Config, true);
     }
   }
 
-  /** Helper to remove all row elements from the config container. */
+  /** Removes all row elements from the config view */
   private _clearConfigEntries(): void {
     while (this.uiManager.configEntriesContainerEl.firstChild) {
       this.uiManager.configEntriesContainerEl.removeChild(
@@ -440,60 +385,66 @@ export class ScheduleEditor {
   /** Gets the current schedule definition as a JSON string */
   public getScheduleJSON(): string {
     if (this.currentMode === EditorMode.JSON) {
-      // Validate JSON before returning
+      // Attempt to validate and return JSON from text area
       try {
-        JSON.parse(this.uiManager.textEl.value);
+        // Use parse to validate structure; throw if invalid
+        parseScheduleJSON(this.uiManager.textEl.value);
         return this.uiManager.textEl.value;
       } catch (e) {
-        console.error("JSON in text area is invalid when getting schedule.", e);
-        this.errorDisplay.showMessage(
-          "JSON in text area is invalid. Cannot get schedule."
+        // If JSON is invalid, generate from config view as fallback
+        console.warn(
+          "JSON in text editor is invalid, generating from config view instead."
         );
-        // Fallback to generating from config view if JSON is bad
+        this.errorDisplay.showMessage(
+          `JSON Error: ${
+            e instanceof Error ? e.message : String(e)
+          }. Using Config view.`
+        );
         return this._generateJSONFromConfigView();
       }
     } else {
-      // Generate from config view
+      // Always generate from config view if in config mode
       return this._generateJSONFromConfigView();
     }
   }
 
-  /** Helper to generate JSON from the config view UI elements */
+  /** Helper to generate JSON from the config view UI elements (uses updated rowManager) */
   private _generateJSONFromConfigView(): string {
     const rows =
       this.uiManager.configEntriesContainerEl.querySelectorAll<HTMLElement>(
         ".schedule-row"
       );
     const rowDataArray = Array.from(rows)
-      .map((row) => this.rowManager.getRowData(row))
+      .map((row) => this.rowManager.getRowData(row)) // getRowData now includes categoryName
       .filter((d): d is ScheduleRowJSONData => d !== null);
-    return generateScheduleJSON(this.scheduleName, rowDataArray);
+    return generateScheduleJSON(this.scheduleName, rowDataArray); // generate includes categoryName
   }
 
-  /** Sets the editor content from a JSON string */
+  /** Sets the editor content from a JSON string (uses updated parser) */
   public setScheduleJSON(jsonString: string, skipSync: boolean = false): void {
     console.log("Setting schedule JSON programmatically.");
     try {
-      // Parse first to validate structure and extract name (parser now returns ScheduleRowData[])
+      // Parse using the updated parser (which requires categoryName)
       const parsedDoc = parseScheduleJSON(jsonString);
       this.scheduleName = parsedDoc.name || DEFAULT_SCHEDULE_NAME;
-      // Pretty-print potentially validated/formatted JSON back to the text area
-      this.uiManager.textEl.value = generateScheduleJSON(
-        this.scheduleName,
-        parsedDoc.items
-          .map(
-            (item) => this.rowManager.getRowData(this._buildRowElement(item)!)!
-          )
-          .filter((d): d is ScheduleRowJSONData => d !== null)
-      ); // Re-generate from parsed data for consistency
-      this._updateScheduleNameDisplay();
-      this.errorDisplay.removeMessage(); // Clear previous errors
 
+      // Re-generate JSON from parsed data for consistency in the text area
+      // This requires building temporary elements or using RowManager.getRowData on the parsed data
+      // Simpler: Just trust the parser and pretty-print the original valid input for the text view
+      let prettyJson = jsonString; // Default to original if parsing failed somehow for regen
+      try {
+        prettyJson = JSON.stringify(JSON.parse(jsonString), null, 2);
+      } catch {}
+      this.uiManager.textEl.value = prettyJson;
+
+      this._updateScheduleNameDisplay();
+      this.errorDisplay.removeMessage();
+
+      // Syncing logic based on mode (uses updated _buildRowElement)
       if (!skipSync && this.currentMode === EditorMode.Config) {
-        // If in config mode and not skipping, sync the UI from the (re-generated) text value
         this.syncJSONViewToConfig();
       } else if (skipSync && this.currentMode === EditorMode.Config) {
-        // If skipping sync BUT we are in config mode, we still need to populate UI from parsed data
+        // If skipping sync but in config mode, still need to populate the UI
         this.uiManager.populateConfigUI(
           this._buildRowElement.bind(this),
           parsedDoc.items
@@ -507,29 +458,25 @@ export class ScheduleEditor {
       this.errorDisplay.showMessage(
         `Failed to load schedule: ${error.message}`
       );
-      // Clear UI if loading fails?
-      // this.uiManager.textEl.value = "";
-      // this._clearConfigEntries();
-      // this.rowManager.addEmptyIntervalRow(FeatureCategoryName.Guitar); // Add default row
     }
   }
 
-  /** Builds and returns the Schedule object for the timer */
+  /** Builds and returns the Schedule object for the timer (uses updated builder) */
   public getSchedule(
     displayController: DisplayController,
     settings: AppSettings,
     maxCanvasHeight: number
   ): Schedule | null {
     if (this.currentMode === EditorMode.JSON) {
-      this.syncJSONViewToConfig(); // Ensure config view is up-to-date
+      this.syncJSONViewToConfig();
       if (this.errorDisplay.hasMessage()) {
         console.error(
           "Cannot build schedule due to errors during JSON-to-config sync."
         );
-        return null; // Don't build if sync failed
+        return null;
       }
     }
-    // Build schedule from the config view elements
+    // Build schedule uses the updated scheduleBuilder which is now generic
     return this.scheduleBuilder.buildSchedule(
       displayController,
       this.audioController,
