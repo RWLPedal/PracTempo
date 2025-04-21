@@ -2,17 +2,16 @@ import {
   Feature,
   FeatureCategoryName,
   ConfigurationSchema,
+  ConfigurationSchemaArg, // Import if needed for merging
 } from "../../feature";
-import { GuitarFeature } from "../guitar_base";
+import { GuitarFeature } from "../guitar_base"; // Import base class
 import { Chord, chord_library } from "../chords";
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
-// Import the new View
 import { ChordDiagramView } from "../views/chord_diagram_view";
 import { addHeader, clearAllChildren, MUSIC_NOTES } from "../guitar_utils";
-import { View } from "../../view"; // Import base View type
-import { MetronomeView } from "../views/metronome_view";
-
+import { View } from "../../view";
+import { GuitarIntervalSettings } from "../guitar_interval_settings"; // Import interval settings type
 
 /** A feature for displaying mulitple chord diagrams and a metronome. */
 export class ChordFeature extends GuitarFeature {
@@ -21,90 +20,74 @@ export class ChordFeature extends GuitarFeature {
   static readonly displayName = "Chord Diagram";
   static readonly description = "Displays one or more chord diagrams.";
   readonly typeName = ChordFeature.typeName;
-  // No longer need to store chords directly here, they are in the views
 
   constructor(
-    config: ReadonlyArray<string>,
-    chords: ReadonlyArray<Chord>, // Still receive chords to create views
+    config: ReadonlyArray<string>, // Chord keys specific to this feature
+    chords: ReadonlyArray<Chord>,
     settings: AppSettings,
-    metronomeBpmOverride?: number,
+    intervalSettings: GuitarIntervalSettings, // <<< CHANGED: Accept full object
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
+    // Pass intervalSettings up to the base constructor
     super(
       config,
       settings,
-      metronomeBpmOverride,
+      intervalSettings, // <<< CHANGED
       audioController,
       maxCanvasHeight
     );
 
-    // Create Views based on chords and metronome setting
-    const views: View[] = [];
-    chords.forEach(chord => {
-        views.push(new ChordDiagramView(chord, chord.name, this.fretboardConfig));
+    // Create ChordDiagramViews (metronome view is handled by base constructor)
+    chords.forEach((chord) => {
+      this._views.push(
+        new ChordDiagramView(chord, chord.name, this.fretboardConfig)
+      );
     });
-
-    // Add metronome view if BPM is set (logic moved from base constructor)
-    if (this.metronomeBpm > 0 && this.audioController) {
-       const metronomeAudioEl = document.getElementById("metronome-sound") as HTMLAudioElement;
-       if (metronomeAudioEl) {
-           views.push(new MetronomeView(this.metronomeBpm, this.audioController));
-       } else {
-            console.error("Metronome audio element not found for ChordFeature.");
-       }
-    } else if (this.metronomeBpm > 0 && !this.audioController) {
-        console.warn("Metronome requested for ChordFeature, but AudioController missing.");
-    }
-
-    // Assign the created views to the inherited views property
-    (this as { views: ReadonlyArray<View> }).views = views; // Use type assertion to assign
   }
 
-  // Static methods remain mostly the same
+  // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
     const availableChordNames = Object.keys(chord_library);
+    // Define arguments specific to ChordFeature
+    const specificArgs: ConfigurationSchemaArg[] = [
+      {
+        name: "ChordNames",
+        type: "enum",
+        required: true,
+        enum: availableChordNames,
+        description: "One or more chord names.",
+        isVariadic: true,
+      },
+    ];
+    // Combine specific args with the base Guitar Settings arg
     return {
       description: `Config: ${this.typeName},ChordName1[,ChordName2,...][,GuitarSettings]`,
-      args: [
-        {
-          name: "ChordNames",
-          type: "enum",
-          required: true,
-          enum: availableChordNames,
-          description: "One or more chord names.",
-          isVariadic: true,
-        },
-        {
-          name: "Guitar Settings",
-          type: "ellipsis",
-          uiComponentType: "ellipsis",
-          description: "Configure interval-specific guitar settings.",
-          nestedSchema: [
-            {
-              name: "metronomeBpm",
-              type: "number",
-              description: "Metronome BPM (0=off)",
-            },
-          ],
-        },
-      ],
+      // <<< CHANGED: Merge specific args with base arg >>>
+      args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
   static createFeature(
-    config: ReadonlyArray<string>,
+    config: ReadonlyArray<string>, // Raw config list from editor row
     audioController: AudioController,
     settings: AppSettings,
-    metronomeBpmOverride?: number,
+    intervalSettings: GuitarIntervalSettings, // <<< CHANGED: Receive full object
     maxCanvasHeight?: number
   ): Feature {
-    if (config.length < 1) {
+    // Separate feature-specific args from potential nested settings args
+    // NOTE: This assumes the ellipsis arg is always last. A more robust parser
+    // might be needed if the order could change. For now, assume all non-object
+    // args before the potential settings object are chord keys.
+    const chordKeys = config; // Assume config only contains chord keys for now
+    // A more robust implementation would parse config based on the schema
+
+    if (chordKeys.length < 1) {
       throw new Error(
         `Invalid config for ${this.typeName}. Expected at least one ChordName.`
       );
     }
-    const chordKeys = config;
+
     const chords: Chord[] = [];
     chordKeys.forEach((chordKey) => {
       const chord = chord_library[chordKey];
@@ -118,11 +101,12 @@ export class ChordFeature extends GuitarFeature {
       throw new Error(`No valid chords found in config: ${config.join(",")}`);
     }
 
+    // Pass the specific config args (chordKeys) and the intervalSettings object
     return new ChordFeature(
-      config,
+      chordKeys, // Pass only the chord keys as the specific config
       chords,
       settings,
-      metronomeBpmOverride,
+      intervalSettings, // <<< CHANGED
       audioController,
       maxCanvasHeight
     );
@@ -131,20 +115,18 @@ export class ChordFeature extends GuitarFeature {
   /** Render method now just adds the header. Views are rendered by DisplayController. */
   render(container: HTMLElement): void {
     clearAllChildren(container);
-    // Generate header based on the views created
-    const chordViews = this.views.filter(v => v instanceof ChordDiagramView) as ChordDiagramView[];
-    const uniqueChordNames = [...new Set(chordViews.map(v => (v as any).chord.name))]; // Access chord name via view
-    let headerText = "Chord Diagram"; // Default
-     if (uniqueChordNames.length === 1) {
-        headerText = `${uniqueChordNames[0]} Chord`;
-     } else if (uniqueChordNames.length > 1) {
-        headerText = uniqueChordNames.slice(0, 3).join(' / ') + " Chords";
-     }
+    const chordViews = this._views.filter(
+      (v) => v instanceof ChordDiagramView
+    ) as ChordDiagramView[];
+    const uniqueChordNames = [
+      ...new Set(chordViews.map((v) => (v as any).chord.name)),
+    ];
+    let headerText = "Chord Diagram";
+    if (uniqueChordNames.length === 1) {
+      headerText = `${uniqueChordNames[0]} Chord`;
+    } else if (uniqueChordNames.length > 1) {
+      headerText = uniqueChordNames.slice(0, 3).join(" / ") + " Chords";
+    }
     addHeader(container, headerText);
-    // Optionally add the layout container div here if needed for CSS styling
-    // const viewContainer = document.createElement('div');
-    // viewContainer.className = 'diagram-views-container'; // Add class for styling
-    // container.appendChild(viewContainer);
-    // DisplayController will iterate views and pass the main container to each view's render
   }
 }

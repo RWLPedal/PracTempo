@@ -1,33 +1,30 @@
-/* ts/guitar/features/triad_feature.ts */
-
 import {
   Feature,
   FeatureCategoryName,
   ConfigurationSchema,
+  ConfigurationSchemaArg, // Added
 } from "../../feature";
 import { GuitarFeature } from "../guitar_base";
-import { AVAILABLE_TUNINGS, FretboardConfig, STANDARD_TUNING } from "../fretboard"; // Import FretboardConfig
+import {
+  FretboardConfig,
+  AVAILABLE_TUNINGS,
+  STANDARD_TUNING,
+} from "../fretboard"; // Import FretboardConfig etc.
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
+import { GuitarIntervalSettings } from "../guitar_interval_settings"; // Import interval settings type
 import {
   MUSIC_NOTES,
   getKeyIndex,
   addHeader,
   clearAllChildren,
 } from "../guitar_utils";
-import {
-  TriadQuality,
-  // TriadInversion, // Not needed directly by feature anymore
-  getTriadNotesAndLinesForGroup,
-} from "../triads";
+import { TriadQuality, getTriadNotesAndLinesForGroup } from "../triads";
 import {
   FretboardView,
-  NoteRenderData,
-  LineData,
 } from "../views/fretboard_view";
-import { MetronomeView } from "../views/metronome_view";
-import { View } from "../../view";
 
+// String groups and names remain the same...
 const STRING_GROUPS: [number, number, number][] = [
   [0, 1, 2],
   [1, 2, 3],
@@ -47,27 +44,26 @@ export class TriadFeature extends GuitarFeature {
   static readonly typeName = "Triad Shapes";
   static readonly displayName = "Triad Shapes (3-String Sets)";
   static readonly description =
-    "Displays Major/Minor/Dim/Aug triad shapes across all positions for each 3-string set (EAD, ADG, DGB, GBE).";
+    "Displays Major/Minor triad shapes across all positions for each 3-string set (EAD, ADG, DGB, GBE).";
 
   readonly typeName = TriadFeature.typeName;
   private readonly rootNoteName: string;
   private readonly quality: TriadQuality;
   private readonly mainHeaderText: string;
-  // Store views if needed, though maybe not necessary to hold references here
+  // Keep refs to views if needed for dynamic updates, otherwise base class handles them
   // private fretboardViews: FretboardView[] = [];
 
   constructor(
-    config: ReadonlyArray<string>,
+    config: ReadonlyArray<string>, // Specific args: [RootNote, Quality]
     rootNoteName: string,
     quality: TriadQuality,
     mainHeaderText: string,
     settings: AppSettings,
-    metronomeBpmOverride?: number,
+    intervalSettings: GuitarIntervalSettings, // <<< Use interval settings
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
-    // Create the scaled-down config *before* calling super()
-    // Clone base settings to avoid modifying the original AppSettings object
+    // Create scaled-down config *before* calling super()
     const baseFretboardConfig = new FretboardConfig(
       settings.categorySettings[FeatureCategoryName.Guitar]?.tuning
         ? AVAILABLE_TUNINGS[
@@ -81,11 +77,8 @@ export class TriadFeature extends GuitarFeature {
       undefined,
       undefined,
       undefined,
-      maxCanvasHeight // Pass height constraint for base calculation
-      // Default multiplier is 1.0 here
+      maxCanvasHeight
     );
-
-    // Now create the specific config for this feature with the multiplier
     const featureFretboardConfig = new FretboardConfig(
       baseFretboardConfig.tuning,
       baseFretboardConfig.handedness,
@@ -93,19 +86,13 @@ export class TriadFeature extends GuitarFeature {
       baseFretboardConfig.markerDots,
       baseFretboardConfig.sideNumbers,
       baseFretboardConfig.stringWidths,
-      maxCanvasHeight, // Pass height constraint again
+      maxCanvasHeight,
       0.75
     );
 
-    // Call super, but the fretboardConfig created there might be overridden locally
-    super(
-      config,
-      settings, // Pass original settings up
-      metronomeBpmOverride,
-      audioController,
-      maxCanvasHeight
-    );
-    // Override the config created by the base class with our scaled-down one
+    // Call super, passing interval settings
+    super(config, settings, intervalSettings, audioController, maxCanvasHeight);
+    // Override config with the scaled-down one for this feature's views
     this.fretboardConfig = featureFretboardConfig;
 
     this.rootNoteName = rootNoteName;
@@ -113,107 +100,66 @@ export class TriadFeature extends GuitarFeature {
     this.mainHeaderText = mainHeaderText;
 
     const fretCount = 15;
-    const views: View[] = [];
 
+    // Create Views (Base constructor handles MetronomeView)
     let orderedGroups = [...STRING_GROUPS];
-    let orderedNames = orderedGroups.map(
-      (g) => STRING_GROUP_NAMES[g.join(",")]
-    );
-
     if (this.fretboardConfig.handedness === "left") {
       orderedGroups.reverse();
-      orderedNames.reverse();
     }
 
-    // Create FretboardViews and calculate data
     orderedGroups.forEach((group) => {
-      // Pass the SCALED config to the view
+      // Use the SCALED config for the view and calculations
       const fretboardView = new FretboardView(this.fretboardConfig, fretCount);
-      // this.fretboardViews.push(fretboardView); // Not strictly needed to store ref here
-      views.push(fretboardView);
+      this._views.push(fretboardView); // Add to views managed by base
 
-      // Calculate notes/lines using the SCALED config
       const triadData = getTriadNotesAndLinesForGroup(
         this.rootNoteName,
         this.quality,
         group,
         fretCount,
-        this.fretboardConfig // Use the scaled config for calculations
+        this.fretboardConfig // Use scaled config for calculation
       );
 
       fretboardView.setNotes(triadData.notes);
       fretboardView.setLines(triadData.lines);
     });
-
-    // Add MetronomeView if applicable
-    if (this.metronomeBpm > 0 && this.audioController) {
-      const metronomeAudioEl = document.getElementById(
-        "metronome-sound"
-      ) as HTMLAudioElement;
-      if (metronomeAudioEl) {
-        views.push(
-          new MetronomeView(
-            this.metronomeBpm,
-            this.audioController
-          )
-        );
-      } else {
-        console.error("Metronome audio element not found for TriadFeature.");
-      }
-    } else if (this.metronomeBpm > 0 && !this.audioController) {
-      console.warn(
-        "Metronome requested for TriadFeature, but AudioController missing."
-      );
-    }
-
-    (this as { views: ReadonlyArray<View> }).views = views;
   }
 
-  // Static methods remain the same...
+  // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
     const availableKeys = MUSIC_NOTES.flat();
-    const qualities: TriadQuality[] = ["Major", "Minor", "Diminished", "Augmented"];
+    const qualities: TriadQuality[] = ["Major", "Minor"];
+    // Define arguments specific to TriadFeature
+    const specificArgs: ConfigurationSchemaArg[] = [
+      {
+        name: "Root Note",
+        type: "enum",
+        required: true,
+        enum: availableKeys,
+        description: "Root note of the triad.",
+      },
+      {
+        name: "Quality",
+        type: "enum",
+        required: true,
+        enum: qualities,
+        description: "Quality of the triad (Major, Minor).",
+      },
+    ];
     return {
       description: `Config: ${this.typeName},RootNote,Quality[,GuitarSettings]`,
-      args: [
-        {
-          name: "Root Note",
-          type: "enum",
-          required: true,
-          enum: availableKeys,
-          description: "Root note of the triad.",
-        },
-        {
-          name: "Quality",
-          type: "enum",
-          required: true,
-          enum: qualities,
-          description: "Quality of the triad (Major, Minor, etc).",
-        },
-        {
-          name: "Guitar Settings",
-          type: "ellipsis",
-          uiComponentType: "ellipsis",
-          description: "Configure interval-specific guitar settings.",
-          nestedSchema: [
-            {
-              name: "metronomeBpm",
-              type: "number",
-              description: "Metronome BPM (0=off)",
-            },
-          ],
-        },
-      ],
+      args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG], // Merge with base
     };
   }
 
   static createFeature(
-    config: ReadonlyArray<string>,
+    config: ReadonlyArray<string>, // Raw config [RootNote, Quality, ...]
     audioController: AudioController,
     settings: AppSettings,
-    metronomeBpmOverride?: number,
+    intervalSettings: GuitarIntervalSettings,
     maxCanvasHeight?: number
   ): Feature {
+    // Parse feature-specific args
     if (config.length < 2) {
       throw new Error(
         `Invalid config for ${this.typeName}. Expected [RootNote, Quality].`
@@ -221,24 +167,25 @@ export class TriadFeature extends GuitarFeature {
     }
     const rootNoteName = config[0];
     const quality = config[1] as TriadQuality;
-    const remainingConfig = config.slice(2);
+    const featureSpecificConfig = [rootNoteName, quality]; // Args for this feature
 
+    // Validate
     const keyIndex = getKeyIndex(rootNoteName);
     if (keyIndex === -1) throw new Error(`Unknown key: "${rootNoteName}"`);
     const validRootName = MUSIC_NOTES[keyIndex]?.[0] ?? rootNoteName;
-    const validQualities: TriadQuality[] = ["Major", "Minor", "Diminished", "Augmented"];
+    const validQualities: TriadQuality[] = ["Major", "Minor"];
     if (!validQualities.includes(quality))
       throw new Error(`Invalid triad quality: "${quality}"`);
 
     const mainHeaderText = `${validRootName} ${quality} Triads (3-String Sets)`;
 
     return new TriadFeature(
-      remainingConfig,
+      featureSpecificConfig,
       validRootName,
       quality,
       mainHeaderText,
       settings,
-      metronomeBpmOverride,
+      intervalSettings,
       audioController,
       maxCanvasHeight
     );
@@ -248,29 +195,6 @@ export class TriadFeature extends GuitarFeature {
   render(container: HTMLElement): void {
     clearAllChildren(container);
     addHeader(container, this.mainHeaderText);
-
-    // Optional: Add sub-headers for string groups dynamically if needed
-    // This would likely require modifying how DisplayController renders views
-    // or making this render method more complex. For now, rely on CSS layout.
-
-    // Example of adding sub-headers (would need CSS to align with views):
-    /*
-    const subHeaderContainer = document.createElement('div');
-    subHeaderContainer.style.display = 'flex';
-    subHeaderContainer.style.justifyContent = 'space-around'; // Adjust as needed
-    subHeaderContainer.style.width = '100%'; // Adjust as needed
-    let orderedNames = STRING_GROUPS.map(g => STRING_GROUP_NAMES[g.join(',')]);
-    if (this.fretboardConfig.handedness === 'left') {
-        orderedNames.reverse();
-    }
-    orderedNames.forEach(name => {
-        const sh = document.createElement('h6');
-        sh.textContent = name;
-        sh.style.textAlign = 'center';
-        sh.style.flex = '1'; // Example sizing
-        subHeaderContainer.appendChild(sh);
-    });
-    container.appendChild(subHeaderContainer);
-    */
+    // Optional: Add sub-headers container here if desired
   }
-} // End TriadFeature Class
+}
