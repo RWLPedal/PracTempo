@@ -1,6 +1,13 @@
 /**
  * Defines settings specific to a guitar feature within a single interval.
  */
+
+// Interface defining the structure for JSON representation
+export interface GuitarIntervalSettingsJSON {
+  metronomeBpm?: number;
+  // Add other potential interval-specific settings here
+}
+
 export class GuitarIntervalSettings {
   public metronomeBpm: number;
 
@@ -16,50 +23,52 @@ export class GuitarIntervalSettings {
   }
 
   /**
-   * Serializes the settings into a string format for storage/text view.
-   * Example: "@BPM:80" or "@BPM:0"
-   * Returns empty string if settings are default (BPM=0).
+   * Creates a GuitarIntervalSettings instance from a JSON object.
+   * @param json - The JSON object (or undefined).
+   * @returns A new GuitarIntervalSettings instance.
    */
-  public toString(): string {
-    if (this.metronomeBpm > 0) {
-      return `@BPM:${this.metronomeBpm}`;
+  public static fromJSON(
+    json: GuitarIntervalSettingsJSON | undefined | null
+  ): GuitarIntervalSettings {
+    // Create instance with defaults
+    const settings = new GuitarIntervalSettings();
+    if (json) {
+      // Apply valid values from JSON
+      if (json.metronomeBpm !== undefined && json.metronomeBpm >= 0) {
+        settings.metronomeBpm = json.metronomeBpm;
+      } else if (json.metronomeBpm !== undefined) {
+        console.warn(
+          `Invalid metronomeBpm value in JSON (${json.metronomeBpm}), using default.`
+        );
+      }
+      // Add logic for other settings here if they exist
     }
-    // Return empty string if BPM is 0 (or default) to keep text config clean
-    return "";
+    return settings;
   }
 
   /**
-   * Parses settings from a serialized string.
-   * @param settingsString - The string (e.g., "@BPM:80").
-   * @returns A new GuitarIntervalSettings instance.
+   * Serializes the settings into a JSON object suitable for `JSON.stringify`.
+   * Only includes non-default values.
+   * @returns A JSON object or undefined if all settings are default.
    */
-  public static fromString(
-    settingsString: string | undefined | null
-  ): GuitarIntervalSettings {
-    const settings = new GuitarIntervalSettings(); // Start with defaults
-
-    if (settingsString && settingsString.startsWith("@")) {
-      const parts = settingsString.substring(1).split(":"); // Remove '@' and split
-      if (parts.length === 2 && parts[0].toUpperCase() === "BPM") {
-        const bpmVal = parseInt(parts[1], 10);
-        if (!isNaN(bpmVal) && bpmVal >= 0) {
-          settings.metronomeBpm = bpmVal;
-        } else {
-          console.warn(
-            `Invalid BPM value in settings string: "${settingsString}"`
-          );
-        }
-      } else {
-        console.warn(
-          `Unrecognized settings string format: "${settingsString}"`
-        );
-      }
+  public toJSON(): GuitarIntervalSettingsJSON | undefined {
+    if (this.isDefault()) {
+      return undefined; // Don't include settings object if it's all default
     }
-    return settings;
+
+    const json: GuitarIntervalSettingsJSON = {};
+    if (this.metronomeBpm !== GuitarIntervalSettings.DEFAULT_METRONOME_BPM) {
+      json.metronomeBpm = this.metronomeBpm;
+    }
+    // Add other non-default settings here
+
+    // Check if any non-default values were actually added
+    return Object.keys(json).length > 0 ? json : undefined;
   }
 
   /** Returns true if the settings are default (currently just checks BPM). */
   public isDefault(): boolean {
     return this.metronomeBpm === GuitarIntervalSettings.DEFAULT_METRONOME_BPM;
+    // Add checks for other settings here: && this.otherSetting === DEFAULT_OTHER ...
   }
 }

@@ -14,15 +14,11 @@
 </head>
 
 <body>
-  <!-- Removed is-horizontal from container, it's not standard for layout -->
   <div class="container pt-4 pb-4">
 
-    <!-- Main Tile Ancestor for the side-by-side layout -->
     <div class="tile is-ancestor">
 
-      <!-- Left Column Parent Tile (Vertical stacking, ~40% width) -->
       <div class="tile is-vertical is-parent is-5">
-        <!-- Each item is a child tile -->
         <div class="tile is-child notification" id="task-wrapper">
           <p class="subtitle">PracTempo!</p>
         </div>
@@ -41,10 +37,12 @@
           <ol id="upcoming"></ol>
         </div>
         <div class="tile is-child notification">
-          <!-- Controls -->
           <div class="level main-controls is-mobile">
             <div class="level-item">
               <button id="start-control" class="button is-success is-medium">START</button>
+            </div>
+            <div class="level-item">
+                <button id="skip-control" class="button is-info is-medium" title="Skip to next task">SKIP</button>
             </div>
             <div class="level-item">
               <button id="reset-control" class="button is-danger is-medium">RESET</button>
@@ -55,48 +53,40 @@
             </div>
           </div>
         </div>
-      </div> <!-- End Left Column Parent Tile -->
-
-      <!-- Right Column Parent Tile (~60% width) -->
-      <div class="tile is-parent is-7">
-        <!-- Diagram is the child tile -->
+      </div> <div class="tile is-parent is-7">
         <article id="diagram" class="tile is-child notification">
-          <!-- Diagram content will go here -->
-           <p class="subtitle">Diagram</p> <!-- Placeholder -->
-        </article>
-      </div> <!-- End Right Column Parent Tile -->
-
-    </div> <!-- End Main Tile Ancestor -->
-
-    <!-- Schedule Accordion (remains below the main layout) -->
-    <div class="tile is-ancestor"> <!-- Wrap accordion in its own ancestor for consistency -->
-        <div class="tile is-parent">
-            <article class="tile is-child notification pb-4" id="schedule-accordion">
-                <div class="accordion-header is-clickable">
-                    <p class="subtitle is-5 mb-2">Schedule</p>
-                    <span class="accordion-toggle-icon">&#9660;</span> <!-- Down Arrow -->
-                </div>
-                <div class="accordion-content" id="schedule-editor-container-wrapper">
-                    <div id="schedule-editor-container">
-                        <!-- Schedule Editor will be injected here -->
+          <p class="subtitle">Diagram</p> </article>
+      </div> </div> <div class="container pt-4 pb-4">
+        <div class="tile is-ancestor">
+            <div class="tile is-parent">
+                <article class="tile is-child notification pb-4" id="schedule-accordion">
+                    <div class="accordion-header is-clickable">
+                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
+                             <div style="display: flex; align-items: center; gap: 8px;">
+                                 <p class="subtitle is-5 mb-0" id="schedule-name-display" style="cursor: text;" title="Click Edit button to rename schedule">Schedule: Untitled Schedule</p>
+                                 <button class="button" id="edit-schedule-name-btn" title="Edit Schedule Name">
+                                  ✎
+                                </button>
+                            </div>
+                            <span class="accordion-toggle-icon">&#9660;</span>
+                        </div>
+                         </div>
+                    <div class="accordion-content" id="schedule-editor-container-wrapper">
+                        <div id="schedule-editor-container">
+                            </div>
                     </div>
-                </div>
+                </article>
+            </div>
+        </div>
+        </div>
             </article>
         </div>
-    </div> <!-- End Accordion Ancestor -->
-
-  </div> <!-- End Container -->
-
-
-  <!-- Audio Elements -->
-  <audio id="intro-end-sound" src="sounds/intro_bell.wav" preload="auto"></audio>
+    </div> </div> <audio id="intro-end-sound" src="sounds/intro_bell.wav" preload="auto"></audio>
   <audio id="interval-end-sound" src="sounds/bell.wav" preload="auto"></audio>
   <audio id="metronome-sound" src="sounds/metronome.wav" preload="auto"></audio>
 
-  <!-- Overlay -->
   <div id="overlay" class="hidden"></div>
 
-  <!-- Settings Modal -->
   <div class="modal" id="settings-modal">
     <div class="modal-background"></div>
     <div class="modal-card">
@@ -106,52 +96,26 @@
       </header>
       <section class="modal-card-body">
         <h4 class="title is-6">Global Settings</h4>
-        <div class="field">
-          <label class="label is-small">Theme</label>
-          <div class="control">
-            <div class="select is-small is-fullwidth">
-              <select id="theme-select">
-                <option value="light">Light</option>
-                <option value="dark">Dark</option>
-              </select>
-            </div>
+        <div class="field is-horizontal">
+          <div class="field-label is-normal"><label class="label">Theme</label></div>
+          <div class="field-body"><div class="field"><div class="control">
+              <div class="select is-fullwidth"><select id="theme-select">
+                  <option value="light">Light</option>
+                  <option value="dark">Dark</option>
+              </select></div>
+          </div></div></div>
+      </div>
+      <div class="field is-horizontal">
+          <div class="field-label is-normal"><label class="label">Warmup (sec)</label></div>
+          <div class="field-body"><div class="field"><div class="control">
+              <input class="input" type="number" id="warmup-input" min="0" step="1" value="0">
+          </div></div></div>
+      </div>
+  
+      <hr>
+      <div id="category-settings-container">
           </div>
-        </div>
-        <div class="field">
-          <label class="label is-small">Global Warmup Period (seconds)</label>
-          <div class="control">
-            <input class="input is-small" type="number" id="warmup-input" min="0" step="1" value="0">
-          </div>
-        </div>
-
-        <hr>
-
-        <h4 class="title is-6">Guitar Settings</h4>
-        <div class="field">
-          <label class="label is-small">Diagram Handedness</label>
-          <div class="control">
-            <div class="select is-small is-fullwidth">
-              <select id="handedness-select">
-                <option value="right">Right-Handed</option>
-                <option value="left">Left-Handed</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div class="field">
-          <label class="label is-small">Tuning</label>
-          <div class="control">
-            <div class="select is-small is-fullwidth">
-              <select id="tuning-select">
-                <option value="Standard">Standard (EADGBE)</option>
-                <option value="Drop D">Drop D (DADGBE)</option>
-                <!-- Add other tunings as needed -->
-              </select>
-            </div>
-          </div>
-        </div>
-
-      </section>
+        </section>
       <footer class="modal-card-foot is-justify-content-flex-end">
         <button class="button is-success" id="settings-save-button">Save changes</button>
         <button class="button" id="settings-cancel-button">Cancel</button>
@@ -159,7 +123,6 @@
     </div>
   </div>
 
-  <!-- Load/Save Schedule Modal -->
   <div class="modal" id="load-schedule-modal">
     <div class="modal-background"></div>
     <div class="modal-card">
@@ -187,11 +150,10 @@
             <label class="button is-info" for="load-schedule-input-hidden">
               <span>Load from File</span>
             </label>
-            <input type="file" id="load-schedule-input-hidden" accept=".txt,text/plain" style="display: none;">
+            <input type="file" id="load-schedule-input-hidden" accept=".json,application/json" style="display: none;">
           </p>
         </div>
 
-        <!-- Recent Schedule Preview Area -->
         <div id="recent-schedule-preview"
           style="display: none; margin-top: 15px; border-top: 1px solid #dbdbdb; padding-top: 15px;">
           <button class="delete is-pulled-right" aria-label="close" id="close-preview-button"

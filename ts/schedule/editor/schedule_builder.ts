@@ -1,16 +1,21 @@
+/* ts/schedule/editor/schedule_builder.ts */
+
+import { Schedule, Interval } from "../schedule";
 import { DisplayController } from "../../display_controller";
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
-import { Schedule, Interval } from "../schedule";
-import { Feature, FeatureCategoryName } from "../../feature";
+import { Feature, FeatureCategoryName } from "../../feature"; // Import Feature
 import { getFeatureTypeDescriptor } from "../../feature_registry";
-import { RowManager } from "./row_manager";
+import { parseDurationString } from "../../guitar/guitar_utils"; // Assuming this utility exists and works
+import { GuitarIntervalSettings } from "../../guitar/guitar_interval_settings"; // Import class for instantiation
 import { ErrorDisplay } from "./error_display";
+import { ScheduleRowJSONData, GroupDataJSON, IntervalDataJSON } from "./interval/types";
+import { RowManager } from "./row_manager"; // Import RowManager and JSON data types
 
 export class ScheduleBuilder {
   private rowManager: RowManager;
   private errorDisplay: ErrorDisplay;
-  private configEntriesContainerEl: HTMLElement; // Direct access needed to query rows
+  private configEntriesContainerEl: HTMLElement;
 
   constructor(
     rowManager: RowManager,
@@ -22,157 +27,110 @@ export class ScheduleBuilder {
     this.configEntriesContainerEl = configEntriesContainerEl;
   }
 
+  /**
+   * Builds the Schedule object from the current state of the config editor UI rows.
+   * @param displayController - The display controller instance.
+   * @param audioController - The audio controller instance.
+   * @param settings - The global application settings.
+   * @param maxCanvasHeight - The maximum height constraint for feature canvases. // Add parameter
+   * @returns A new Schedule instance or null if errors occur.
+   */
   public buildSchedule(
     displayController: DisplayController,
     audioController: AudioController,
-    settings: AppSettings
+    settings: AppSettings,
+    maxCanvasHeight: number
   ): Schedule | null {
-    console.log(`Building schedule from Config editor UI...`);
-    this.errorDisplay.removeMessage(); // Clear previous errors
-
+    console.log("[ScheduleBuilder] Starting buildSchedule..."); // Log start
+    this.errorDisplay.removeMessage();
     const schedule = new Schedule(displayController, audioController);
-    const introTime = settings?.warmupPeriod ?? 0;
-    let hasError = false;
+    const rows = this.configEntriesContainerEl.querySelectorAll<HTMLElement>(
+      ".schedule-row"
+    );
+    let hasErrors = false;
+    let totalDurationSeconds = 0;
+    const MAX_TOTAL_DURATION_SECONDS = 3 * 60 * 60;
 
-    // Get all interval rows directly from the container
-    const intervalRows =
-      this.configEntriesContainerEl.querySelectorAll<HTMLElement>(
-        ".config-entry-row"
-      );
-
-    intervalRows.forEach((rowElement, index) => {
-      if (hasError) return; // Stop processing if an error occurred
-
+    rows.forEach((rowElement, index) => {
+      if (hasErrors) return;
       const rowData = this.rowManager.getRowData(rowElement);
-
-      // Ensure it's interval data and not null
-      if (!rowData || rowData.rowType !== "interval") {
-        // This shouldn't happen if querySelector is correct, but good practice
-        console.warn(
-          `Skipping row ${index + 1} as it's not valid interval data.`
-        );
+      if (!rowData) {
+        console.warn(`[ScheduleBuilder] Skipping row ${index + 1} due to data extraction error.`);
         return;
       }
 
-      const {
-        duration,
-        task,
-        featureTypeName,
-        featureArgsList,
-        intervalSettings,
-      } = rowData;
-      const seconds = this._getTotalSeconds(duration);
+      if (rowData.rowType === "interval") {
+        const intervalData = rowData as IntervalDataJSON;
+        console.log(`[ScheduleBuilder] Processing interval ${index + 1}: Type='${intervalData.featureTypeName || "None"}', Task='${intervalData.task}', Duration='${intervalData.duration}'`); // Log interval details
+        let durationSeconds = 0;
+        let feature: Feature | null = null;
 
-      // Validate duration
-      if (seconds <= 0) {
-        // Only error if there's other content suggesting it should be a valid interval
-        if (
-          task ||
-          featureTypeName ||
-          featureArgsList.some((a) => a !== "") ||
-          !intervalSettings.isDefault()
-        ) {
-          this.errorDisplay.showMessage(
-            `Error in interval ${index + 1} ('${
-              task || "Untitled"
-            }'): Duration must be greater than 0 seconds.`
-          );
-          hasError = true;
-        } else {
-          // Skip completely empty rows with zero duration silently
-          console.log(
-            `Skipping interval row ${
-              index + 1
-            } due to zero duration and no other content.`
-          );
-        }
-        return; // Skip this row
-      }
+        try {
+          // 1. Parse Duration
+          durationSeconds = parseDurationString(intervalData.duration);
+          if (durationSeconds < 0) throw new Error("Duration cannot be negative.");
+          totalDurationSeconds += durationSeconds;
+          if (totalDurationSeconds > MAX_TOTAL_DURATION_SECONDS) {
+            throw new Error(`Total schedule duration exceeds maximum limit (${MAX_TOTAL_DURATION_SECONDS / 3600} hours).`);
+          }
 
-      const effectiveTaskName = task || `Interval ${index + 1}`;
-      let feature: Feature | null = null;
+          // 2. Instantiate Interval Settings
+          const intervalSettings = GuitarIntervalSettings.fromJSON(intervalData.intervalSettings);
 
-      // Create feature if specified
-      if (featureTypeName) {
-        // Assuming Guitar category for now, might need dynamic category lookup later
-        const descriptor = getFeatureTypeDescriptor(
-          FeatureCategoryName.Guitar,
-          featureTypeName
-        );
-        if (descriptor) {
-          try {
-            // Pass the specific BPM override from this interval's settings
+          // 3. Create Feature if specified
+          if (intervalData.featureTypeName) {
+            console.log(`[ScheduleBuilder] Attempting to find descriptor for: '${intervalData.featureTypeName}'`); // Log lookup attempt
+            const descriptor = getFeatureTypeDescriptor(
+              FeatureCategoryName.Guitar, // Assuming Guitar category
+              intervalData.featureTypeName
+            );
+            if (!descriptor) {
+              // Log error if descriptor not found
+              console.error(`[ScheduleBuilder] Unknown feature type descriptor: "${intervalData.featureTypeName}"`);
+              throw new Error(`Unknown feature type: "${intervalData.featureTypeName}"`);
+            }
+            console.log(`[ScheduleBuilder] Found descriptor for '${descriptor.typeName}'. Attempting createFeature...`); // Log success
+            // Call createFeature with maxCanvasHeight
             feature = descriptor.createFeature(
-              featureArgsList,
+              intervalData.featureArgsList,
               audioController,
               settings,
-              intervalSettings.metronomeBpm // Pass BPM override
+              intervalSettings.metronomeBpm,
+              maxCanvasHeight // Pass the height constraint
             );
-          } catch (e: any) {
-            this.errorDisplay.showMessage(
-              `Error creating feature '${featureTypeName}' for interval ${
-                index + 1
-              }: ${e.message}`
-            );
-            hasError = true;
-            return; // Stop processing this row
+             console.log(`[ScheduleBuilder] Successfully created feature instance for '${descriptor.typeName}'.`); // Log creation success
+          } else {
+            console.log(`[ScheduleBuilder] No feature specified for interval ${index + 1}.`);
           }
-        } else {
-          this.errorDisplay.showMessage(
-            `Error in interval ${
-              index + 1
-            }: Unknown feature type '${featureTypeName}'.`
+
+          // 4. Create Interval and add to Schedule
+          const interval = new Interval(
+            durationSeconds,
+            settings.warmupPeriod,
+            intervalData.task || intervalData.featureTypeName || "Interval",
+            feature // Add the created feature (or null)
           );
-          hasError = true;
-          return; // Stop processing this row
+          schedule.addInterval(interval);
+          console.log(`[ScheduleBuilder] Added interval ${index + 1} to schedule.`);
+
+        } catch (error: any) {
+          // Log detailed error during interval processing
+          const errorMessage = `[ScheduleBuilder] Error processing interval ${index + 1} (${intervalData.task || intervalData.featureTypeName || intervalData.duration}): ${error.message}`;
+          console.error(errorMessage, error);
+          this.errorDisplay.showMessage(errorMessage);
+          hasErrors = true;
         }
+      } else if (rowData.rowType === "group") {
+        console.log(`[ScheduleBuilder] Skipping group row ${index + 1}: '${(rowData as GroupDataJSON).name}'`);
       }
+    });
 
-      // Add interval to schedule if no errors occurred for this row
-      if (!hasError) {
-        schedule.addInterval(
-          new Interval(seconds, introTime, effectiveTaskName, feature)
-        );
-      }
-    }); // End forEach intervalRow
-
-    // Final checks after processing all rows
-    if (hasError) {
-      console.error("Errors found while building schedule. Returning null.");
+    if (hasErrors) {
+      console.error("[ScheduleBuilder] Schedule building failed due to errors.");
       return null;
     }
 
-    if (schedule.intervals.length === 0 && intervalRows.length > 0) {
-      // Warn if UI had rows but none were valid intervals
-      this.errorDisplay.showMessage(
-        `No valid intervals found. Check durations or add content.`,
-        "warning"
-      );
-    } else if (schedule.intervals.length === 0) {
-      // Log if the UI was genuinely empty
-      console.warn("No intervals defined. Schedule will be empty.");
-    }
-
-    console.log("Schedule built successfully:", schedule);
+    console.log(`[ScheduleBuilder] Schedule built successfully with ${schedule.intervals.length} intervals.`);
     return schedule;
-  }
-
-  // Utility to convert time string to seconds
-  private _getTotalSeconds(input: string): number {
-    if (!input) return 0;
-    const parts = input.split(":");
-    let seconds = 0;
-    let multiplier = 1;
-    for (let i = parts.length - 1; i >= 0; i--) {
-      const partValue = Number(parts[i]);
-      if (!isNaN(partValue) && partValue >= 0) {
-        seconds += partValue * multiplier;
-      } else {
-        // Treat invalid format as 0 seconds
-        return 0;
-      }
-      multiplier *= 60;
-    }
-    return seconds;
   }
 }

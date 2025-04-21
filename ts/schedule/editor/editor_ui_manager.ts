@@ -1,3 +1,5 @@
+// ts/schedule/editor/editor_ui_manager.ts
+
 export class EditorUIManager {
   public containerEl: HTMLElement;
   public textEditorWrapperEl!: HTMLElement;
@@ -6,6 +8,7 @@ export class EditorUIManager {
   public configEntriesContainerEl!: HTMLElement;
   public editorControlsContainerEl!: HTMLElement;
   public modeToggleEl!: HTMLButtonElement;
+  public newScheduleButtonEl!: HTMLButtonElement; // <-- Add property for the new button
   public addConfigEntryButtonEl!: HTMLButtonElement;
   public addGroupButtonEl!: HTMLButtonElement;
   public loadSaveButtonEl!: HTMLButtonElement; // Found by ID in Main.ts
@@ -24,6 +27,7 @@ export class EditorUIManager {
     this.containerEl.innerHTML = ""; // Clear container
 
     // --- Text Editor ---
+    // ... (text editor setup remains the same) ...
     this.textEditorWrapperEl = document.createElement("div");
     this.textEditorWrapperEl.id = "text-editor-wrapper";
     this.textEditorWrapperEl.style.padding = "10px";
@@ -40,13 +44,13 @@ export class EditorUIManager {
     this.containerEl.appendChild(this.textEditorWrapperEl);
 
     // --- Config Editor ---
+    // ... (config editor setup remains the same) ...
     this.configEditorWrapperEl = document.createElement("div");
     this.configEditorWrapperEl.id = "config-editor-wrapper";
     this.containerEl.appendChild(this.configEditorWrapperEl);
 
     this.configEntriesContainerEl = document.createElement("div");
     this.configEntriesContainerEl.id = "config-entries-container";
-    // Make focusable for keyboard shortcuts
     this.configEntriesContainerEl.setAttribute("tabindex", "-1");
     this.configEntriesContainerEl.style.outline = "none";
     this.configEditorWrapperEl.appendChild(this.configEntriesContainerEl);
@@ -55,16 +59,24 @@ export class EditorUIManager {
     this.editorControlsContainerEl = document.createElement("div");
     this.editorControlsContainerEl.id = "editor-controls";
     this.editorControlsContainerEl.style.display = "flex";
+    this.editorControlsContainerEl.style.flexWrap = "wrap"; // Allow buttons to wrap on smaller screens
     this.editorControlsContainerEl.style.gap = "10px";
     this.editorControlsContainerEl.style.marginTop = "10px";
     this.containerEl.appendChild(this.editorControlsContainerEl);
 
-    // Buttons
+    // --- Create Buttons ---
     this.modeToggleEl = this._createButton(
       "mode-toggle",
-      "Switch to Text Editor",
+      "Switch Mode", // Text updated dynamically later
       ["is-outlined"],
-      "Switch Mode"
+      "Switch between Config and Text Editor"
+    );
+    // *** Create the New Schedule button ***
+    this.newScheduleButtonEl = this._createButton(
+      "new-schedule",
+      "<span>New</span>",
+      ["is-outlined", "is-danger"], // Use danger color for reset action
+      "Clear editor and start a new schedule"
     );
     this.addConfigEntryButtonEl = this._createButton(
       "add-config-entry",
@@ -101,21 +113,26 @@ export class EditorUIManager {
       "Set Schedule & Reset Timer",
       ["is-primary"]
     );
-    this.setScheduleButtonEl.style.marginLeft = "auto";
+    this.setScheduleButtonEl.style.marginLeft = "auto"; // Pushes it to the right
 
+    // --- Append Buttons in Order ---
     this.editorControlsContainerEl.append(
       this.modeToggleEl,
+      this.newScheduleButtonEl, // <-- Add new button here
       this.addConfigEntryButtonEl,
       this.addGroupButtonEl,
       this.loadSaveButtonEl,
       this.copyButtonEl,
       this.pasteButtonEl,
+      // Spacer div (optional, if marginLeft on Set button isn't enough)
+      // this._createSpacer(),
       this.setScheduleButtonEl
     );
 
-    this.updateCopyPasteButtonState(false, false);
+    this.updateCopyPasteButtonState(false, false); // Initialize button states
   }
 
+  // _createButton method remains the same
   private _createButton(
     id: string,
     innerHTML: string,
@@ -130,12 +147,17 @@ export class EditorUIManager {
     return button;
   }
 
+  // setModeUI method remains the same
   public setModeUI(isTextMode: boolean): void {
     this.textEditorWrapperEl.style.display = isTextMode ? "block" : "none";
     this.configEditorWrapperEl.style.display = isTextMode ? "none" : "block";
     this.modeToggleEl.textContent = isTextMode
       ? "Switch to Config Editor"
       : "Switch to Text Editor";
+    // Also toggle visibility of config-only buttons
+    this.newScheduleButtonEl.style.display = isTextMode
+      ? "none"
+      : "inline-block";
     this.addConfigEntryButtonEl.style.display = isTextMode
       ? "none"
       : "inline-block";
@@ -144,21 +166,23 @@ export class EditorUIManager {
     this.pasteButtonEl.style.display = isTextMode ? "none" : "inline-block";
   }
 
+  // updateCopyPasteButtonState remains the same
   public updateCopyPasteButtonState(canCopy: boolean, canPaste: boolean): void {
     this.copyButtonEl.toggleAttribute("disabled", !canCopy);
     this.pasteButtonEl.toggleAttribute("disabled", !canPaste);
   }
 
+  // populateConfigUI remains the same
   public populateConfigUI(
     buildRowCallback: (rowData: any) => HTMLElement | null,
     rowDataArray: any[]
   ): void {
+    // ... (implementation unchanged) ...
     while (this.configEntriesContainerEl.firstChild) {
       this.configEntriesContainerEl.removeChild(
         this.configEntriesContainerEl.firstChild
       );
     }
-
     rowDataArray.forEach((rowData) => {
       const rowElement = buildRowCallback(rowData);
       if (rowElement) {

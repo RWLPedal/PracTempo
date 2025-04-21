@@ -117,37 +117,34 @@ export class DisplayController {
    */
   renderFeature(
     feature: Feature,
-    handedness: "left" | "right" = "right"
+    handedness: "left" | "right" = "right" // Handedness is likely handled by config now
   ): void {
-    console.log(
-      `Rendering feature: ${feature.typeName} with handedness: ${handedness}`
-    );
+    // --- Log Entry ---
+    console.log(`[DisplayController.renderFeature] Attempting to render feature: ${feature?.typeName || 'UNKNOWN'}`);
+    // --- End Log ---
+
     this.clearFeature(); // Clear the main container first
 
-    // // --- Modification needed in Guitar Features ---
-    // // Guitar features need to accept handedness in their render method
-    // // or have it passed during construction if config allows.
-    // // For now, we'll assume render accepts it or it's handled internally via config.
-    // // This cast is a temporary workaround to illustrate the concept.
-    // if (feature.category === FeatureCategoryName.Guitar) {
-    //     // Ideally, the feature.render method signature would be updated,
-    //     // or handedness would be part of the FretboardConfig passed during feature creation.
-    //      (feature as any).render(this.diagramEl, handedness); // Pass handedness if render supports it
-    // } else {
-    //     feature.render(this.diagramEl); // Render non-guitar features normally
-    // }
+    if (!feature) {
+        console.error("[DisplayController.renderFeature] Cannot render null/undefined feature.");
+        return;
+    }
 
-    // Let's assume for now that handedness is handled via FretboardConfig during feature creation
-    // which needs adjustment in GuitarFeature static createFeature methods if not already done.
-    // If Fretboard was modified to use handedness from its config, this should work.
-    feature.render(this.diagramEl); // Feature renders itself
+    try {
+        // The feature's render method uses its internal fretboardConfig which includes handedness and scaling
+        feature.render(this.diagramEl); // Feature renders itself
+        console.log(`[DisplayController.renderFeature] Successfully called feature.render() for ${feature.typeName}`); // Log success
 
-    // Render associated views (like Metronome)
-    feature.views?.forEach((view) => {
-      console.log(`   Rendering view: ${view.constructor.name}`);
-      // Views render themselves into the container. MetronomeView adds its own div.
-      view.render(this.diagramEl);
-    });
+        // Render associated views (like Metronome)
+        feature.views?.forEach((view) => {
+        console.log(`[DisplayController.renderFeature]   Rendering view: ${view.constructor.name}`);
+        view.render(this.diagramEl);
+        });
+    } catch (error) {
+        console.error(`[DisplayController.renderFeature] Error during rendering feature ${feature.typeName}:`, error);
+        // Optionally display an error message in the UI
+        this.diagramEl.innerHTML = `<p style="color: red; padding: 10px;">Error rendering feature: ${feature.typeName}</p>`;
+    }
   }
 
   clearFeature(): void {

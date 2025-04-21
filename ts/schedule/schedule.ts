@@ -60,7 +60,12 @@ export class Schedule {
   onTimerUpdate(time: number): void {
     this.display.setTime(time);
     this.setTotalTime();
-    this.accumulatedSeconds++;
+    // Only increment accumulated seconds if the timer is actually running
+    // This prevents accumulation during pauses or skips.
+    // We might need a more robust way if skipping should contribute time.
+    if (this.isRunning()) {
+        this.accumulatedSeconds++;
+    }
   }
 
   onIntroEnd(): void {
@@ -180,6 +185,58 @@ export class Schedule {
     this.display.setStatus(Status.Pause);
     interval.pause();
   }
+
+  // Skip the current interval
+  skip(): void {
+    console.log("Attempting to skip interval", this.currentIntervalIndex);
+    if (this.isFinished()) {
+        console.warn("Cannot skip: Schedule is already finished.");
+        return;
+    }
+
+    const currentInterval = this.getCurrentInterval();
+    if (!currentInterval) {
+        console.error("Cannot skip: Failed to get current interval.");
+        return; // Should not happen if not finished, but safety check
+    }
+
+    // Stop the timer and feature/views of the current interval
+    currentInterval.pause(); // Ensure timer is stopped
+    currentInterval.stopFeatureAndViews();
+    currentInterval.destroyFeatureAndViews();
+
+    // Advance to the next interval
+    this.currentIntervalIndex += 1;
+
+    // Play sound and flash overlay like interval end
+    this.audio.playIntervalEnd();
+    this.display.flashOverlay();
+
+    // Check if the schedule finished after skipping
+    if (this.isFinished()) {
+        console.log("Schedule finished after skipping.");
+        this.setDisplayFinished();
+        // Update accumulated time here? Or leave as is?
+        // For simplicity, skip doesn't add the remaining time to accumulated.
+        this.setTotalTime();
+        this.updateUpcoming();
+    } else {
+        // Prepare and start the next interval
+        const nextInterval = this.getCurrentInterval();
+        console.log("Skipped to interval", this.currentIntervalIndex);
+        this.setDisplayTask(nextInterval); // Set display for the new interval
+        this.updateUpcoming();
+
+        // Start the next interval and update UI controls
+        nextInterval.start();
+        this.display.setPause(); // Set button to PAUSE state
+        this.display.setStatus(Status.Play); // Set status to Play
+
+        // Set timer display to the *start* of the new interval
+        this.display.setTime(nextInterval.getCurrentTimeRemaining());
+        this.setTotalTime(); // Update total time display
+    }
+}
 }
 
 // An interval in a schedule.
@@ -243,6 +300,7 @@ export class Interval {
     this.timer.countdown();
     // Start feature and its views
     console.log(`   Starting feature and views for "${this.task}"...`);
+    this.feature?.prepare?.(); // Prepare feature before starting
     this.feature?.start?.();
   }
 
@@ -257,6 +315,7 @@ export class Interval {
 
   stopFeatureAndViews(): void {
     console.log(`Interval "${this.task}" explicitly stopping feature/views.`);
+    this.timer.pause(); // Ensure timer is paused when stopping features
     this.feature?.stop?.();
   }
   destroyFeatureAndViews(): void {
@@ -297,6 +356,8 @@ class IntervalTimer {
     if (this.countdownTimerId !== null) return; // Already running
 
     const tick = () => {
+        if (this.countdownTimerId === null) return; // Stop if paused externally
+
       if (this.introTimeRemaining > 0) {
         this.introTimeRemaining -= 1;
         this.updateCallback?.(this.introTimeRemaining);
@@ -324,7 +385,7 @@ class IntervalTimer {
     // Start the first tick
     if (this.introTimeRemaining > 0 || this.timeRemaining > 0) {
       console.log("IntervalTimer: Starting countdown...");
-      tick();
+      this.countdownTimerId = window.setTimeout(tick, 1000); // Initial start with timeout
     } else {
       console.log("IntervalTimer: Zero duration, calling finished immediately.");
       this.finishedCallback?.(); // Call immediately if zero duration
