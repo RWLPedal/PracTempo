@@ -88,7 +88,6 @@ export class NotesFeature extends GuitarFeature {
     maxCanvasHeight?: number
   ): Feature {
     let rootNoteName: string | null = null;
-    // <<< FIX: Declare as ReadonlyArray to match potential assignment from config >>>
     let featureSpecificConfig: ReadonlyArray<string> = [];
 
     if (config.length > 0 && config[0]) {

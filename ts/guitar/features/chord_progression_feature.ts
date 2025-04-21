@@ -18,7 +18,6 @@ import {
 } from "../guitar_utils";
 import { getChordInKey } from "../progressions";
 import { ChordDiagramView } from "../views/chord_diagram_view";
-import { View } from "../../view";
 
 /** Displays chord diagrams for a Roman numeral progression in a given key. */
 export class ChordProgressionFeature extends GuitarFeature {

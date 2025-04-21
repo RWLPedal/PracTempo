@@ -1,3 +1,5 @@
+/* ts/guitar/features/scale_feature.ts */
+
 import {
   Feature,
   FeatureCategoryName,
@@ -109,8 +111,7 @@ export class ScaleFeature extends GuitarFeature {
     }
     const scaleNameOrAlias = config[0];
     const rootNoteName = config[1];
-    const featureSpecificConfig = [scaleNameOrAlias, rootNoteName]; // Args relevant to this feature
-    // Assume remaining args in config belong to Guitar Settings handled by base class
+    const featureSpecificConfig = [scaleNameOrAlias, rootNoteName];
 
     const scaleKey = scale_names[scaleNameOrAlias] ?? scaleNameOrAlias;
     const scale = scales[scaleKey];

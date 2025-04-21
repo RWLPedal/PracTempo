@@ -7,7 +7,6 @@ import { AppSettings } from "../../settings";
 import {
   Feature,
   FeatureCategoryName,
-  FeatureTypeDescriptor,
 } from "../../feature"; // Import FeatureTypeDescriptor
 import { getFeatureTypeDescriptor } from "../../feature_registry";
 import { parseDurationString } from "../../guitar/guitar_utils";
@@ -15,7 +14,6 @@ import { parseDurationString } from "../../guitar/guitar_utils";
 import { GuitarIntervalSettings } from "../../guitar/guitar_interval_settings";
 import { ErrorDisplay } from "./error_display";
 import {
-  ScheduleRowJSONData,
   GroupDataJSON,
   IntervalDataJSON,
   IntervalSettings,

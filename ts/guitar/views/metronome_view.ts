@@ -1,3 +1,4 @@
+// ts/guitar/views/metronome_view.ts
 import { View } from "../../view";
 import { AudioController } from "../../audio_controller";
 
@@ -105,7 +106,7 @@ export class MetronomeView implements View {
 
   render(container: HTMLElement): void {
     this.container = container;
-    this.cleanupVisuals();
+    this.cleanupVisuals(); // Remove any previous visuals
 
     this.viewWrapper = document.createElement("div");
     this.viewWrapper.classList.add("metronome-view");
@@ -114,6 +115,7 @@ export class MetronomeView implements View {
     this.visualizerContainer = document.createElement("div");
     this.visualizerContainer.classList.add("metronome-visualizer");
 
+    // --- Beat Visualizer ---
     this.beatsContainer = document.createElement("div");
     this.beatsContainer.classList.add("metronome-beats-container");
 
@@ -311,6 +313,7 @@ export class MetronomeView implements View {
     console.log(`Beat ${index} state set to: ${BeatState[nextState]}`);
   }
 
+  /** The metronome tick logic */
   private tick(): void {
     this.resetCurrentBeatStyle();
     this.currentTickIndex =
@@ -345,6 +348,7 @@ export class MetronomeView implements View {
     });
   }
 
+  /** Applies the appropriate style to a single beat element */
   private applyBeatStyle(element: HTMLElement, index: number): void {
     element.classList.remove(
       "beat-normal",
@@ -369,6 +373,7 @@ export class MetronomeView implements View {
     }
   }
 
+  /** Removes the metronome UI elements from the DOM */
   private cleanupVisuals(): void {
     if (this.viewWrapper && this.viewWrapper.parentNode) {
       this.viewWrapper.parentNode.removeChild(this.viewWrapper);
@@ -384,6 +389,7 @@ export class MetronomeView implements View {
     this.muteButton = null;
   }
 
+  /** Updates the BPM and restarts the interval if running */
   setBpm(newBpm: number): void {
     if (newBpm >= 20 && newBpm <= 240) {
       const changed = this.bpm !== newBpm;

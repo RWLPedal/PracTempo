@@ -1,3 +1,5 @@
+/* ts/guitar/features/triad_feature.ts */
+
 import {
   Feature,
   FeatureCategoryName,
@@ -24,7 +26,6 @@ import {
   FretboardView,
 } from "../views/fretboard_view";
 
-// String groups and names remain the same...
 const STRING_GROUPS: [number, number, number][] = [
   [0, 1, 2],
   [1, 2, 3],
@@ -44,14 +45,12 @@ export class TriadFeature extends GuitarFeature {
   static readonly typeName = "Triad Shapes";
   static readonly displayName = "Triad Shapes (3-String Sets)";
   static readonly description =
-    "Displays Major/Minor triad shapes across all positions for each 3-string set (EAD, ADG, DGB, GBE).";
+    "Displays Major/Minor/Dim/Aug triad shapes across all positions for each 3-string set (EAD, ADG, DGB, GBE).";;
 
   readonly typeName = TriadFeature.typeName;
   private readonly rootNoteName: string;
   private readonly quality: TriadQuality;
   private readonly mainHeaderText: string;
-  // Keep refs to views if needed for dynamic updates, otherwise base class handles them
-  // private fretboardViews: FretboardView[] = [];
 
   constructor(
     config: ReadonlyArray<string>, // Specific args: [RootNote, Quality]

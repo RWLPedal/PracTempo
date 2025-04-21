@@ -1,4 +1,3 @@
-/* ts/guitar/guitar_base.ts */
 import {
   Feature,
   FeatureCategoryName,
@@ -10,10 +9,11 @@ import {
   FretboardConfig,
   AVAILABLE_TUNINGS,
   STANDARD_TUNING,
+  TuningName, // Import TuningName if needed for casting/validation, though FretboardConfig handles it now
 } from "./fretboard";
 import { AppSettings, getCategorySettings } from "../settings";
 import { GuitarSettings, GUITAR_SETTINGS_KEY } from "./guitar_settings";
-import { GuitarIntervalSettings } from "./guitar_interval_settings"; // Import interval settings class
+import { GuitarIntervalSettings } from "./guitar_interval_settings";
 import { AudioController } from "../audio_controller";
 import {
   clearAllChildren,
@@ -29,7 +29,6 @@ import {
 export abstract class GuitarFeature implements Feature {
   readonly category = FeatureCategoryName.Guitar;
   abstract readonly typeName: string;
-
   readonly config: ReadonlyArray<string>; // Config args specific to the subclass feature type
   protected settings: AppSettings;
   protected audioController?: AudioController;
@@ -90,22 +89,20 @@ export abstract class GuitarFeature implements Feature {
       : "Standard";
     const tuning = AVAILABLE_TUNINGS[tuningName];
 
-    // Create FretboardConfig (can still be overridden by subclasses if needed)
     this.fretboardConfig = new FretboardConfig(
       tuning,
       guitarSettings.handedness,
       guitarSettings.colorScheme,
-      undefined,
-      undefined,
-      undefined,
-      this.maxCanvasHeight
+      undefined, // markerDots (use default)
+      undefined, // sideNumbers (use default)
+      undefined, // stringWidths (use default)
+      this.maxCanvasHeight // Pass the max height constraint
     );
 
     // --- Metronome Handling ---
     // Extract BPM from the interval settings object
-    this.metronomeBpm = intervalSettings?.metronomeBpm ?? 0; // <<< CHANGED
+    this.metronomeBpm = intervalSettings?.metronomeBpm ?? 0;
 
-    // Create MetronomeView if needed
     if (this.metronomeBpm > 0) {
       if (!this.audioController) {
         console.warn(
@@ -183,6 +180,9 @@ export abstract class GuitarFeature implements Feature {
         `Could not get 2D context for canvas in feature ${this.typeName}.`
       );
     }
+    ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
+    ctx.resetTransform();
+    ctx.translate(0.5, 0.5);
     return { canvas: canvasEl, ctx: ctx };
   }
 }

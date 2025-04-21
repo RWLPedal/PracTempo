@@ -10,8 +10,7 @@ import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
 import { ChordDiagramView } from "../views/chord_diagram_view";
 import { addHeader, clearAllChildren, MUSIC_NOTES } from "../guitar_utils";
-import { View } from "../../view";
-import { GuitarIntervalSettings } from "../guitar_interval_settings"; // Import interval settings type
+import { GuitarIntervalSettings } from "../guitar_interval_settings";
 
 /** A feature for displaying mulitple chord diagrams and a metronome. */
 export class ChordFeature extends GuitarFeature {
@@ -33,7 +32,7 @@ export class ChordFeature extends GuitarFeature {
     super(
       config,
       settings,
-      intervalSettings, // <<< CHANGED
+      intervalSettings,
       audioController,
       maxCanvasHeight
     );
@@ -63,7 +62,6 @@ export class ChordFeature extends GuitarFeature {
     // Combine specific args with the base Guitar Settings arg
     return {
       description: `Config: ${this.typeName},ChordName1[,ChordName2,...][,GuitarSettings]`,
-      // <<< CHANGED: Merge specific args with base arg >>>
       args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
@@ -72,7 +70,7 @@ export class ChordFeature extends GuitarFeature {
     config: ReadonlyArray<string>, // Raw config list from editor row
     audioController: AudioController,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings, // <<< CHANGED: Receive full object
+    intervalSettings: GuitarIntervalSettings,
     maxCanvasHeight?: number
   ): Feature {
     // Separate feature-specific args from potential nested settings args
@@ -87,7 +85,6 @@ export class ChordFeature extends GuitarFeature {
         `Invalid config for ${this.typeName}. Expected at least one ChordName.`
       );
     }
-
     const chords: Chord[] = [];
     chordKeys.forEach((chordKey) => {
       const chord = chord_library[chordKey];
@@ -101,12 +98,11 @@ export class ChordFeature extends GuitarFeature {
       throw new Error(`No valid chords found in config: ${config.join(",")}`);
     }
 
-    // Pass the specific config args (chordKeys) and the intervalSettings object
     return new ChordFeature(
       chordKeys, // Pass only the chord keys as the specific config
       chords,
       settings,
-      intervalSettings, // <<< CHANGED
+      intervalSettings,
       audioController,
       maxCanvasHeight
     );
