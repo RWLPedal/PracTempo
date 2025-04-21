@@ -1,5 +1,7 @@
+/* ts/guitar/fretboard.ts */
+
 import { NOTE_RADIUS_PX } from "./guitar_utils";
-import { FretboardColorScheme, getColor as getColorFromScheme } from "./colors"; // Import FretboardColorScheme
+import { FretboardColorScheme, getColor as getColorFromScheme } from "./colors";
 
 export class Tuning {
   constructor(public readonly tuning: Array<number>) {}
@@ -16,18 +18,15 @@ export const AVAILABLE_TUNINGS = {
 };
 export type TuningName = keyof typeof AVAILABLE_TUNINGS;
 
-// Define a base height for scaling calculations
-const DEFAULT_FRETBOARD_DRAW_HEIGHT = 650; // Target height for scale = 1.0
-const ESTIMATED_FRETS_FOR_SCALING = 18; // Use a larger number of frets for estimation
+const DEFAULT_FRETBOARD_DRAW_HEIGHT = 650;
+const ESTIMATED_FRETS_FOR_SCALING = 18;
 
 export class FretboardConfig {
-  // Store base dimensions for scaling
   public readonly baseStringSpacingPx = 32;
   public readonly baseFretLengthPx = 39;
   public readonly baseMarkerDotRadiusPx = 7;
-  public readonly baseNoteRadiusPx = NOTE_RADIUS_PX; // Assuming NOTE_RADIUS_PX is the base
+  public readonly baseNoteRadiusPx = NOTE_RADIUS_PX;
 
-  // Scaled dimensions
   public readonly stringSpacingPx: number;
   public readonly fretLengthPx: number;
   public readonly markerDotRadiusPx: number;
@@ -42,25 +41,51 @@ export class FretboardConfig {
       0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 2, 0, 0, 1, 0, 1, 0, 1, 0, 1,
     ],
     public readonly sideNumbers = [
-      "", "", "", "III", "", "V", "", "VII", "", "IX", "", "", "XII", "", "",
-      "XV", "", "XVII", "", "XIX", "", "XXI",
+      "",
+      "",
+      "",
+      "III",
+      "",
+      "V",
+      "",
+      "VII",
+      "",
+      "IX",
+      "",
+      "",
+      "XII",
+      "",
+      "",
+      "XV",
+      "",
+      "XVII",
+      "",
+      "XIX",
+      "",
+      "XXI",
     ],
     public readonly stringWidths = [3, 3, 2, 2, 1, 1],
-    maxCanvasHeight?: number // Add optional max height
+    maxCanvasHeight?: number, // Max height constraint
+    globalScaleMultiplier: number = 1.0 // <<<<< ADDED: Optional overall scale multiplier
   ) {
-    // Calculate scale factor
     const actualMaxHeight = maxCanvasHeight ?? DEFAULT_FRETBOARD_DRAW_HEIGHT;
-    // Estimate required height based on ESTIMATED_FRETS_FOR_SCALING and some padding
-    const estimatedBaseHeight = this.baseFretLengthPx * ESTIMATED_FRETS_FOR_SCALING + 80; // Use the new constant
-    this.scaleFactor = Math.min(1.0, actualMaxHeight / estimatedBaseHeight); // Don't scale up, only down
+    const estimatedBaseHeight =
+      this.baseFretLengthPx * ESTIMATED_FRETS_FOR_SCALING + 80;
+    // Apply the globalScaleMultiplier here
+    this.scaleFactor =
+      Math.min(1.0, actualMaxHeight / estimatedBaseHeight) *
+      globalScaleMultiplier; // <<< MODIFIED
 
-    // Apply scale factor to base dimensions
     this.stringSpacingPx = this.baseStringSpacingPx * this.scaleFactor;
     this.fretLengthPx = this.baseFretLengthPx * this.scaleFactor;
     this.markerDotRadiusPx = this.baseMarkerDotRadiusPx * this.scaleFactor;
     this.noteRadiusPx = this.baseNoteRadiusPx * this.scaleFactor;
 
-    console.log(`[FretboardConfig] MaxHeight: ${maxCanvasHeight}, ActualMax: ${actualMaxHeight}, EstBaseHeight: ${estimatedBaseHeight.toFixed(2)}, ScaleFactor: ${this.scaleFactor.toFixed(3)}`);
+    console.log(
+      `[FretboardConfig] Multiplier: ${globalScaleMultiplier.toFixed(
+        2
+      )}, Final ScaleFactor: ${this.scaleFactor.toFixed(3)}`
+    );
   }
 
   getStringWidths(): Array<number> {
@@ -70,43 +95,63 @@ export class FretboardConfig {
   }
 }
 
-
+// --- Fretboard Class (logic remains the same) ---
 export class Fretboard {
+  // ... (constructor remains the same) ...
   constructor(
     public readonly config: FretboardConfig,
-    public readonly leftPx = 45,
-    public readonly topPx = 45,
+    public readonly leftPx = 45, // Base X position for drawing start
+    public readonly topPx = 45, // Base Y position for drawing start
     public readonly fretCount: number
   ) {}
 
+  // ... (getStringIndex, getStringX remain the same) ...
   private getStringIndex(visualIndex: number): number {
     return this.config.handedness === "left" ? 5 - visualIndex : visualIndex;
   }
 
   private getStringX(visualIndex: number): number {
+    // Uses scaled spacing from config
     return this.leftPx + visualIndex * this.config.stringSpacingPx;
   }
 
+  /** Calculates the X, Y coordinates for the center of a note circle. */
   getNoteCoordinates(
     stringIndex: number,
     fret: number
   ): { x: number; y: number } {
-    const visualStringIndex = (this.config.handedness === 'left') ? 5 - stringIndex : stringIndex;
+    const config = this.config; // Use scaled config values
+    const scaleFactor = config.scaleFactor;
+    const scaledNoteRadius = config.noteRadiusPx;
+    // Y position of the nut line (fret 0) relative to the Fretboard's topPx
+    const openNoteClearance = scaledNoteRadius * 1.5 + 5 * scaleFactor;
+    const nutLineY = this.topPx + openNoteClearance;
+
+    const visualStringIndex =
+      config.handedness === "left" ? 5 - stringIndex : stringIndex;
     const x = this.getStringX(visualStringIndex);
-    const y =
-      fret > 0
-        ? this.topPx + (fret - 0.5) * this.config.fretLengthPx // Use scaled fretLengthPx
-        : this.topPx - this.config.noteRadiusPx * 1.5; // Use scaled noteRadiusPx
+
+    let y: number;
+    if (fret > 0) {
+      // Fretted notes: Position relative to the nut line
+      y = nutLineY + (fret - 0.5) * config.fretLengthPx; // Use scaled fret length
+    } else {
+      // Open notes (fret === 0): Position center so bottom edge is above nutLineY
+      const textBuffer = 5 * scaleFactor; // Extra buffer
+      y = nutLineY - scaledNoteRadius - textBuffer;
+      y = Math.max(this.topPx + scaledNoteRadius, y); // Ensure it stays within top bound
+    }
     return { x, y };
   }
 
+  // ... (render method remains the same) ...
   render(ctx: CanvasRenderingContext2D): void {
     const config = this.config; // Alias
     const scaleFactor = config.scaleFactor;
     const scaledNoteRadius = config.noteRadiusPx;
 
     // Clearance needed above the nut line for open notes/muted markers
-    const openNoteClearance = scaledNoteRadius * 1.5 + (5 * scaleFactor);
+    const openNoteClearance = scaledNoteRadius * 1.5 + 5 * scaleFactor;
     // The Y coordinate where the nut line (fret 0) should be drawn
     const nutLineY = this.topPx + openNoteClearance;
 
@@ -115,18 +160,16 @@ export class Fretboard {
     ctx.fillStyle = "#aaa"; // TODO: Theming
 
     // Strings - Start drawing from the calculated nutLineY
-    // ... (string drawing loop remains the same) ...
     for (var visualIndex = 0; visualIndex < 6; visualIndex++) {
       const xPos = this.getStringX(visualIndex);
       ctx.beginPath();
-      ctx.lineWidth = stringWidths[visualIndex];
+      ctx.lineWidth = stringWidths[visualIndex] * scaleFactor; // Scale line width
       ctx.moveTo(xPos, nutLineY);
       const stringBottomY = nutLineY + this.fretCount * config.fretLengthPx;
       ctx.lineTo(xPos, stringBottomY);
       ctx.strokeStyle = "#aaa";
       ctx.stroke();
     }
-
 
     // Frets & Markers - Start drawing from the calculated nutLineY
     ctx.font = textHeight + "px Sans-serif";
@@ -137,39 +180,32 @@ export class Fretboard {
     const boardCenterX = this.leftPx + totalBoardWidth / 2;
     const defaultFretLineWidth = 1 * scaleFactor;
     const boldFretLineWidth = 2 * scaleFactor;
-
-    // Define the horizontal offset for side numbers
-    const sideNumberOffsetX = 18 * scaleFactor; // Increased from 10 * scaleFactor
+    const sideNumberOffsetX = 18 * scaleFactor;
 
     for (var i = 0; i <= this.fretCount; i++) {
       const yPos = nutLineY + i * config.fretLengthPx;
       const hasSideNumber = !!config.sideNumbers[i];
 
-      // Set Line Width based on fret
-      if (i === 0) ctx.lineWidth = boldFretLineWidth;
+      if (i === 0) ctx.lineWidth = boldFretLineWidth * 1.5; // Thicker nut
       else if (hasSideNumber) ctx.lineWidth = boldFretLineWidth;
       else ctx.lineWidth = defaultFretLineWidth;
 
-      // Draw Fret Line
       ctx.beginPath();
       ctx.moveTo(this.leftPx, yPos);
       ctx.lineTo(this.leftPx + totalBoardWidth, yPos);
       ctx.stroke();
 
-      // Side Numbers
-      if (hasSideNumber) {
+      if (hasSideNumber && i > 0) {
+        // Don't draw side number for fret 0
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
-        // *** FIX: Use increased offset ***
         ctx.fillText(
           config.sideNumbers[i],
-          this.leftPx - sideNumberOffsetX, // Use the defined offset
+          this.leftPx - sideNumberOffsetX,
           nutLineY + (i - 0.5) * config.fretLengthPx
         );
       }
 
-      // Marker Dots
-      // ... (marker dot logic remains the same) ...
       const markerY = nutLineY + (i - 0.5) * config.fretLengthPx;
       const scaledMarkerRadius = config.markerDotRadiusPx;
       if (config.markerDots[i] === 1) {
@@ -187,67 +223,55 @@ export class Fretboard {
         ctx.fill();
       }
     }
-    // Reset context properties
-    ctx.textAlign = "left";
+    ctx.textAlign = "left"; // Reset default
     ctx.lineWidth = 1;
   }
 
-
+  // ... (renderFingering, drawMutedString, drawStar methods remain the same) ...
   /**
    * Renders a fingering dot/label on the fretboard.
-   * Uses the effective color scheme (override or config default).
    */
   renderFingering(
     ctx: CanvasRenderingContext2D,
-    fret: number,
+    fret: number, // The actual fret number (-1=muted, 0=open)
     stringIndex: number,
     noteName: string,
     intervalLabel: string,
-    label: string, // This is the text to display (usually noteName or finger number)
-    noteRadiusPx: number, // Base radius expected (will be scaled internally if needed)
-    fontSize: number,     // Base font size expected (will be scaled internally)
+    label: string,
+    noteRadiusPx: number, // Base scaled radius from config
+    fontSize: number, // Base scaled font size
     drawStar = false,
     strokeColor = "black",
     lineWidth = 1,
-    radiusOverride?: number,
+    radiusOverride?: number, // Specific radius (e.g., for open notes)
     colorSchemeOverride?: FretboardColorScheme
   ): void {
-    const visualStringIndex = (this.config.handedness === 'left') ? 5 - stringIndex : stringIndex;
-    const x = this.getStringX(visualStringIndex); // Already uses scaled spacing via config
-    const scaleFactor = this.config.scaleFactor;
-    const scaledRadius = (radiusOverride ?? this.config.noteRadiusPx); // Use scaled radius from config or override
+    const config = this.config;
+    const visualStringIndex =
+      config.handedness === "left" ? 5 - stringIndex : stringIndex;
+    const scaleFactor = config.scaleFactor;
+    const effectiveRadius = radiusOverride ?? noteRadiusPx; // Use override or base scaled radius
     const scaledLineWidth = lineWidth * scaleFactor;
-    const baseFontSize = fret === 0 && radiusOverride ? fontSize * 0.8 : fontSize; // Adjust base size for open override
-    const effectiveFontSize = baseFontSize * scaleFactor; // Scale font size
+    // Adjust font size slightly if it's an open note override using smaller radius
+    const effectiveFontSize =
+      fret === 0 && radiusOverride ? fontSize * 0.85 : fontSize;
 
-    // Y position of the nut line (fret 0)
-    const openNoteClearance = this.config.noteRadiusPx * 1.5 + (5 * scaleFactor); // Space reserved above nut
-    const nutLineY = this.topPx + openNoteClearance;
-
-    // --- ADJUSTED Y CALCULATION ---
-    let y: number;
-    if (fret > 0) {
-      // Fretted notes: Position relative to the nut line
-      y = nutLineY + (fret - 0.5) * this.config.fretLengthPx; // Use scaled fret length
-    } else {
-      // Open notes (fret === 0): Position center so bottom edge + text buffer is above nutLineY
-      const textBuffer = 5 * scaleFactor; // Extra buffer below the circle for the text label
-      y = nutLineY - scaledRadius - textBuffer; // Calculate center Y position
-      // Ensure y doesn't go negative if clearance is very small (edge case)
-      y = Math.max(scaledRadius, y); // Ensure center is at least radius distance from canvas top (0)
-    }
-    // --- END ADJUSTED Y CALCULATION ---
+    // Use getNoteCoordinates to find the center position
+    const { x, y } = this.getNoteCoordinates(stringIndex, fret);
 
     ctx.save();
-    const effectiveColorScheme = colorSchemeOverride ?? this.config.colorScheme;
-    const bgColor = getColorFromScheme(effectiveColorScheme, noteName, intervalLabel);
-    // Determine foreground color based on background brightness (simple version)
-     const r = parseInt(bgColor.slice(1, 3), 16);
-     const g = parseInt(bgColor.slice(3, 5), 16);
-     const b = parseInt(bgColor.slice(5, 7), 16);
-     const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-     const fgColor = brightness > 150 ? "#333" : "#eee"; // Dark text on light bg, light text on dark bg
+    const effectiveColorScheme = colorSchemeOverride ?? config.colorScheme;
+    const bgColor = getColorFromScheme(
+      effectiveColorScheme,
+      noteName,
+      intervalLabel
+    );
 
+    const r = parseInt(bgColor.slice(1, 3), 16);
+    const g = parseInt(bgColor.slice(3, 5), 16);
+    const b = parseInt(bgColor.slice(5, 7), 16);
+    const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+    const fgColor = brightness > 150 ? "#333" : "#eee";
 
     ctx.fillStyle = bgColor;
     ctx.strokeStyle = strokeColor;
@@ -255,48 +279,51 @@ export class Fretboard {
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
 
-    if (fret >= 0) { // Muted strings (fret === -1) are handled below
+    if (fret >= 0) {
+      // Draw dot for open or fretted
       ctx.beginPath();
-      ctx.arc(x, y, scaledRadius, 0, 2 * Math.PI); // Use calculated y and scaled radius
+      ctx.arc(x, y, effectiveRadius, 0, 2 * Math.PI);
 
-      // Fill/Stroke logic
-      const isDefaultOpenOutline = (fret === 0 && effectiveColorScheme === 'default');
-      if (!isDefaultOpenOutline && bgColor !== 'transparent') {
-           ctx.fill(); // Fill unless it's a default open string or transparent
-       }
-       if (bgColor !== 'transparent') {
-           ctx.stroke(); // Always stroke unless transparent
-       }
-
+      const isDefaultOpenOutline =
+        fret === 0 && effectiveColorScheme === "default";
+      if (!isDefaultOpenOutline && bgColor !== "transparent") {
+        ctx.fill();
+      }
+      if (bgColor !== "transparent") {
+        ctx.stroke();
+      }
 
       if (label !== "") {
-        ctx.fillStyle = fgColor; // Use calculated fgColor
+        ctx.fillStyle = fgColor;
         ctx.font = effectiveFontSize + "px Sans-serif";
-        // Adjust text Y position slightly for better centering within the circle
-        const textYOffset = effectiveFontSize * 0.1; // Small adjustment factor
+        const textYOffset = effectiveFontSize * 0.05; // Smaller adjustment
         ctx.fillText(label, x, y + textYOffset);
       }
       if (drawStar) {
-        ctx.fillStyle = fgColor; // Use calculated fgColor
-        this.drawStar(ctx, x, y, scaledRadius * 0.6, 5, 2); // Use scaled radius
+        ctx.fillStyle = fgColor;
+        this.drawStar(ctx, x, y, effectiveRadius * 0.6, 5, 2);
       }
-    } else { // Fret is -1 (muted) - Draw relative to nutLineY
-       // visualStringIndex calculation should be outside the fret check? No, it's correct here.
-       this.drawMutedString(ctx, visualStringIndex, this.config.noteRadiusPx, nutLineY); // Pass nutLineY
+    } else {
+      // Fret is -1 (muted)
+      this.drawMutedString(
+        ctx,
+        visualStringIndex,
+        config.noteRadiusPx,
+        this.topPx + config.noteRadiusPx * 1.5 + 5 * scaleFactor
+      ); // Pass calculated nutLineY
     }
     ctx.restore();
   }
 
-  // Update drawMutedString to accept nutLineY
   drawMutedString(
     ctx: CanvasRenderingContext2D,
     visualStringIndex: number,
     scaledRadiusPx: number, // Expect scaled radius
     nutLineY: number // Position relative to the nut line
   ): void {
-    const x = this.getStringX(visualStringIndex); // Already scaled
-    // Position above the nut line, similar to open notes visually
-    const y = nutLineY - scaledRadiusPx * 1.5;
+    const x = this.getStringX(visualStringIndex);
+    // Position above the nut line, using calculated nutLineY from getNoteCoordinates logic
+    const y = nutLineY - scaledRadiusPx * 1.5; // Similar vertical pos as open notes
     const size = scaledRadiusPx * 0.55; // Size based on scaled radius
 
     ctx.save();
@@ -308,39 +335,6 @@ export class Fretboard {
     ctx.moveTo(x + size, y - size);
     ctx.lineTo(x - size, y + size);
     ctx.stroke();
-    ctx.restore();
-  }
-
-  renderTextLabel(
-    ctx: CanvasRenderingContext2D,
-    fret: number,
-    stringIndex: number,
-    label: string,
-    fontSize: number,
-    fontWidth: number,
-    font: string,
-    bgColor = "white",
-    fgColor = "black"
-  ): void {
-    const visualStringIndex = (this.config.handedness === 'left') ? 5 - stringIndex : stringIndex;
-    const x = this.getStringX(visualStringIndex); // Already scaled
-    // Use scaled fretLengthPx for y position
-    const y = this.topPx + (fret - 0.5) * this.config.fretLengthPx;
-    ctx.save();
-    ctx.strokeStyle = bgColor;
-    // Scale font width and font size
-    const effectiveFontWidth = (fontWidth > 0 ? fontWidth : 3) * this.config.scaleFactor;
-    const effectiveFontSize = fontSize * this.config.scaleFactor;
-    ctx.lineWidth = effectiveFontWidth;
-    ctx.fillStyle = fgColor;
-    // Apply scaled font size to the font string (assuming format like "12px Sans-serif")
-    const fontParts = font.trim().split(' ');
-    const scaledFont = `${effectiveFontSize}px ${fontParts.slice(1).join(' ')}`;
-    ctx.font = scaledFont;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    ctx.strokeText(label, x, y);
-    ctx.fillText(label, x, y);
     ctx.restore();
   }
 
@@ -366,4 +360,4 @@ export class Fretboard {
     ctx.fill();
     ctx.restore();
   }
-}
+} // End Fretboard Class

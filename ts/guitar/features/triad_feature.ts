@@ -6,24 +6,20 @@ import {
   ConfigurationSchema,
 } from "../../feature";
 import { GuitarFeature } from "../guitar_base";
-// Fretboard logic class is used internally by FretboardView
-// import { Fretboard } from "../fretboard";
+import { AVAILABLE_TUNINGS, FretboardConfig, STANDARD_TUNING } from "../fretboard"; // Import FretboardConfig
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
 import {
   MUSIC_NOTES,
   getKeyIndex,
-  addHeader, // Keep for main header
-  clearAllChildren, // Keep for main container clear
+  addHeader,
+  clearAllChildren,
 } from "../guitar_utils";
 import {
   TriadQuality,
-  TriadInversion,
-  findSpecificTriadShapes,
-  TriadFingering, // Keep this type
-  TriadShapeNote, // Keep this type
+  // TriadInversion, // Not needed directly by feature anymore
+  getTriadNotesAndLinesForGroup,
 } from "../triads";
-// Import the FretboardView and its data interfaces
 import {
   FretboardView,
   NoteRenderData,
@@ -32,68 +28,124 @@ import {
 import { MetronomeView } from "../views/metronome_view";
 import { View } from "../../view";
 
-// Define distinct colors for connecting lines (can be moved to colors.ts later)
-const SHAPE_LINE_COLORS = [
-  "#3273dc",
-  "#ff3860",
-  "#48c774",
-  "#ffdd57",
-  "#b86bff",
-  "#7a7a7a",
+const STRING_GROUPS: [number, number, number][] = [
+  [0, 1, 2],
+  [1, 2, 3],
+  [2, 3, 4],
+  [3, 4, 5],
 ];
+const STRING_GROUP_NAMES: { [key: string]: string } = {
+  "0,1,2": "E-A-D",
+  "1,2,3": "A-D-G",
+  "2,3,4": "D-G-B",
+  "3,4,5": "G-B-E",
+};
 
-/** Displays common, movable triad shapes on the fretboard using FretboardView. */
+/** Displays triad shapes across four 3-string groups using FretboardView. */
 export class TriadFeature extends GuitarFeature {
   static readonly category = FeatureCategoryName.Guitar;
   static readonly typeName = "Triad Shapes";
-  static readonly displayName = "Triad Shapes";
+  static readonly displayName = "Triad Shapes (3-String Sets)";
   static readonly description =
-    "Displays common movable triad shapes (Major, Minor) for a given key and inversion(s).";
+    "Displays Major/Minor/Dim/Aug triad shapes across all positions for each 3-string set (EAD, ADG, DGB, GBE).";
 
   readonly typeName = TriadFeature.typeName;
   private readonly rootNoteName: string;
   private readonly quality: TriadQuality;
-  private readonly inversionSelection: TriadInversion | "All";
-  private readonly headerText: string; // Keep main header text
-  private fretboardViewInstance: FretboardView; // Hold the view instance
+  private readonly mainHeaderText: string;
+  // Store views if needed, though maybe not necessary to hold references here
+  // private fretboardViews: FretboardView[] = [];
 
   constructor(
     config: ReadonlyArray<string>,
     rootNoteName: string,
     quality: TriadQuality,
-    inversionSelection: TriadInversion | "All",
-    headerText: string,
+    mainHeaderText: string,
     settings: AppSettings,
     metronomeBpmOverride?: number,
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
+    // Create the scaled-down config *before* calling super()
+    // Clone base settings to avoid modifying the original AppSettings object
+    const baseFretboardConfig = new FretboardConfig(
+      settings.categorySettings[FeatureCategoryName.Guitar]?.tuning
+        ? AVAILABLE_TUNINGS[
+            settings.categorySettings[FeatureCategoryName.Guitar].tuning
+          ]
+        : STANDARD_TUNING,
+      settings.categorySettings[FeatureCategoryName.Guitar]?.handedness ||
+        "right",
+      settings.categorySettings[FeatureCategoryName.Guitar]?.colorScheme ||
+        "default",
+      undefined,
+      undefined,
+      undefined,
+      maxCanvasHeight // Pass height constraint for base calculation
+      // Default multiplier is 1.0 here
+    );
+
+    // Now create the specific config for this feature with the multiplier
+    const featureFretboardConfig = new FretboardConfig(
+      baseFretboardConfig.tuning,
+      baseFretboardConfig.handedness,
+      baseFretboardConfig.colorScheme,
+      baseFretboardConfig.markerDots,
+      baseFretboardConfig.sideNumbers,
+      baseFretboardConfig.stringWidths,
+      maxCanvasHeight, // Pass height constraint again
+      0.75
+    );
+
+    // Call super, but the fretboardConfig created there might be overridden locally
     super(
       config,
-      settings,
+      settings, // Pass original settings up
       metronomeBpmOverride,
       audioController,
       maxCanvasHeight
     );
+    // Override the config created by the base class with our scaled-down one
+    this.fretboardConfig = featureFretboardConfig;
+
     this.rootNoteName = rootNoteName;
     this.quality = quality;
-    this.inversionSelection = inversionSelection;
-    this.headerText = headerText;
+    this.mainHeaderText = mainHeaderText;
 
-    const fretCount = 14; // Suitable range for triads
-
-    // Create Views
+    const fretCount = 15;
     const views: View[] = [];
 
-    // 1. Create FretboardView
-    // Use 'interval' coloring scheme from config for the base notes
-    this.fretboardViewInstance = new FretboardView(
-      this.fretboardConfig,
-      fretCount
+    let orderedGroups = [...STRING_GROUPS];
+    let orderedNames = orderedGroups.map(
+      (g) => STRING_GROUP_NAMES[g.join(",")]
     );
-    views.push(this.fretboardViewInstance);
 
-    // 2. Create MetronomeView (if applicable)
+    if (this.fretboardConfig.handedness === "left") {
+      orderedGroups.reverse();
+      orderedNames.reverse();
+    }
+
+    // Create FretboardViews and calculate data
+    orderedGroups.forEach((group) => {
+      // Pass the SCALED config to the view
+      const fretboardView = new FretboardView(this.fretboardConfig, fretCount);
+      // this.fretboardViews.push(fretboardView); // Not strictly needed to store ref here
+      views.push(fretboardView);
+
+      // Calculate notes/lines using the SCALED config
+      const triadData = getTriadNotesAndLinesForGroup(
+        this.rootNoteName,
+        this.quality,
+        group,
+        fretCount,
+        this.fretboardConfig // Use the scaled config for calculations
+      );
+
+      fretboardView.setNotes(triadData.notes);
+      fretboardView.setLines(triadData.lines);
+    });
+
+    // Add MetronomeView if applicable
     if (this.metronomeBpm > 0 && this.audioController) {
       const metronomeAudioEl = document.getElementById(
         "metronome-sound"
@@ -115,25 +167,15 @@ export class TriadFeature extends GuitarFeature {
       );
     }
 
-    // Assign views
     (this as { views: ReadonlyArray<View> }).views = views;
-
-    // Calculate and set the triad notes and lines *after* creating the view instance
-    this.calculateAndSetTriadData(fretCount);
   }
 
   // Static methods remain the same...
   static getConfigurationSchema(): ConfigurationSchema {
     const availableKeys = MUSIC_NOTES.flat();
-    const qualities: TriadQuality[] = ["Major", "Minor"];
-    const inversions: (TriadInversion | "All")[] = [
-      "Root",
-      "1st",
-      "2nd",
-      "All",
-    ];
+    const qualities: TriadQuality[] = ["Major", "Minor", "Diminished", "Augmented"];
     return {
-      description: `Config: ${this.typeName},RootNote,Quality[,Inversion][,GuitarSettings]`,
+      description: `Config: ${this.typeName},RootNote,Quality[,GuitarSettings]`,
       args: [
         {
           name: "Root Note",
@@ -147,14 +189,7 @@ export class TriadFeature extends GuitarFeature {
           type: "enum",
           required: true,
           enum: qualities,
-          description: "Quality of the triad (Major, Minor).",
-        },
-        {
-          name: "Inversion",
-          type: "enum",
-          required: false,
-          enum: inversions,
-          description: "Inversion(s) to display (Root, 1st, 2nd, or All).",
+          description: "Quality of the triad (Major, Minor, etc).",
         },
         {
           name: "Guitar Settings",
@@ -187,42 +222,22 @@ export class TriadFeature extends GuitarFeature {
     }
     const rootNoteName = config[0];
     const quality = config[1] as TriadQuality;
-    const inversionSelection = (
-      config.length > 2 && config[2] ? config[2] : "All"
-    ) as TriadInversion | "All";
+    const remainingConfig = config.slice(2);
 
     const keyIndex = getKeyIndex(rootNoteName);
     if (keyIndex === -1) throw new Error(`Unknown key: "${rootNoteName}"`);
     const validRootName = MUSIC_NOTES[keyIndex]?.[0] ?? rootNoteName;
-    const validQualities: TriadQuality[] = ["Major", "Minor"];
-    const validInversions: (TriadInversion | "All")[] = [
-      "Root",
-      "1st",
-      "2nd",
-      "All",
-    ];
+    const validQualities: TriadQuality[] = ["Major", "Minor", "Diminished", "Augmented"];
     if (!validQualities.includes(quality))
       throw new Error(`Invalid triad quality: "${quality}"`);
-    if (!validInversions.includes(inversionSelection))
-      throw new Error(`Invalid inversion selection: "${inversionSelection}"`);
 
-    let headerText = `${validRootName} ${quality} Triad Shapes`;
-    if (inversionSelection !== "All") headerText += ` (${inversionSelection})`;
-    else headerText += ` (All Inversions)`;
-
-    // Pass relevant config args to constructor (Root, Quality, Inversion)
-    const featureConfig = [
-      rootNoteName,
-      quality,
-      inversionSelection === "All" ? "All" : inversionSelection,
-    ];
+    const mainHeaderText = `${validRootName} ${quality} Triads (3-String Sets)`;
 
     return new TriadFeature(
-      featureConfig,
+      remainingConfig,
       validRootName,
       quality,
-      inversionSelection,
-      headerText,
+      mainHeaderText,
       settings,
       metronomeBpmOverride,
       audioController,
@@ -230,106 +245,33 @@ export class TriadFeature extends GuitarFeature {
     );
   }
 
-  /** Calculates triad notes and lines and passes them to the FretboardView. */
-  private calculateAndSetTriadData(fretCount: number): void {
-    const notesData: NoteRenderData[] = [];
-    const linesData: LineData[] = [];
-    const inversionsToDisplay: TriadInversion[] =
-      this.inversionSelection === "All"
-        ? ["Root", "1st", "2nd"]
-        : [this.inversionSelection];
-
-    // Get the internal Fretboard instance to calculate coordinates
-    const fretboardLogic = this.fretboardViewInstance.getFretboard();
-    const drawnNotes = new Set<string>(); // Keep track of drawn notes to avoid duplicates
-
-    inversionsToDisplay.forEach((inversion) => {
-      const triadShapes = findSpecificTriadShapes(
-        this.rootNoteName,
-        this.quality,
-        inversion,
-        this.fretboardConfig,
-        fretCount
-      );
-
-      triadShapes.forEach((shape, shapeIndex) => {
-        const lineColor =
-          SHAPE_LINE_COLORS[shapeIndex % SHAPE_LINE_COLORS.length];
-        const notesWithCoords: TriadShapeNote[] = []; // Store notes with calculated coords for line drawing
-
-        // 1. Process notes for this shape
-        shape.notes.forEach((note) => {
-          if (note.fret !== -1) {
-            const coords = fretboardLogic.getNoteCoordinates(
-              note.stringIndex,
-              note.fret
-            );
-            note.x = coords.x;
-            note.y = coords.y;
-            notesWithCoords.push(note); // Add to list for line drawing
-
-            const noteKey = `${note.stringIndex}-${note.fret}`;
-            if (!drawnNotes.has(noteKey)) {
-              notesData.push({
-                fret: note.fret,
-                stringIndex: note.stringIndex,
-                noteName: note.noteName,
-                intervalLabel: note.intervalLabel,
-                displayLabel: note.intervalLabel, // Display interval for triads
-                colorSchemeOverride: "interval", // Force interval coloring
-                isRoot: note.isRoot, // Pass root flag if available/needed
-              });
-              drawnNotes.add(noteKey);
-            }
-          }
-        });
-
-        // 2. Generate lines for this shape
-        const notesToConnect = notesWithCoords.filter(
-          (n) => n.x !== undefined && n.y !== undefined
-        );
-        if (notesToConnect.length >= 2) {
-          notesToConnect.sort((a, b) => {
-            // Sort for consistent line drawing
-            if (a.stringIndex !== b.stringIndex)
-              return a.stringIndex - b.stringIndex;
-            return a.fret - b.fret;
-          });
-
-          let lastNote = notesToConnect[0];
-          for (let i = 1; i < notesToConnect.length; i++) {
-            const currentNote = notesToConnect[i];
-            // Connect if on adjacent strings OR it's the very first connection segment
-            if (
-              currentNote.stringIndex === lastNote.stringIndex + 1 ||
-              i === 1
-            ) {
-              linesData.push({
-                startX: lastNote.x!,
-                startY: lastNote.y!,
-                endX: currentNote.x!,
-                endY: currentNote.y!,
-                color: lineColor,
-                dashed: true,
-                lineWidth: 2, // Example line width
-              });
-            }
-            // Update lastNote regardless of whether a line was drawn to it,
-            // ensuring subsequent adjacent connections are made correctly.
-            lastNote = currentNote;
-          }
-        }
-      });
-    });
-
-    this.fretboardViewInstance.setNotes(notesData);
-    this.fretboardViewInstance.setLines(linesData);
-  }
-
-  /** Render method now just adds the header. Views are rendered by DisplayController. */
+  /** Render method adds header; DisplayController renders the views. */
   render(container: HTMLElement): void {
     clearAllChildren(container);
-    addHeader(container, this.headerText);
-    // DisplayController will render the FretboardView (and MetronomeView if present)
+    addHeader(container, this.mainHeaderText);
+
+    // Optional: Add sub-headers for string groups dynamically if needed
+    // This would likely require modifying how DisplayController renders views
+    // or making this render method more complex. For now, rely on CSS layout.
+
+    // Example of adding sub-headers (would need CSS to align with views):
+    /*
+    const subHeaderContainer = document.createElement('div');
+    subHeaderContainer.style.display = 'flex';
+    subHeaderContainer.style.justifyContent = 'space-around'; // Adjust as needed
+    subHeaderContainer.style.width = '100%'; // Adjust as needed
+    let orderedNames = STRING_GROUPS.map(g => STRING_GROUP_NAMES[g.join(',')]);
+    if (this.fretboardConfig.handedness === 'left') {
+        orderedNames.reverse();
+    }
+    orderedNames.forEach(name => {
+        const sh = document.createElement('h6');
+        sh.textContent = name;
+        sh.style.textAlign = 'center';
+        sh.style.flex = '1'; // Example sizing
+        subHeaderContainer.appendChild(sh);
+    });
+    container.appendChild(subHeaderContainer);
+    */
   }
-}
+} // End TriadFeature Class
