@@ -1,7 +1,7 @@
 // ts/guitar/guitar_category.ts
 import { Category } from "../feature"; // Use Category from feature.ts
 import { FeatureTypeDescriptor, SettingsUISchemaItem } from "../feature";
-import { IntervalSettings, IntervalSettingsJSON } from "../schedule/editor/interval/types";
+import { IntervalSettings, IntervalSettingsJSON, ScheduleRowData } from "../schedule/editor/interval/types";
 
 // Import Guitar Features
 import { NotesFeature } from "./features/notes_feature";
@@ -19,6 +19,7 @@ import { GuitarIntervalSettings, GuitarIntervalSettingsJSON } from "./guitar_int
 // Helper function imports (for settings UI schema)
 import { AVAILABLE_TUNINGS } from "./fretboard";
 import { FretboardColorScheme } from "./colors";
+import { CagedFeature } from "./features/caged_feature";
 
 // Helper function to generate UI Schema (can be kept here or imported)
 function getGuitarGlobalSettingsUISchema(): SettingsUISchemaItem[] {
@@ -50,7 +51,7 @@ export class GuitarCategory implements Category {
             [ChordFeature.typeName, ChordFeature as unknown as FeatureTypeDescriptor],
             [ChordProgressionFeature.typeName, ChordProgressionFeature as unknown as FeatureTypeDescriptor],
             [TriadFeature.typeName, TriadFeature as unknown as FeatureTypeDescriptor],
-            // [CagedFeature.typeName, CagedFeature as unknown as FeatureTypeDescriptor], // Uncomment when ready
+            [CagedFeature.typeName, CagedFeature as unknown as FeatureTypeDescriptor],
             [MetronomeFeature.typeName, MetronomeFeature as unknown as FeatureTypeDescriptor],
         ]);
     }
@@ -86,5 +87,42 @@ export class GuitarCategory implements Category {
     getGlobalSettingsUISchema(): SettingsUISchemaItem[] {
          // Return the schema for the Guitar category's global settings
         return getGuitarGlobalSettingsUISchema();
+    }
+
+    /** Returns a default set of intervals for a simple guitar schedule */
+    getDefaultIntervals(): ScheduleRowData[] | null {
+        // Use the factory to get default settings for these intervals
+        const defaultIntervalSettings = this.getIntervalSettingsFactory()();
+
+        return [
+            {
+                rowType: "interval",
+                duration: "5:00",
+                task: "Warmup",
+                categoryName: this.getName(), // Use own name
+                featureTypeName: "Notes",
+                featureArgsList: [],
+                intervalSettings: defaultIntervalSettings, // Assign instance
+            },
+            { rowType: "group", level: 1, name: "Scale Practice" },
+            {
+                rowType: "interval",
+                duration: "3:00",
+                task: "C Major Scale",
+                categoryName: this.getName(),
+                featureTypeName: "Scale",
+                featureArgsList: ["Major", "C"],
+                intervalSettings: defaultIntervalSettings, // Assign instance
+            },
+            {
+                rowType: "interval",
+                duration: "3:00",
+                task: "G Major Scale",
+                categoryName: this.getName(),
+                featureTypeName: "Scale",
+                featureArgsList: ["Major", "G"],
+                intervalSettings: defaultIntervalSettings, // Assign instance
+            },
+        ];
     }
 }

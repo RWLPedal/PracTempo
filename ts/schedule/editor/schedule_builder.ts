@@ -1,16 +1,14 @@
-// ts/schedule/editor/schedule_builder.ts
 import { Schedule, Interval } from "../schedule";
 import { DisplayController } from "../../display_controller";
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
-import { Feature } from "../../feature"; // Keep Feature interface
+import { Feature } from "../../feature";
 // Import registry functions for generic handling
 import {
   getFeatureTypeDescriptor,
   getIntervalSettingsParser,
 } from "../../feature_registry";
-import { parseDurationString } from "../../guitar/guitar_utils";
-// --- REMOVED direct import of GuitarIntervalSettings ---
+import { parseDurationString } from "../../time_utils";
 import { ErrorDisplay } from "./error_display";
 import {
   GroupDataJSON,

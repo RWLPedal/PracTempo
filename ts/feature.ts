@@ -4,6 +4,7 @@ import { AppSettings } from "./settings";
 import {
   IntervalSettings,
   IntervalSettingsJSON,
+  ScheduleRowData, // <-- Add ScheduleRowData import
 } from "./schedule/editor/interval/types";
 
 /**
@@ -38,6 +39,9 @@ export interface Category {
 
   /** Optional: Returns a schema for the category's *global* settings UI */
   getGlobalSettingsUISchema?(): SettingsUISchemaItem[];
+
+  /** Optional: Returns a default array of schedule row data for this category */
+  getDefaultIntervals?(): ScheduleRowData[] | null; // <-- Added method signature
 }
 
 // --- Feature Interface --- (Category property removed)

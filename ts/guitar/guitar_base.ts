@@ -1,9 +1,5 @@
 // ts/guitar/guitar_base.ts
-import {
-  Feature,
-  // --- REMOVED: FeatureCategoryName import ---
-  ConfigurationSchemaArg,
-} from "../feature"; // Added ConfigurationSchemaArg
+import { Feature, ConfigurationSchemaArg } from "../feature";
 import { View } from "../view";
 import { MetronomeView } from "./views/metronome_view";
 import {
@@ -12,12 +8,12 @@ import {
   STANDARD_TUNING,
   TuningName,
 } from "./fretboard";
-import { AppSettings, getCategorySettings } from "../settings"; // getCategorySettings now takes string
+import { AppSettings, getCategorySettings } from "../settings";
 import {
   GuitarSettings,
   GUITAR_SETTINGS_KEY,
   DEFAULT_GUITAR_SETTINGS,
-} from "./guitar_settings"; // Import defaults too
+} from "./guitar_settings";
 import { GuitarIntervalSettings } from "./guitar_interval_settings";
 import { AudioController } from "../audio_controller";
 import {
@@ -26,28 +22,27 @@ import {
   addCanvas,
   START_PX,
 } from "./guitar_utils";
-import { IntervalSettings } from "../schedule/editor/interval/types"; // Import base type
+import { IntervalSettings } from "../schedule/editor/interval/types";
 
 /**
  * Base class for all Guitar-related features.
  * Handles common setup like FretboardConfig and conditional MetronomeView creation based on interval settings.
  */
 export abstract class GuitarFeature implements Feature {
-  // --- REMOVED: readonly category property ---
   abstract readonly typeName: string;
-  readonly config: ReadonlyArray<string>; // Config args specific to the subclass feature type
+  readonly config: ReadonlyArray<string>;
   protected settings: AppSettings;
   protected audioController?: AudioController;
   protected fretboardConfig: FretboardConfig;
   readonly maxCanvasHeight?: number;
 
-  protected _views: View[] = [];
+  protected _views: View[] = []; // Mutable array for internal use
   get views(): ReadonlyArray<View> {
+    // Expose as readonly externally
     return this._views;
   }
   protected metronomeBpm: number = 0;
 
-  // --- Base Configuration for Guitar Settings (remains same) ---
   static readonly BASE_GUITAR_SETTINGS_CONFIG_ARG: ConfigurationSchemaArg = {
     name: "Guitar Settings",
     type: "ellipsis",
@@ -65,26 +60,23 @@ export abstract class GuitarFeature implements Feature {
   constructor(
     config: ReadonlyArray<string>,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings, // Constructor still receives specific type from createFeature assertion
+    intervalSettings: GuitarIntervalSettings,
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
     this.config = config;
     this.settings = settings;
     this.maxCanvasHeight = maxCanvasHeight;
-    this.audioController = audioController; // Store the passed controller
+    this.audioController = audioController;
 
-    // Get global guitar settings using string name
-    // Use GUITAR_SETTINGS_KEY which is now "Guitar"
     const guitarGlobalSettings =
       getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ??
       DEFAULT_GUITAR_SETTINGS;
 
-    // Validate tuning name before using it
     const tuningName = AVAILABLE_TUNINGS[guitarGlobalSettings.tuning]
       ? guitarGlobalSettings.tuning
       : "Standard";
-    const tuning = AVAILABLE_TUNINGS[tuningName]; // Use validated name
+    const tuning = AVAILABLE_TUNINGS[tuningName];
 
     this.fretboardConfig = new FretboardConfig(
       tuning,
@@ -96,38 +88,41 @@ export abstract class GuitarFeature implements Feature {
       this.maxCanvasHeight
     );
 
-    // --- Metronome Handling (FIXED) ---
+    // --- Metronome Handling ---
+    // MetronomeView is potentially added *last* to ensure render order
+    let metronomeViewInstance: MetronomeView | null = null;
     this.metronomeBpm = intervalSettings?.metronomeBpm ?? 0;
     if (this.metronomeBpm > 0) {
-      // Check if audioController exists AND has the required audio elements
       if (
         this.audioController &&
         this.audioController.metronomeAudioEl &&
         this.audioController.accentMetronomeAudioEl
       ) {
-        // Create the view using the valid audioController
-        const metronomeView = new MetronomeView(
+        metronomeViewInstance = new MetronomeView(
           this.metronomeBpm,
           this.audioController
         );
-        this._views.push(metronomeView);
         console.log(
-          `MetronomeView added by GuitarFeature base with BPM: ${this.metronomeBpm}`
+          `MetronomeView instance created by GuitarFeature base with BPM: ${this.metronomeBpm}`
         );
       } else if (this.audioController) {
-        // Log error if controller exists but elements are missing *within it*
         console.error(
           "Required metronome audio element(s) missing in AudioController. MetronomeView will not be created."
         );
       } else {
-        // Log warning if controller itself is missing
         console.warn(
           `Metronome requested (BPM: ${this.metronomeBpm}) but AudioController was not provided. MetronomeView will not be created.`
         );
       }
     }
-  }
 
+    // Subclasses will add their primary views to this._views in their constructors BEFORE calling super
+    // Now, add the metronome view if it was created, ensuring it's last
+    if (metronomeViewInstance) {
+      this._views.push(metronomeViewInstance);
+      console.log(`MetronomeView added LAST to views array.`);
+    }
+  }
 
   // Abstract render method
   abstract render(container: HTMLElement): void;
@@ -155,7 +150,6 @@ export abstract class GuitarFeature implements Feature {
     container: HTMLElement,
     headerText: string
   ): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
-    // ... (implementation remains same) ...
     clearAllChildren(container);
     addHeader(container, headerText);
     const uniqueSuffix = `${this.typeName}-${this.config.join("-")}`.replace(
