@@ -26,7 +26,7 @@ export const NOTE_COLORS: { [noteName: string]: string } = {
   Eb: "#54A0FF", // Blue (Same as D#)
   Gb: "#FDA7DF", // Pink (Same as F#)
   Ab: "#BDC3C7", // Silver/Grey (Same as G#)
-
+  
   DEFAULT: "#888888", // Default grey for unknown/unspecified
 };
 
@@ -52,7 +52,7 @@ export const INTERVAL_COLORS: { [intervalLabel: string]: string } = {
 };
 
 // --- Color Scheme Type ---
-export type FretboardColorScheme = "default" | "note" | "interval";
+export type FretboardColorScheme = "simplified" | "note" | "interval"; // Changed 'default' to 'simplified'
 
 /**
  * Gets the appropriate color based on the scheme, note, and interval.
@@ -75,13 +75,13 @@ export function getColor(
             key === noteName || NOTE_COLORS[key] === NOTE_COLORS[noteName]
         ) || noteName;
       return NOTE_COLORS[primaryNoteName] || NOTE_COLORS.DEFAULT;
-    case "interval":
-      return INTERVAL_COLORS[intervalLabel] || INTERVAL_COLORS.DEFAULT;
-    case "default":
-    default:
-      // Simple default: Red for root, dark grey otherwise
+    case "simplified": // Renamed from "default"
+      // Simple logic: Red for root, dark grey otherwise
       return intervalLabel === "R"
         ? INTERVAL_COLORS["R"]
         : INTERVAL_COLORS.DEFAULT;
+    case "interval": // Handle "interval" explicitly, now also default
+    default: // Default behavior is now interval coloring
+      return INTERVAL_COLORS[intervalLabel] || INTERVAL_COLORS.DEFAULT;
   }
 }

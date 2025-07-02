@@ -1,7 +1,5 @@
 import { Feature } from "./feature";
 import { Interval } from "./schedule/schedule";
-// Import MetronomeView to identify it
-import { MetronomeView } from "./guitar/views/metronome_view";
 
 export enum Status {
   Play = "Play",
@@ -41,7 +39,6 @@ export class DisplayController {
 
   setTask(taskName: string, color: string): void {
     this.taskDisplayEl.innerText = taskName;
-    this.taskWrapperEl.style.backgroundColor = color; // Use camelCase for style props
   }
 
   setTime(seconds: number): void {
@@ -93,9 +90,6 @@ export class DisplayController {
           interval.task || "(Untitled)"
         }${introSuffix} [${this.formattedTime(interval.duration)}]`;
         intervalEl.innerText = text;
-        // Optional: Add styling for clarity if needed
-        // intervalEl.style.opacity = '0.8';
-        // intervalEl.style.fontSize = '0.9em';
         this.upcomingEl.appendChild(intervalEl);
       });
 
@@ -113,7 +107,7 @@ export class DisplayController {
 
   /**
    * Renders the feature and its views into the diagram container.
-   * Explicitly renders MetronomeView last if present.
+   * Relies on the feature providing views in the desired render order.
    * @param feature The feature instance to render.
    * @param handedness The current handedness setting ('left' or 'right').
    */
@@ -142,28 +136,13 @@ export class DisplayController {
         `[DisplayController.renderFeature] Successfully called feature.render() for ${feature.typeName}`
       );
 
-      let metronomeViewInstance: MetronomeView | null = null;
-
-      // Render non-metronome views first
+      // Render associated views (like Metronome) IN THE ORDER PROVIDED by the feature
       feature.views?.forEach((view) => {
-        if (view instanceof MetronomeView) {
-          metronomeViewInstance = view; // Store metronome view for later
-        } else {
-          // Render other views (like FretboardView, ChordDiagramView)
-          console.log(
-            `[DisplayController.renderFeature]   Rendering view: ${view.constructor.name}`
-          );
-          view.render(this.diagramEl);
-        }
-      });
-
-      // Render MetronomeView last if it exists
-      if (metronomeViewInstance) {
         console.log(
-          `[DisplayController.renderFeature]   Rendering MetronomeView last.`
+          `[DisplayController.renderFeature]   Rendering view: ${view.constructor.name}`
         );
-        metronomeViewInstance.render(this.diagramEl);
-      }
+        view.render(this.diagramEl); // Append each view's content
+      });
     } catch (error) {
       console.error(
         `[DisplayController.renderFeature] Error during rendering feature ${feature.typeName}:`,

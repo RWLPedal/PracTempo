@@ -63,6 +63,7 @@ export function buildIntervalRowElement(
       console.error(
         `No IntervalSettings factory registered for category: ${categoryName}. Using plain object fallback.`
       );
+      // Provide a minimal fallback that adheres to the interface
       settingsInstance = { toJSON: () => ({}) };
     }
   }
@@ -71,7 +72,6 @@ export function buildIntervalRowElement(
 
   // --- Create Row Structure and Cells ---
   entryDiv.style.display = "flex";
-  // ... (rest of styling) ...
   entryDiv.style.alignItems = "center";
   entryDiv.style.gap = "5px";
   entryDiv.style.padding = "2px 0";
@@ -83,7 +83,8 @@ export function buildIntervalRowElement(
   const contentWrapper = document.createElement("div");
   contentWrapper.style.display = "grid";
   contentWrapper.style.flexGrow = "1";
-  contentWrapper.style.gridTemplateColumns = "80px 1fr 1fr minmax(150px, 2fr)";
+  // Adjusted grid for better layout flexibility
+  contentWrapper.style.gridTemplateColumns = "80px 1fr 1fr minmax(200px, 2fr)";
   contentWrapper.style.gap = "5px";
   contentWrapper.style.alignItems = "center";
 
@@ -105,6 +106,7 @@ export function buildIntervalRowElement(
     "feature-args-cell",
     "config-feature-args-container"
   );
+  featureArgsDiv.style.alignSelf = "start"; // Align args container top
 
   contentWrapper.appendChild(durationDiv);
   contentWrapper.appendChild(taskDiv);
@@ -114,7 +116,6 @@ export function buildIntervalRowElement(
 
   // Actions Cell
   const actionsDiv = document.createElement("div");
-  // ... (actions cell setup) ...
   actionsDiv.classList.add("config-cell", "action-cell");
   actionsDiv.style.display = "flex";
   actionsDiv.style.alignItems = "center";
@@ -134,7 +135,7 @@ export function buildIntervalRowElement(
       featureArgsDiv,
       settingsInstance,
       categoryName, // Pass name string
-      [] // Clear initial args on change
+      [] // Clear initial args on type change
     );
   });
 
@@ -144,7 +145,7 @@ export function buildIntervalRowElement(
     featureArgsDiv,
     settingsInstance,
     categoryName, // Pass name string
-    initialData.featureArgsList
+    initialData.featureArgsList // Use the list from the loaded data
   );
 
   applyIndentation(entryDiv, 0); // Apply initial indentation
@@ -201,67 +202,79 @@ function updateArgsSection(
   argsContainer: HTMLElement,
   currentSettingsInstance: IntervalSettings, // Expect generic instance
   categoryName: string, // **** CHANGED: Expect string name ****
-  initialArgs?: string[]
+  initialArgs?: string[] // **** Expect the loaded featureArgsList here ****
 ): void {
   const selectedTypeName = featureTypeSelect.value;
-  argsContainer.innerHTML = "";
+  argsContainer.innerHTML = ""; // Clear previous content
 
   if (selectedTypeName) {
     // Use the category name string to get the descriptor
     const descriptor = getFeatureTypeDescriptor(categoryName, selectedTypeName); // Use name string
     if (descriptor) {
       const schema = descriptor.getConfigurationSchema();
-      // ... (rest of schema handling remains the same, passes generic settings instance) ...
+
       if (
         typeof schema === "object" &&
         "args" in schema &&
         Array.isArray(schema.args)
       ) {
+        // Pass the loaded initialArgs to populateArgsFromSchema
         populateArgsFromSchema(
           argsContainer,
           schema.args,
-          initialArgs || [],
+          initialArgs || [], // Pass the loaded arguments here
           currentSettingsInstance
         );
       } else if (typeof schema === "string") {
+        // Handle schema as a simple description string
         const infoSpan = document.createElement("span");
         infoSpan.classList.add("has-text-grey-light", "is-italic", "is-size-7");
         infoSpan.textContent = schema;
         argsContainer.appendChild(infoSpan);
       } else {
+        // Handle case with no configurable arguments (or unexpected schema type)
         const infoSpan = document.createElement("span");
         infoSpan.classList.add("has-text-grey-light", "is-italic", "is-size-7");
         infoSpan.textContent = "No configurable arguments";
         argsContainer.appendChild(infoSpan);
       }
     } else {
-      argsContainer.textContent = `Error: Feature descriptor for "${selectedTypeName}" in category "${categoryName}" not found.`;
+      console.error(
+        `Error: Feature descriptor for "${selectedTypeName}" in category "${categoryName}" not found.`
+      );
+      const errorSpan = document.createElement("span");
+      errorSpan.classList.add("has-text-danger", "is-size-7");
+      errorSpan.textContent = `Error: Feature descriptor not found.`;
+      argsContainer.appendChild(errorSpan);
     }
   } else {
+    // No feature selected
     argsContainer.innerHTML =
       '<span class="has-text-grey-light is-italic is-size-7">No feature selected</span>';
   }
 }
 
-/** Populates the arguments container based on a schema object. (No changes needed here as it already uses the generic settings instance) */
+/** Populates the arguments container based on a schema object. */
 function populateArgsFromSchema(
   container: HTMLElement,
   schemaArgs: ConfigurationSchemaArg[],
-  currentValues: string[],
+  currentValues: string[], // These are the initial values from featureArgsList
   currentSettingsInstance: IntervalSettings // Expect generic instance
 ): void {
-  // ... (Implementation remains the same as in previous response) ...
-  let valueIndex = 0;
+  let valueIndex = 0; // Tracks the current position in the currentValues array
   container.innerHTML = ""; // Clear container
   const argsInnerContainer = document.createElement("div");
   argsInnerContainer.classList.add("feature-args-inner-container");
   argsInnerContainer.style.display = "flex";
   argsInnerContainer.style.flexWrap = "wrap";
-  argsInnerContainer.style.gap = "10px";
+  argsInnerContainer.style.gap = "10px"; // Gap between arg groups
+
   schemaArgs.forEach((arg) => {
     const argWrapper = document.createElement("div");
     argWrapper.classList.add("feature-arg-wrapper");
     argWrapper.dataset.argName = arg.name;
+
+    // --- Create Label ---
     const label = document.createElement("label");
     label.classList.add("label", "is-small");
     const labelText = arg.name
@@ -271,67 +284,82 @@ function populateArgsFromSchema(
     label.textContent = labelText;
     label.title = (arg.description || "") + (arg.required ? " (Required)" : "");
     argWrapper.appendChild(label);
+
+    // --- Create Inputs Container ---
     const inputsContainer = document.createElement("div");
     inputsContainer.classList.add("feature-arg-inputs-container");
     inputsContainer.dataset.argType = arg.type;
     if (arg.uiComponentType)
       inputsContainer.dataset.uiComponentType = arg.uiComponentType;
-    if (arg.isVariadic) inputsContainer.dataset.isVariadic = "true";
+    // We rely on the schema's isVariadic flag, not dataset for initial build
     argWrapper.appendChild(inputsContainer);
+
     const uiType = arg.uiComponentType;
-    let valueConsumed = false;
-    if (uiType === "toggle_button_selector") {
-      let initialSelection: string[] = [];
-      // ... (toggle button logic remains same) ...
-      createToggleButtonInput(inputsContainer, arg, initialSelection);
-      valueConsumed = true;
+    const isVariadic = arg.isVariadic; // Check schema flag directly
+
+    // --- Determine which type of input to create and consume values ---
+    if (
+      uiType === "toggle_button_selector" ||
+      (isVariadic && uiType !== "ellipsis")
+    ) {
+      // --- Handle Variadic Types (Toggle Buttons or Generic Variadic) ---
+      const variadicValues = currentValues.slice(valueIndex); // Consume remaining values
+      if (uiType === "toggle_button_selector") {
+        createToggleButtonInput(inputsContainer, arg, variadicValues);
+      } else {
+        createVariadicInputElement(arg, inputsContainer, variadicValues);
+      }
+      valueIndex = currentValues.length; // Mark all remaining values as consumed
     } else if (uiType === "ellipsis") {
+      // --- Handle Ellipsis (Nested Settings) ---
       if (arg.nestedSchema) {
         inputsContainer.appendChild(
           createEllipsisDropdown(arg, currentSettingsInstance)
-        ); // Pass generic instance
+        );
       } else {
-        /* ... error handling ... */
+        console.warn(
+          `Ellipsis UI specified for arg "${arg.name}" but no nestedSchema provided.`
+        );
+        const errorSpan = document.createElement("span");
+        errorSpan.textContent = "[Config Error]";
+        errorSpan.classList.add("has-text-danger", "is-size-7");
+        inputsContainer.appendChild(errorSpan);
       }
-      valueConsumed = true;
-    } else if (!valueConsumed) {
-      if (arg.isVariadic) {
-        const variadicValues = currentValues.slice(valueIndex);
-        createVariadicInputElement(arg, inputsContainer, variadicValues);
-        valueIndex = currentValues.length;
-      } else {
-        const currentValue =
-          valueIndex < currentValues.length ? currentValues[valueIndex] : "";
-        switch (arg.type) {
-          // ... (standard input creation logic remains same) ...
-          case "enum":
-            inputsContainer.appendChild(
-              createDropdownInput(arg.name, arg.enum || [], currentValue)
-            );
-            break;
-          case "number":
-            inputsContainer.appendChild(
-              createNumberInput(arg.name, currentValue)
-            );
-            break;
-          case "boolean":
-            inputsContainer.appendChild(
-              createDropdownInput(
-                arg.name,
-                ["true", "false"],
-                currentValue || "false"
-              )
-            );
-            break;
-          default:
-            inputsContainer.appendChild(
-              createTextInput(arg.name, currentValue, arg.example)
-            );
-            break;
-        }
-        valueIndex++;
+      // Ellipsis does NOT consume values from currentValues array
+    } else {
+      // --- Handle Standard Single-Value Input ---
+      const currentValue =
+        valueIndex < currentValues.length ? currentValues[valueIndex] : "";
+      switch (arg.type) {
+        case "enum":
+          inputsContainer.appendChild(
+            createDropdownInput(arg.name, arg.enum || [], currentValue)
+          );
+          break;
+        case "number":
+          inputsContainer.appendChild(
+            createNumberInput(arg.name, currentValue)
+          );
+          break;
+        case "boolean":
+          inputsContainer.appendChild(
+            createDropdownInput(
+              arg.name,
+              ["true", "false"],
+              currentValue || "false"
+            )
+          );
+          break;
+        default: // 'string' or unspecified defaults to text
+          inputsContainer.appendChild(
+            createTextInput(arg.name, currentValue, arg.example)
+          );
+          break;
       }
+      // Increment valueIndex ONLY after consuming a value for a standard argument
+      valueIndex++;
     }
+
     argsInnerContainer.appendChild(argWrapper);
   });
   container.appendChild(argsInnerContainer);

@@ -314,7 +314,16 @@ export function createVariadicInputElement(
     const addButton = document.createElement("button");
     addButton.type = "button";
     addButton.classList.add("button", "is-small", "is-outlined", "is-info", "add-variadic-btn"); // Use distinct class
-    addButton.textContent = `+ Add ${arg.name}`;
+
+    let buttonTextName = arg.name;
+    // Simple heuristic to singularize for button text
+    if (buttonTextName.endsWith('es')) {
+        buttonTextName = buttonTextName.slice(0, -2);
+    } else if (buttonTextName.endsWith('s') && buttonTextName.length > 1) { // Avoid making 's' an empty string
+        buttonTextName = buttonTextName.slice(0, -1);
+    }
+    addButton.textContent = `+ ${buttonTextName}`; // Use potentially singularized name
+
     addButton.title = `Add another ${arg.name}`;
     addButton.style.marginTop = "5px";
     addButton.style.alignSelf = 'flex-start'; // Align button left

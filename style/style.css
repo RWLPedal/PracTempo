@@ -1,28 +1,57 @@
 /* Define Color Palette */
 :root {
-  --clr-bg-light: #f4f5ed;
-  --clr-primary-light: #adb2d4;
-  --clr-secondary-light: #c7d9dd;
-  --clr-tertiary-light: #d5e5d5;
-  --clr-text-light: #363636;
-  --clr-text-subtle-light: #555;
-  --clr-border-light: #dcdcdc;
-  --clr-shadow-light: rgba(0, 0, 0, 0.08);
+  /* --- Base Palette (Conceptual - helps define relationships) --- */
+  --hue-primary: 210; /* Blueish */
+  --hue-secondary: 195; /* Cyanish/Blue-Grey */
+  --hue-neutral: 210; /* Often related to primary or true neutral */
+  --clr-blue-500: #3498db; /* Base Blue */
+  --clr-red-500: #e74c3c; /* Base Red */
+  --clr-green-500: #2ecc71; /* Base Green */
+  --clr-orange-500: #f39c12; /* Base Orange */
+  --clr-grey-50: #f8f9fa;
+  --clr-grey-100: #f1f3f5;
+  --clr-grey-300: #dee2e6;
+  --clr-grey-500: #adb5bd;
+  --clr-grey-700: #495057;
+  --clr-grey-900: #212529;
+  --clr-dark-blue-grey: #2c3e50;
 
-  --clr-bg-dark: #2c3e50; /* Dark blue-grey */
-  --clr-primary-dark: #3498db; /* Brighter blue */
-  --clr-secondary-dark: #4a6572; /* Darker secondary */
-  --clr-tertiary-dark: #34495e; /* Dark tertiary */
-  --clr-text-dark: #ecf0f1; /* Light text */
-  --clr-text-subtle-dark: #bdc3c7; /* Lighter subtle text */
-  --clr-border-dark: #4a6572;
-  --clr-shadow-dark: rgba(0, 0, 0, 0.2);
+  /* --- Light Mode --- */
+  --clr-bg-light: #fcfcfc; /* Slightly cleaner white */
+  --clr-primary-light: #5e88d6; /* More saturated, slightly richer blue */
+  --clr-secondary-light: #e3eaf7; /* Lighter, related blue-grey */
+  --clr-tertiary-light: var(--clr-grey-100); /* Using neutral grey */
+  --clr-text-light: #2a2a2a; /* Slightly darker text */
+  --clr-text-subtle-light: #5f6368; /* Adjusted subtle text */
+  --clr-border-light: var(--clr-grey-300); /* Using neutral grey */
+  --clr-shadow-light: rgba(95, 99, 104, 0.1); /* Subtle grey shadow */
 
-  --clr-danger: #e74c3c; /* Adjusted danger */
-  --clr-success: #2ecc71; /* Adjusted success */
-  --clr-info: #3498db; /* Adjusted info */
-  --clr-warning: #f39c12; /* Adjusted warning */
-  --clr-link: #3498db;
+  /* --- Dark Mode --- */
+  --clr-bg-dark: var(--clr-dark-blue-grey); /* #2c3e50 */
+  --clr-primary-dark: var(--clr-blue-500); /* #3498db - Kept the bright blue */
+  --clr-secondary-dark: #4a6572; /* Kept original - Provides some contrast */
+  --clr-tertiary-dark: #374f61; /* Darker, but distinct from bg & secondary */
+  --clr-text-dark: #e8eaed; /* Slightly adjusted light text */
+  --clr-text-subtle-dark: #aeb4b8; /* Adjusted subtle text */
+  --clr-border-dark: #526d7b; /* Slightly lighter border for better definition */
+  --clr-shadow-dark: rgba(0, 0, 0, 0.3); /* Slightly stronger dark shadow */
+  /* Optional: Tinted shadow */
+  /* --clr-shadow-dark: rgba(52, 152, 219, 0.15); */
+
+  /* --- Semantic Colors (Consistent across modes by default) --- */
+  --clr-danger: var(--clr-red-500); /* #e74c3c */
+  --clr-success: var(--clr-green-500); /* #2ecc71 */
+  --clr-info: var(--clr-blue-500); /* #3498db */
+  --clr-warning: var(--clr-orange-500); /* #f39c12 */
+
+  /* --- Components --- */
+  --clr-link: var(--clr-primary-light); /* Link color in light mode */
+  /* In dark mode, link color might need to be different: */
+  /* Consider setting this within the dark mode scope */
+
+  /* --- Accessibility & Hover States (Example - Define these too!) --- */
+  --clr-primary-light-hover: #4a76c8;
+  --clr-primary-dark-hover: #5dade2;
 }
 
 /* Apply base light theme variables */
@@ -122,12 +151,11 @@ body.dark-theme .notification.is-success {
   color: var(--clr-text-subtle);
   font-weight: 400;
   margin-bottom: 0.5rem;
-} /* Reduced subtitle margin */
+}
 
-/* --- Timer/Task Display --- */
 #task-wrapper {
-  background-color: var(--clr-primary);
-  color: white;
+  background-color: var(--clr-secondary);
+  color: var(--clr-text);
   border: none;
 }
 body.dark-theme #task-wrapper {
@@ -148,6 +176,10 @@ body.dark-theme #task-wrapper {
   display: flex;
   align-items: center;
   justify-content: center;
+  background: var(--clr-primary);
+  color: white;
+  padding: 10px;
+  border-radius: 4px;
 }
 #status {
   font-size: 2em;
@@ -182,16 +214,28 @@ body.dark-theme #status img {
 }
 
 /* --- Main Controls (Start/Reset/Settings) --- */
+/* --- Main Controls (Start/Reset/Settings) --- */
 .main-controls {
   align-items: center;
 }
+
 .main-controls .level-item {
   margin: 0 5px;
-  flex-shrink: 0;
-} /* Prevent shrinking */
+  flex-shrink: 0; /* Prevent shrinking */
+}
+
+/* This targets the icon buttons specifically */
+.main-controls .button.not-text {
+    min-width: auto; /* Remove the minimum width */
+    padding-left: 8px;  /* Reduce horizontal padding */
+    padding-right: 8px; /* Reduce horizontal padding */
+    height: auto; /* Allow height to fit content */
+}
+
 .main-controls .button {
-  min-width: 80px;
-} /* Slightly smaller min-width */
+  min-width: 80px; /* Slightly smaller min-width for text buttons */
+}
+
 #start-control.is-success {
   background-color: var(--clr-success);
   color: white;
@@ -222,14 +266,27 @@ body.dark-theme #status img {
   color: var(--clr-link);
 }
 
+/* Add this new rule for the floating view button */
+#floating-view-button {
+  background: none;
+  border: none;
+  text-decoration: none;
+}
+
+#settings-button:hover,
+#floating-view-button:hover {
+  color: var(--clr-link);
+}
+
 /* --- Diagram Area --- */
 #diagram {
-  background-color: #fff;
-  border: 1px solid var(--clr-border);
-  color: #363636;
-  min-height: min-content; /* Ensure minimum height */
-  display: block;   
+    background-color: #fff;
+    border: 1px solid var(--clr-border);
+    color: #363636;
+    min-height: 844px;
+    display: block;
 }
+
 #diagram .subtitle {
   margin-bottom: 0.5rem;
   color: #555;
@@ -468,11 +525,62 @@ body.dark-theme .remove-interval-btn:hover {
   padding-top: 1rem;
   border-top: 1px solid var(--clr-border);
 }
+
 #editor-controls .button {
-  font-weight: 700;
+  font-family: "Droid Sans", sans-serif;
+  text-decoration: none;
+  background-color: var(--clr-blue-500); /* Consistent background */
+  border: 0;
+  color: var(--clr-text-dark); /* Consistent text color */
+  padding: 0.25em 0.5em; /* Smaller padding */
+  font-size: 0.85em; /* Smaller font size */
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out;
+  border-radius: 4px;
 }
-#editor-controls .button.is-outlined {
-  background-color: transparent;
+
+#editor-controls .button:hover {
+  background-color: var(--clr-secondary); /* Hover effect */
+  color: var(--clr-text);
+  border-color: var(--clr-border);
+}
+
+#editor-controls .button:active {
+  background-color: var(--clr-tertiary); /* Active effect */
+  color: var(--clr-text-subtle);
+}
+
+#set-schedule-control {
+  background-color: var(--clr-primary); /* Keep primary color */
+  color: white; /* Keep white text */
+  border: none; /* Remove border */
+}
+
+#set-schedule-control:hover {
+  opacity: 0.9; /* Keep opacity hover */
+}
+
+body.dark-theme #editor-controls .button {
+  background-color: var(--clr-bg-dark);
+  color: var(--clr-text-dark);
+  border-color: var(--clr-border-dark);
+  box-shadow: 0 1px 2px var(--clr-shadow-dark);
+}
+
+body.dark-theme #editor-controls .button:hover {
+  background-color: var(--clr-secondary-dark);
+  color: var(--clr-text-dark);
+  border-color: var(--clr-border-dark);
+}
+
+body.dark-theme #editor-controls .button:active {
+  background-color: #555;
+  color: var(--clr-text-subtle-dark);
+  border-color: var(--clr-border-dark);
+}
+
+body.dark-theme #set-schedule-control {
+  background-color: var(--clr-primary); /* Keep primary */
+  color: var(--clr-text-dark); /* Adjust text color */
 }
 #mode-toggle {
   border-color: var(--clr-link);
@@ -661,14 +769,41 @@ body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
   border-color: var(--clr-border-dark);
 }
 
+/* --- Chord Diagram View --- */
+.chord-diagram-view {
+  display: inline-block;
+  vertical-align: top;
+  padding: 5px;
+  /* min-width set dynamically */
+}
+
+/* Adjust chord diagram title size */
+.chord-diagram-view .title.is-6 {
+  margin-bottom: 4px !important; /* Adjust spacing */
+  /* You could add font-size override here if needed */
+  /* font-size: 1.1rem !important; */
+}
+
+/* Style for the added notes list */
+.chord-notes-list {
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--clr-text-subtle);
+  margin-bottom: 8px;
+  line-height: 1.2; /* Ensure single line */
+  white-space: nowrap; /* Prevent wrapping */
+  overflow: hidden; /* Hide overflow */
+  text-overflow: ellipsis; /* Add ellipsis if too long */
+}
+
 /* --- Metronome View (Compact & Contained) --- */
 .metronome-view {
   max-width: 250px; /* <<< SET MAX WIDTH */
   margin: 15px auto; /* Center horizontally, keep vertical margin */
   padding: 12px 15px; /* Adjusted padding */
   border: 1px solid var(--clr-border);
-  border-radius: 8px; /* <<< ROUNDED CORNERS */
-  box-shadow: 0 2px 5px var(--clr-shadow); /* <<< DROPSHADOW */
+  border-radius: 8px;
+  box-shadow: 0 2px 5px var(--clr-shadow);
   background-color: var(--clr-background-offset);
   margin-top: 15px;
   margin-bottom: 15px; /* Consistent vertical margin */
@@ -713,7 +848,7 @@ body.dark-theme .metronome-view {
 }
 .metronome-beat.beat-accent {
   background-color: var(--clr-info);
-  opacity: 1.0;
+  opacity: 1;
 }
 .metronome-beat.beat-silent {
   background-color: transparent;
@@ -721,13 +856,13 @@ body.dark-theme .metronome-view {
   opacity: 0.4;
 }
 body.dark-theme .metronome-beat.beat-normal {
-    background-color: var(--clr-text-subtle-dark);
+  background-color: var(--clr-text-subtle-dark);
 }
 body.dark-theme .metronome-beat.beat-accent {
-    background-color: var(--clr-info);
+  background-color: var(--clr-info);
 }
 body.dark-theme .metronome-beat.beat-silent {
-    border-color: var(--clr-border-dark);
+  border-color: var(--clr-border-dark);
 }
 .metronome-beat.beat-current {
   border-color: var(--clr-warning);
@@ -736,7 +871,7 @@ body.dark-theme .metronome-beat.beat-silent {
 }
 .metronome-beat.beat-current.beat-normal,
 .metronome-beat.beat-current.beat-silent {
-    opacity: 1.0;
+  opacity: 1;
 }
 
 /* Controls might need adjusting */
@@ -748,10 +883,11 @@ body.dark-theme .metronome-beat.beat-silent {
   gap: 8px; /* Reduced gap */
 }
 
-.metronome-controls > div { /* Target the left/right control groups */
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.metronome-controls > div {
+  /* Target the left/right control groups */
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* Ensure slider doesn't overflow */
@@ -762,13 +898,167 @@ body.dark-theme .metronome-beat.beat-silent {
 }
 
 .metronome-bpm-display {
-    min-width: 50px; /* Slightly smaller min-width */
+  min-width: 50px; /* Slightly smaller min-width */
 }
 
-/* Keep other control styles (.metronome-mute-btn, etc.) */
-/* ... */
 .metronome-mute-btn.is-warning {
-    background-color: var(--clr-warning);
-    color: rgba(0,0,0,0.8);
-    border-color: transparent;
+  background-color: var(--clr-warning);
+  color: rgba(0, 0, 0, 0.8);
+  border-color: transparent;
+}
+
+/* --- Floating View Dropdown --- */
+#floating-view-dropdown-container .dropdown-menu {
+  /* Adjust positioning if needed */
+  min-width: 180px; /* Example width */
+}
+
+#floating-view-dropdown-content {
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+/* Style for dropdown items containing checkboxes */
+.dropdown-item.has-checkbox {
+  padding: 0; /* Remove default padding */
+}
+.dropdown-item.has-checkbox label.checkbox {
+  padding: 0.375rem 1rem; /* Re-apply padding to the label */
+  display: block; /* Make label take full width */
+  width: 100%;
+  cursor: pointer; /* Make the whole area clickable */
+}
+/* Optional hover effect for the label */
+.dropdown-item.has-checkbox label.checkbox:hover {
+  background-color: #f5f5f5; /* Bulma's hover color */
+}
+body.dark-theme .dropdown-item.has-checkbox label.checkbox:hover {
+   background-color: rgba(255,255,255, 0.05); /* Dark theme hover */
+}
+
+/* Ensure checkbox is vertically aligned with text */
+.dropdown-item.has-checkbox label.checkbox input[type="checkbox"] {
+  vertical-align: middle;
+  margin-right: 0.5em;
+}
+
+/* --- Floating View System --- */
+#floating-view-area {
+  position: absolute; /* Or fixed, depending on desired behavior */
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Allow clicks to pass through the area */
+  overflow: hidden; /* Prevent scrollbars on the area itself */
+  z-index: 90; /* Below modals? */
+}
+
+.floating-view-wrapper {
+  position: absolute; /* Required for positioning */
+  background-color: var(--clr-bg);
+  border: 1px solid var(--clr-border);
+  box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  min-width: 150px; /* Example minimum */
+  min-height: 50px; /* Example minimum */
+  pointer-events: auto; /* Re-enable pointer events for the view itself */
+  overflow: hidden; /* Hide content overflow */
+  resize: both; /* Optional: Allow resizing */
+  /* Base size - can be overridden by JS */
+  width: 250px;
+  /* height: auto; Let content define height initially */
+}
+
+.floating-view-wrapper.is-dragging {
+  opacity: 0.8;
+  /* Add other dragging styles */
+}
+
+.floating-view-titlebar {
+  background-color: var(--clr-tertiary);
+  color: var(--clr-text);
+  padding: 4px 8px;
+  font-weight: bold;
+  font-size: 0.8rem;
+  cursor: grab;
+  border-bottom: 1px solid var(--clr-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  user-select: none; /* Prevent text selection during drag */
+  flex-shrink: 0; /* Prevent title bar from shrinking */
+}
+
+.floating-view-close {
+  background: none;
+  border: none;
+  color: var(--clr-text-subtle);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  margin-left: 5px;
+}
+.floating-view-close:hover {
+  color: var(--clr-danger);
+}
+
+.floating-view-content {
+  padding: 10px;
+  overflow: auto; /* Allow scrolling if content exceeds size */
+  flex-grow: 1; /* Allow content to fill remaining space */
+}
+
+/* --- Color Legend View Specific Styles --- */
+.color-legend-view .legend-title {
+  font-weight: bold;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  text-align: center;
+  border-bottom: 1px solid var(--clr-border);
+  padding-bottom: 4px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+}
+.color-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(0,0,0,0.2);
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.legend-label {
+  flex-grow: 1;
+}
+
+/* --- Dark Theme Adjustments for Floating Views --- */
+body.dark-theme .floating-view-wrapper {
+ background-color: var(--clr-bg-dark);
+ border-color: var(--clr-border-dark);
+ box-shadow: 3px 3px 8px rgba(0,0,0,0.4);
+}
+body.dark-theme .floating-view-titlebar {
+  background-color: var(--clr-secondary-dark);
+  color: var(--clr-text-dark);
+  border-bottom-color: var(--clr-border-dark);
+}
+body.dark-theme .floating-view-close {
+   color: var(--clr-text-subtle-dark);
+}
+body.dark-theme .floating-view-close:hover {
+   color: #ff7979; /* Lighter red for dark theme */
+}
+body.dark-theme .color-legend-view .legend-title {
+   border-bottom-color: var(--clr-border-dark);
+}
+body.dark-theme .color-swatch {
+    border-color: rgba(255,255,255,0.3);
 }

@@ -70,7 +70,7 @@ export class NotesFeature extends GuitarFeature {
         required: false, // Optional argument
         enum: availableKeys,
         description:
-          "Select 'None' (default) to color by note name, or a root note to color by interval.",
+          "Select 'None' (default) to color by note name, or a root note for interval-based colors.",
       },
     ];
     return {

@@ -421,18 +421,5 @@ export class CagedFeature extends GuitarFeature {
   render(container: HTMLElement): void {
     clearAllChildren(container);
     addHeader(container, this.headerText);
-    const info = document.createElement("p");
-    info.classList.add(
-      "is-size-7",
-      "has-text-grey",
-      "has-text-centered",
-      "mb-2"
-    );
-    const scaleTypeText = this.scaleType.toLowerCase().includes("minor")
-      ? "Relative Major Scale"
-      : "Major Scale";
-    info.textContent = `(Stroke color indicates ${scaleTypeText} CAGED pattern)`;
-    container.appendChild(info);
-    // FretboardView is rendered by DisplayController
   }
 }

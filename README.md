@@ -1,6 +1,6 @@
 # PracTempo
 
-PracTempo is a practice timer application designed for musicians, offering scheduled intervals combined with context-specific visual aids and information. It helps structure practice sessions effectively, initially focusing on tools for guitarists. *Think of a highly customizable Pomodoro timer, with hints about each task included.*
+PracTempo is a practice timer application designed for musicians, offering scheduled intervals combined with context-specific visual aids and information. It helps structure practice sessions effectively, initially focusing on tools for guitarists. *Think of a highly customizable Pomodoro timer, which can display context and instructions about each task.*
 
 Users can define a practice schedule, and PracTempo tracks the schedule with a timer and notifications. For each practice element PracTempo will display relevant hints like scale diagrams, chord shapes, or other pertinent visual aids.
 
@@ -35,17 +35,19 @@ PracTempo is developed using TypeScript and bundled with Webpack.
     ```bash
     npm install
     ```
-3.  Build the project (outputs bundled JavaScript to `./js/bundle.js`):
+3.  From the `ts` subdirectory, build the project (outputs bundled JavaScript to `./js/bundle.js`):
     ```bash
     npm run build
     ```
-4.  Start the local development server:
+4.  From the `ts` subdirectory, start the local development server:
     ```bash
     npm run start
     ```
     This command typically compiles the TypeScript (`main.ts` entry point) and serves the application locally.
+5.  The server will be running at localhost:4000.
 
 ## Dependencies
+*   Node.js and npm
 *   Bulma - CSS library used for panelization.
 ---
 

@@ -39,7 +39,6 @@ export interface LineData {
 }
 
 // --- FretboardConfig Class ---
-// (Includes globalScaleMultiplier modification from previous step)
 export class FretboardConfig {
   public readonly baseStringSpacingPx = 32;
   public readonly baseFretLengthPx = 39;
@@ -55,33 +54,13 @@ export class FretboardConfig {
   constructor(
     public readonly tuning: Tuning,
     public readonly handedness: "right" | "left" = "right",
-    public readonly colorScheme: FretboardColorScheme = "default",
+    public readonly colorScheme: FretboardColorScheme = "interval", // <<< FIXED: Changed default from "default" to "interval"
     public readonly markerDots = [
-      0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 2, 0, 0, 1, 0, 1, 0, 1, 0, 1,
+      0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 2, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, // Added 0 for 22nd fret
     ],
     public readonly sideNumbers = [
-      "",
-      "",
-      "",
-      "III",
-      "",
-      "V",
-      "",
-      "VII",
-      "",
-      "IX",
-      "",
-      "",
-      "XII",
-      "",
-      "",
-      "XV",
-      "",
-      "XVII",
-      "",
-      "XIX",
-      "",
-      "XXI",
+      "", "", "", "III", "", "V", "", "VII", "", "IX", "", "",
+      "XII", "", "", "XV", "", "XVII", "", "XIX", "", "XXI", "", // Added "" for 22nd fret
     ],
     public readonly stringWidths = [3, 3, 2, 2, 1, 1],
     maxCanvasHeight?: number,
@@ -125,6 +104,7 @@ export type TuningName = keyof typeof AVAILABLE_TUNINGS;
 export class Fretboard {
   private notesToRender: NoteRenderData[] = [];
   private linesToRender: LineData[] = [];
+  private startFret: number = 0; // <<< ADDED: Store the starting fret for rendering
   // Calculated positions (relative to internal origin)
   private nutLineY = 0;
   private absoluteTopPx = 0; // Y coordinate for the very top drawing bound (fretboard's topPx)
@@ -134,7 +114,7 @@ export class Fretboard {
     public readonly config: FretboardConfig,
     public readonly leftPx = 45, // Base X position on canvas for drawing start
     public readonly topPx = 45, // Base Y position on canvas for drawing start
-    public readonly fretCount: number
+    public readonly fretCount: number // Number of frets to *display*
   ) {
     // Pre-calculate positions based on scaled config
     const scaleFactor = this.config.scaleFactor;
@@ -143,7 +123,7 @@ export class Fretboard {
     this.absoluteTopPx = this.topPx;
     // Clearance needed above the nut line
     const openNoteClearance = scaledNoteRadius * 1.5 + 5 * scaleFactor;
-    // The Y coordinate where the nut line (fret 0) should be drawn relative to this.topPx
+    // The Y coordinate where the nut line (or the first visible fret line if startFret > 0) should be drawn relative to this.topPx
     this.nutLineY = this.absoluteTopPx + openNoteClearance;
   }
 
@@ -159,6 +139,11 @@ export class Fretboard {
     this.linesToRender = [];
   }
 
+  /** Sets the starting fret number for the diagram display. */
+  public setStartFret(fret: number): void { // <<< ADDED Method
+      this.startFret = Math.max(0, fret); // Ensure start fret is not negative
+  }
+
   // --- Coordinate and Grid Logic ---
   private getStringIndex(visualIndex: number): number {
     return this.config.handedness === "left" ? 5 - visualIndex : visualIndex;
@@ -166,18 +151,26 @@ export class Fretboard {
   private getStringX(visualIndex: number): number {
     return this.absoluteLeftPx + visualIndex * this.config.stringSpacingPx;
   }
+
   /** Calculates the X, Y coordinates for the center of a note circle on the canvas. */
   getNoteCoordinates(
     stringIndex: number,
-    fret: number
+    fret: number // fret is the *actual* fret number (0 for open, >0 for fretted)
   ): { x: number; y: number } {
     const visualStringIndex =
       this.config.handedness === "left" ? 5 - stringIndex : stringIndex;
     const x = this.getStringX(visualStringIndex);
     let y: number;
-    if (fret > 0) {
-      y = this.nutLineY + (fret - 0.5) * this.config.fretLengthPx;
+
+    // Calculate fret position relative to the displayed range
+    const displayFret = fret - this.startFret;
+
+    if (displayFret > 0) {
+      // Note is on a visible fret (not open, not below startFret)
+      y = this.nutLineY + (displayFret - 0.5) * this.config.fretLengthPx;
     } else {
+      // Note is open (fret=0) or muted (fret=-1)
+      // Position above the first visible line (nut or first fret line)
       const textBuffer = 5 * this.config.scaleFactor;
       y = this.nutLineY - this.config.noteRadiusPx - textBuffer;
       y = Math.max(this.absoluteTopPx + this.config.noteRadiusPx, y);
@@ -185,8 +178,10 @@ export class Fretboard {
     return { x, y };
   }
 
+
   // --- Main Render Method ---
   render(ctx: CanvasRenderingContext2D): void {
+    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // Clear canvas
     this._renderGrid(ctx);
     this._renderLines(ctx); // Draw lines first (underneath notes)
     this._renderNotes(ctx); // Draw notes on top
@@ -206,9 +201,8 @@ export class Fretboard {
       const xPos = this.getStringX(visualIndex);
       ctx.beginPath();
       ctx.lineWidth = stringWidths[visualIndex] * scaleFactor; // Scale string width
-      ctx.moveTo(xPos, this.nutLineY);
-      const stringBottomY =
-        this.nutLineY + this.fretCount * config.fretLengthPx;
+      ctx.moveTo(xPos, this.nutLineY); // Start at the first line (nut or fret)
+      const stringBottomY = this.nutLineY + this.fretCount * config.fretLengthPx; // Bottom based on *displayed* fret count
       ctx.lineTo(xPos, stringBottomY);
       ctx.strokeStyle = "#aaa";
       ctx.stroke();
@@ -225,12 +219,22 @@ export class Fretboard {
     const boldFretLineWidth = 2 * scaleFactor;
     const sideNumberOffsetX = 18 * scaleFactor;
 
-    for (var i = 0; i <= this.fretCount; i++) {
-      const yPos = this.nutLineY + i * config.fretLengthPx;
-      const hasSideNumber = !!config.sideNumbers[i];
+    // Draw the first line (nut or starting fret)
+    const firstLineY = this.nutLineY;
+    ctx.beginPath();
+    // Make nut extra thick only if startFret is 0
+    ctx.lineWidth = this.startFret === 0 ? boldFretLineWidth * 1.5 : boldFretLineWidth;
+    ctx.moveTo(this.absoluteLeftPx, firstLineY);
+    ctx.lineTo(this.absoluteLeftPx + totalBoardWidth, firstLineY);
+    ctx.stroke();
 
-      if (i === 0) ctx.lineWidth = boldFretLineWidth * 1.5; // Thicker nut
-      else if (hasSideNumber) ctx.lineWidth = boldFretLineWidth;
+    // Draw subsequent fret lines
+    for (var i = 1; i <= this.fretCount; i++) { // Iterate through *displayed* frets
+      const yPos = this.nutLineY + i * config.fretLengthPx;
+      const actualFretNumber = this.startFret + i; // Calculate the actual fret number
+      const hasSideNumber = actualFretNumber < config.sideNumbers.length && !!config.sideNumbers[actualFretNumber];
+
+      if (hasSideNumber) ctx.lineWidth = boldFretLineWidth;
       else ctx.lineWidth = defaultFretLineWidth;
 
       ctx.beginPath();
@@ -238,23 +242,27 @@ export class Fretboard {
       ctx.lineTo(this.absoluteLeftPx + totalBoardWidth, yPos);
       ctx.stroke();
 
-      if (hasSideNumber && i > 0) {
+      // Side Numbers (position based on *visual* fret index i)
+      if (hasSideNumber && actualFretNumber > 0) {
         ctx.textAlign = "right";
         ctx.textBaseline = "middle";
         ctx.fillText(
-          config.sideNumbers[i],
+          config.sideNumbers[actualFretNumber], // Use actual fret number for lookup
           this.absoluteLeftPx - sideNumberOffsetX,
-          this.nutLineY + (i - 0.5) * config.fretLengthPx
+          this.nutLineY + (i - 0.5) * config.fretLengthPx // Position based on visual fret i
         );
       }
 
+      // Marker Dots (position based on *visual* fret index i)
       const markerY = this.nutLineY + (i - 0.5) * config.fretLengthPx;
       const scaledMarkerRadius = config.markerDotRadiusPx;
-      if (config.markerDots[i] === 1) {
+      const markerDotType = actualFretNumber < config.markerDots.length ? config.markerDots[actualFretNumber] : 0;
+
+      if (markerDotType === 1) {
         ctx.beginPath();
         ctx.arc(boardCenterX, markerY, scaledMarkerRadius, 0, 2 * Math.PI);
         ctx.fill();
-      } else if (config.markerDots[i] === 2) {
+      } else if (markerDotType === 2) {
         const markerX1 = this.absoluteLeftPx + 1.5 * config.stringSpacingPx;
         const markerX2 = this.absoluteLeftPx + 3.5 * config.stringSpacingPx;
         ctx.beginPath();
@@ -268,6 +276,7 @@ export class Fretboard {
     ctx.textAlign = "left";
     ctx.lineWidth = 1; // Reset default line width
   }
+
 
   private _renderLines(ctx: CanvasRenderingContext2D): void {
     const scaleFactor = this.config.scaleFactor;
@@ -296,98 +305,104 @@ export class Fretboard {
     const baseNoteRadius = this.config.noteRadiusPx; // Base scaled radius
 
     this.notesToRender.forEach((noteData) => {
-      if (noteData.fret === -1) {
-        // Handle muted string
-        const visualStringIndex =
-          this.config.handedness === "left"
-            ? 5 - noteData.stringIndex
-            : noteData.stringIndex;
-        this._drawMutedString(ctx, visualStringIndex, baseNoteRadius);
-      } else {
-        // Handle open or fretted note
-        const { x, y } = this.getNoteCoordinates(
-          noteData.stringIndex,
-          noteData.fret
-        );
-        const effectiveRadius =
-          noteData.radiusOverride ??
-          (noteData.fret === 0
-            ? baseNoteRadius * OPEN_NOTE_RADIUS_FACTOR
-            : baseNoteRadius);
-        const effectiveStrokeWidth = (noteData.strokeWidth ?? 1) * scaleFactor;
-        const effectiveColorScheme =
-          noteData.colorSchemeOverride ?? this.config.colorScheme;
+       // Only render notes within the displayed fret range (or open/muted)
+       const displayFret = noteData.fret - this.startFret;
+        if (noteData.fret === -1 || (displayFret >= 0 && displayFret <= this.fretCount)) {
 
-        // Determine Fill Color
-        let finalFillColor: string | string[] =
-          noteData.fillColor ||
-          getColorFromScheme(
-            effectiveColorScheme,
-            noteData.noteName,
-            noteData.intervalLabel
-          );
-
-        // Determine Stroke Color
-        let finalStrokeColor: string | string[] =
-          noteData.strokeColor || "black"; // Default stroke
-
-        // Determine FG color (for text/icon) based on primary fill
-        const primaryFill = Array.isArray(finalFillColor)
-          ? finalFillColor[0]
-          : finalFillColor;
-        let fgColor = "#eee"; // Default light text
-        if (primaryFill !== "transparent") {
-          try {
-            const r = parseInt(primaryFill.slice(1, 3), 16);
-            const g = parseInt(primaryFill.slice(3, 5), 16);
-            const b = parseInt(primaryFill.slice(5, 7), 16);
-            const brightness = (r * 299 + g * 587 + b * 114) / 1000;
-            fgColor = brightness > 150 ? "#333" : "#eee"; // Dark text on light bg
-          } catch (e) {
-            /* Keep default fgColor if parsing fails */
-          }
-        }
-
-        // Draw Circle(s)
-        this._drawCircle(
-          ctx,
-          x,
-          y,
-          effectiveRadius,
-          finalFillColor,
-          finalStrokeColor,
-          effectiveStrokeWidth
-        );
-
-        // Determine Content Hierarchy
-        let contentToDraw: string | null = null;
-        let drawIconType: NoteIcon | undefined =
-          noteData.icon && noteData.icon !== NoteIcon.None
-            ? noteData.icon
-            : undefined;
-
-        if (!drawIconType) {
-          if (
-            noteData.displayLabel !== undefined &&
-            noteData.displayLabel !== ""
-          ) {
-            contentToDraw = noteData.displayLabel;
+          if (noteData.fret === -1) {
+            // Handle muted string
+            const visualStringIndex =
+              this.config.handedness === "left"
+                ? 5 - noteData.stringIndex
+                : noteData.stringIndex;
+            this._drawMutedString(ctx, visualStringIndex, baseNoteRadius);
           } else {
-            contentToDraw = noteData.noteName;
-          }
-        }
+            // Handle open or fretted note
+            const { x, y } = this.getNoteCoordinates(
+              noteData.stringIndex,
+              noteData.fret // Pass the actual fret
+            );
+            const effectiveRadius =
+              noteData.radiusOverride ??
+              (noteData.fret === 0
+                ? baseNoteRadius * OPEN_NOTE_RADIUS_FACTOR
+                : baseNoteRadius);
+            const effectiveStrokeWidth = (noteData.strokeWidth ?? 1) * scaleFactor;
+            const effectiveColorScheme =
+              noteData.colorSchemeOverride ?? this.config.colorScheme;
 
-        // Draw Content (Icon or Text)
-        if (drawIconType) {
-          this._drawIcon(ctx, drawIconType, x, y, effectiveRadius, fgColor);
-        } else if (contentToDraw) {
-          const effectiveFontSize =
-            noteData.fret === 0 && noteData.radiusOverride === undefined
-              ? baseFontSize * 0.85
-              : baseFontSize; // Adjust for smaller open notes
-          this._drawText(ctx, contentToDraw, x, y, effectiveFontSize, fgColor);
-        }
-      }
+            // Determine Fill Color
+            let finalFillColor: string | string[] =
+              noteData.fillColor ||
+              getColorFromScheme(
+                effectiveColorScheme,
+                noteData.noteName,
+                noteData.intervalLabel
+              );
+
+            // Determine Stroke Color
+            let finalStrokeColor: string | string[] =
+              noteData.strokeColor || "black"; // Default stroke
+
+            // Determine FG color (for text/icon) based on primary fill
+            const primaryFill = Array.isArray(finalFillColor)
+              ? finalFillColor[0]
+              : finalFillColor;
+            let fgColor = "#eee"; // Default light text
+            if (primaryFill !== "transparent") {
+              try {
+                const r = parseInt(primaryFill.slice(1, 3), 16);
+                const g = parseInt(primaryFill.slice(3, 5), 16);
+                const b = parseInt(primaryFill.slice(5, 7), 16);
+                const brightness = (r * 299 + g * 587 + b * 114) / 1000;
+                fgColor = brightness > 150 ? "#333" : "#eee"; // Dark text on light bg
+              } catch (e) {
+                /* Keep default fgColor if parsing fails */
+              }
+            }
+
+            // Draw Circle(s)
+            this._drawCircle(
+              ctx,
+              x,
+              y,
+              effectiveRadius,
+              finalFillColor,
+              finalStrokeColor,
+              effectiveStrokeWidth
+            );
+
+            // Determine Content Hierarchy
+            let contentToDraw: string | null = null;
+            let drawIconType: NoteIcon | undefined =
+              noteData.icon && noteData.icon !== NoteIcon.None
+                ? noteData.icon
+                : undefined;
+
+            if (!drawIconType) {
+              if (
+                noteData.displayLabel !== undefined &&
+                noteData.displayLabel !== ""
+              ) {
+                contentToDraw = noteData.displayLabel;
+              } else {
+                // Fallback if displayLabel is empty or undefined
+                contentToDraw = noteData.noteName;
+              }
+            }
+
+            // Draw Content (Icon or Text)
+            if (drawIconType) {
+              this._drawIcon(ctx, drawIconType, x, y, effectiveRadius, fgColor);
+            } else if (contentToDraw) {
+               // Adjust font size based on radius (especially for smaller open notes)
+                const fontSizeRatio = 0.9; // How much of the radius the font should occupy vertically
+                const effectiveFontSize = Math.min(baseFontSize, effectiveRadius * 2 * fontSizeRatio * 0.6); // Heuristic adjustment
+
+              this._drawText(ctx, contentToDraw, x, y, effectiveFontSize, fgColor);
+            }
+          }
+       } // End if note is within display range
     });
   }
 
@@ -437,6 +452,14 @@ export class Fretboard {
         ctx.strokeStyle = bottomStroke;
         ctx.stroke();
       }
+      // Draw dividing line for split circles
+       ctx.beginPath();
+       ctx.moveTo(x - radius, y);
+       ctx.lineTo(x + radius, y);
+       // Use an average or default stroke color for the divider? Or maybe primary stroke?
+       ctx.strokeStyle = Array.isArray(stroke) ? stroke[0] : stroke;
+       ctx.stroke();
+
     } else {
       // Solid Circle Logic
       ctx.beginPath();
@@ -459,7 +482,7 @@ export class Fretboard {
     baseScaledRadius: number
   ): void {
     const x = this.getStringX(visualStringIndex);
-    // Position above the nut line
+    // Position above the first visible line (nut or starting fret line)
     const y = this.nutLineY - baseScaledRadius * 1.5;
     const size = baseScaledRadius * 0.55; // Size based on note radius
 
@@ -485,7 +508,7 @@ export class Fretboard {
   ): void {
     ctx.save();
     ctx.fillStyle = color;
-    ctx.font = `${fontSize}px Sans-serif`; // Consider making font configurable
+    ctx.font = `bold ${fontSize}px Sans-serif`; // Consider making font configurable, added bold
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const textYOffset = fontSize * 0.05; // Small adjustment for visual centering

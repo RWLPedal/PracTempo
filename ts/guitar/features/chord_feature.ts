@@ -48,6 +48,7 @@ export class ChordFeature extends GuitarFeature {
 
     // Create ChordDiagramViews (metronome view is handled by base constructor)
     chords.forEach((chord) => {
+      // Use the chord's name property for the diagram title
       this._views.push(
         new ChordDiagramView(chord, chord.name, this.fretboardConfig)
       );
@@ -56,15 +57,14 @@ export class ChordFeature extends GuitarFeature {
 
   // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
-    // Unchanged
     const availableChordNames = Object.keys(chord_library);
     const specificArgs: ConfigurationSchemaArg[] = [
       {
-        name: "ChordNames",
+        name: "Chord", // Changed from "ChordNames"
         type: "enum",
         required: true,
         enum: availableChordNames,
-        description: "One or more chord names.",
+        description: "Select one or more chords.",
         isVariadic: true,
       },
     ];
@@ -131,13 +131,12 @@ export class ChordFeature extends GuitarFeature {
 
   /** Render method now just adds the header. Views are rendered by DisplayController. */
   render(container: HTMLElement): void {
-    // Unchanged
     clearAllChildren(container);
     const chordViews = this._views.filter(
       (v) => v instanceof ChordDiagramView
     ) as ChordDiagramView[];
     const uniqueChordNames = [
-      ...new Set(chordViews.map((v) => (v as any).chord.name)), // Access chord name via cast
+      ...new Set(chordViews.map((v) => (v as any).chord.name)), // Use cast if needed
     ];
     let headerText = "Chord Diagram";
     if (uniqueChordNames.length === 1) {

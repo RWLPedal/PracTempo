@@ -1,4 +1,3 @@
-// ts/guitar/guitar_base.ts
 import { Feature, ConfigurationSchemaArg } from "../feature";
 import { View } from "../view";
 import { MetronomeView } from "./views/metronome_view";
@@ -44,10 +43,10 @@ export abstract class GuitarFeature implements Feature {
   protected metronomeBpm: number = 0;
 
   static readonly BASE_GUITAR_SETTINGS_CONFIG_ARG: ConfigurationSchemaArg = {
-    name: "Guitar Settings",
+    name: "",
     type: "ellipsis",
     uiComponentType: "ellipsis",
-    description: "Configure interval-specific guitar settings (Metronome).",
+    description: "Configure interval-specific settings (e.g., Metronome).",
     nestedSchema: [
       {
         name: "metronomeBpm",
@@ -82,14 +81,13 @@ export abstract class GuitarFeature implements Feature {
       tuning,
       guitarGlobalSettings.handedness,
       guitarGlobalSettings.colorScheme,
-      undefined,
-      undefined,
-      undefined,
+      undefined, // markerDots
+      undefined, // sideNumbers
+      undefined, // stringWidths
       this.maxCanvasHeight
     );
 
     // --- Metronome Handling ---
-    // MetronomeView is potentially added *last* to ensure render order
     let metronomeViewInstance: MetronomeView | null = null;
     this.metronomeBpm = intervalSettings?.metronomeBpm ?? 0;
     if (this.metronomeBpm > 0) {
@@ -102,32 +100,24 @@ export abstract class GuitarFeature implements Feature {
           this.metronomeBpm,
           this.audioController
         );
-        console.log(
-          `MetronomeView instance created by GuitarFeature base with BPM: ${this.metronomeBpm}`
-        );
-      } else if (this.audioController) {
-        console.error(
-          "Required metronome audio element(s) missing in AudioController. MetronomeView will not be created."
-        );
       } else {
         console.warn(
-          `Metronome requested (BPM: ${this.metronomeBpm}) but AudioController was not provided. MetronomeView will not be created.`
+          `Metronome requested (BPM: ${this.metronomeBpm}) but audio elements/controller missing. MetronomeView not created.`
         );
       }
     }
 
-    // Subclasses will add their primary views to this._views in their constructors BEFORE calling super
-    // Now, add the metronome view if it was created, ensuring it's last
+    // Subclasses add their views to this._views BEFORE calling super.
+    // Add the metronome view if created, ensuring it's last.
     if (metronomeViewInstance) {
       this._views.push(metronomeViewInstance);
-      console.log(`MetronomeView added LAST to views array.`);
     }
   }
 
   // Abstract render method
   abstract render(container: HTMLElement): void;
 
-  // Common lifecycle methods (remain same)
+  // Common lifecycle methods
   prepare?(): void {
     this._views.forEach((view) => {
       if (typeof (view as any).prepare === "function") {
@@ -145,17 +135,14 @@ export abstract class GuitarFeature implements Feature {
     this._views.forEach((view) => view.destroy());
   }
 
-  // clearAndAddCanvas helper (remains same)
+  // Helper for canvas setup
   protected clearAndAddCanvas(
     container: HTMLElement,
     headerText: string
   ): { canvas: HTMLCanvasElement; ctx: CanvasRenderingContext2D } {
     clearAllChildren(container);
     addHeader(container, headerText);
-    const uniqueSuffix = `${this.typeName}-${this.config.join("-")}`.replace(
-      /[^a-zA-Z0-9-]/g,
-      "_"
-    );
+    const uniqueSuffix = `${this.typeName}-${Math.random().toString(36).substring(2, 9)}`;
     const canvasEl = addCanvas(container, uniqueSuffix);
     const ctx = canvasEl.getContext("2d");
     if (!ctx) {
@@ -164,8 +151,9 @@ export abstract class GuitarFeature implements Feature {
       );
     }
     ctx.clearRect(0, 0, canvasEl.width, canvasEl.height);
-    ctx.resetTransform();
-    ctx.translate(0.5, 0.5);
+    ctx.resetTransform(); // Use resetTransform for modern canvas state clearing
+    // Optional: Translate for sharper lines
+    // ctx.translate(0.5, 0.5);
     return { canvas: canvasEl, ctx: ctx };
   }
 }

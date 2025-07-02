@@ -1,5 +1,5 @@
 import { TuningName } from "./fretboard";
-import { FretboardColorScheme } from "./colors";
+import { FretboardColorScheme, INTERVAL_COLORS } from './colors';
 
 /** Defines the settings specifically for the Guitar category. */
 export interface GuitarSettings {
@@ -12,7 +12,7 @@ export interface GuitarSettings {
 export const DEFAULT_GUITAR_SETTINGS: GuitarSettings = {
   handedness: "right",
   tuning: "Standard",
-  colorScheme: "default",
+  colorScheme: "interval",
 };
 
 /**

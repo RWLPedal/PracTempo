@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Droid+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css">
   <script src="./js/bundle.js" defer></script>
   <link rel="stylesheet" href="style/style.css">
@@ -21,37 +22,46 @@
       <div class="tile is-vertical is-parent is-5">
         <div class="tile is-child notification" id="task-wrapper">
           <p class="subtitle">PracTempo!</p>
-        </div>
-        <div class="tile is-child notification" id="task-wrapper">
+          <div class="level main-controls is-mobile">
+              <div class="level-item">
+                  <button id="start-control" class="button is-success is-medium">START</button>
+              </div>
+              <div class="level-item">
+                  <button id="skip-control" class="button is-info is-medium" title="Skip to next task">SKIP</button>
+              </div>
+              <div class="level-item">
+                  <button id="reset-control" class="button is-danger is-medium">RESET</button>
+              </div>
+              <div class="level-item">
+                  <button id="settings-button" class="button not-text" title="Settings">
+                      <span class="material-icons">settings</span>
+                  </button>
+              </div>
+              <div class="level-item">
+                  <div class="dropdown" id="floating-view-dropdown-container">
+                      <div class="dropdown-trigger">
+                          <button id="floating-view-button" class="button not-text" aria-haspopup="true" aria-controls="floating-view-dropdown-menu" title="Floating Views">
+                              <span class="material-icons">widgets</span>
+                          </button>
+                      </div>
+                      <div class="dropdown-menu" id="floating-view-dropdown-menu" role="menu">
+                          <div class="dropdown-content" id="floating-view-dropdown-content">
+                              </div>
+                      </div>
+                  </div>
+              </div>
+          </div>
+      </div>
+        <div class="tile is-child notification">
           <p class="subtitle">Current Task</p>
           <div id="timer-wrapper">
             <div id="task">Your task</div>
             <span id="status">‖</span>
             <div id="timer">0:00</div>
           </div>
-        </div>
-        <div class="tile is-child notification">
-          <p class="subtitle">Time</p>
           <span id="total-timer">0:00 / 0:00</span>
           <p class="subtitle">Upcoming Tasks</p>
           <ol id="upcoming"></ol>
-        </div>
-        <div class="tile is-child notification">
-          <div class="level main-controls is-mobile">
-            <div class="level-item">
-              <button id="start-control" class="button is-success is-medium">START</button>
-            </div>
-            <div class="level-item">
-                <button id="skip-control" class="button is-info is-medium" title="Skip to next task">SKIP</button>
-            </div>
-            <div class="level-item">
-              <button id="reset-control" class="button is-danger is-medium">RESET</button>
-            </div>
-            <div class="level-item">
-              <button id="settings-button" class="button is-text" title="Settings">
-                &#9881; </button>
-            </div>
-          </div>
         </div>
       </div> <div class="tile is-parent is-7">
         <article id="diagram" class="tile is-child notification">
@@ -176,6 +186,6 @@
       </footer>
     </div>
   </div>
-
+  <div id="floating-view-area"></div>
 </body>
 </html>
