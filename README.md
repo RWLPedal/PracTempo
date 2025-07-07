@@ -4,6 +4,10 @@ PracTempo is a practice timer application designed for musicians, offering sched
 
 Users can define a practice schedule, and PracTempo tracks the schedule with a timer and notifications. For each practice element PracTempo will display relevant hints like scale diagrams, chord shapes, or other pertinent visual aids.
 
+## Try it out
+
+If you want to see what all the fuss is about, you can try out PracTempo [here](https://html-preview.github.io/?url=https://github.com/RWLPedal/PracTempo/blob/main/index.html) (currently designed for desktop).
+
 ## Key Features
 
 *   **Scheduled Practice:** Define custom practice routines with timed intervals and notifications.

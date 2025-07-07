@@ -31,19 +31,20 @@ const COMMON_TIME_SIGNATURES: TimeSignature[] = [
  * Assumes 8th note level interaction for beat toggling.
  */
 export class MetronomeView implements View {
+
   private bpm: number;
   private intervalId: number | null = null;
   private container: HTMLElement | null = null;
   private audioController: AudioController;
 
   // State
+  public isRunning: boolean = false;
   private currentTimeSignature: TimeSignature = COMMON_TIME_SIGNATURES[0]; // Default to 4/4
   private currentSubdivisionLevel = 8; // Currently fixed to show 8th notes visually
   private numberOfVisualBeats: number = 8; // Visual beats shown (e.g., 8 for 4/4 @ 8th notes)
   private beatStates: BeatState[] = []; // Stores state (Silent, Normal, Accent) for each visual beat
   private currentTickIndex: number = -1; // Tracks the current metronome tick (0 to numberOfVisualBeats - 1)
   private isMuted: boolean = false;
-  private isRunning: boolean = false;
 
   // UI Elements
   private viewWrapper: HTMLElement | null = null;
@@ -54,6 +55,7 @@ export class MetronomeView implements View {
   private timeSigSelect: HTMLSelectElement | null = null;
   private bpmSlider: HTMLInputElement | null = null;
   private bpmDisplay: HTMLSpanElement | null = null;
+  private playPauseButton: HTMLButtonElement | null = null;
   private muteButton: HTMLButtonElement | null = null;
 
   constructor(bpm: number, audioController: AudioController) {
@@ -151,6 +153,20 @@ export class MetronomeView implements View {
     );
     timeSigWrapper.appendChild(this.timeSigSelect);
     leftControls.appendChild(timeSigWrapper);
+
+    this.playPauseButton = document.createElement("button");
+    this.playPauseButton.type = "button";
+    this.playPauseButton.classList.add("button", "is-small", "play-pause-btn");
+    this.playPauseButton.innerHTML = `<span class="material-icons">play_arrow</span>`;
+    this.playPauseButton.title = "Play/Pause Metronome";
+    this.playPauseButton.addEventListener('click', () => {
+        if (this.isRunning) {
+            this.stop();
+        } else {
+            this.start();
+        }
+    });
+    leftControls.appendChild(this.playPauseButton);
 
     // Mute Button
     this.muteButton = document.createElement("button");

@@ -874,6 +874,19 @@ body.dark-theme .metronome-beat.beat-silent {
   opacity: 1;
 }
 
+.metronome-beat {
+    cursor: pointer;
+    transition: transform 0.1s ease-out;
+}
+.metronome-beat:hover {
+    transform: scale(1.1);
+}
+
+/* Add this to center the play/pause icon */
+.play-pause-btn .material-icons {
+    vertical-align: middle;
+}
+
 /* Controls might need adjusting */
 .metronome-controls {
   display: flex;
@@ -888,6 +901,31 @@ body.dark-theme .metronome-beat.beat-silent {
   display: flex;
   align-items: center;
   gap: 8px;
+}
+
+.metronome-controls .left-controls,
+.metronome-controls .right-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.metronome-controls .left-controls {
+  flex-shrink: 0;
+}
+
+.metronome-controls .right-controls {
+  flex-grow: 1;
+  justify-content: flex-end;
+}
+
+/* Style for the new play/pause button */
+.play-pause-btn {
+    min-width: 40px;
+    font-size: 1.2em;
+    padding-top: 0;
+    padding-bottom: 0;
+    line-height: 1.5;
 }
 
 /* Ensure slider doesn't overflow */

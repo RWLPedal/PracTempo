@@ -16,6 +16,7 @@ import { TriadFeature } from "./features/triad_feature";
 import { MetronomeFeature } from "./features/metronome_feature";
 import { registerFloatingView } from "../floating_views/floating_view_registry";
 import { ColorLegendView } from "./views/color_legend_view";
+import { FloatingMetronomeView } from "./views/floating_metronome_view";
 import { FretboardReferenceView } from './views/fretboard_reference_view';
 import { AppSettings } from "../settings";
 
@@ -128,6 +129,17 @@ export class GuitarCategory implements Category {
       defaultHeight: 550, // Taller to show more frets
       createView: (initialState?: any, appSettings?: AppSettings) => {
         return new FretboardReferenceView(appSettings);
+      },
+    });
+
+    registerFloatingView({
+      viewId: "guitar_floating_metronome",
+      displayName: "Metronome",
+      categoryName: this.getName(),
+      defaultWidth: 280,
+      defaultHeight: 150,
+      createView: (initialState?: any, appSettings?: AppSettings) => {
+        return new FloatingMetronomeView(appSettings);
       },
     });
   }
