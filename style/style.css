@@ -1,125 +1,160 @@
-/* Define Color Palette */
+/* ══════════════════════════════════════════════════════════════════════════
+   Academic Theme — clean, paper-like, minimalist.
+   Open Sans throughout; analogous blue interval palette; charcoal text;
+   soft diffused shadows; underline-only config controls.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+@import url('https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap');
+
+/* ── Design Tokens ──────────────────────────────────────────────────────── */
 :root {
-  /* --- Base Palette (Conceptual - helps define relationships) --- */
-  --hue-primary: 210; /* Blueish */
-  --hue-secondary: 195; /* Cyanish/Blue-Grey */
-  --hue-neutral: 210; /* Often related to primary or true neutral */
-  --clr-blue-500: #3498db; /* Base Blue */
-  --clr-red-500: #e74c3c; /* Base Red */
-  --clr-green-500: #2ecc71; /* Base Green */
-  --clr-orange-500: #f39c12; /* Base Orange */
-  --clr-grey-50: #f8f9fa;
-  --clr-grey-100: #f1f3f5;
-  --clr-grey-300: #dee2e6;
-  --clr-grey-500: #adb5bd;
-  --clr-grey-700: #495057;
-  --clr-grey-900: #212529;
-  --clr-dark-blue-grey: #2c3e50;
+  /* Navy / blue family */
+  --clr-navy-900:   #001F5B;
+  --clr-navy-700:   #1E3A5F;
+  --clr-navy-500:   #2C4A7C;
+  --clr-navy-300:   #4E7FBA;
+  --clr-slate-500:  #6A5ACD;
+  --clr-sky-300:    #87CEEB;
+  --clr-teal-300:   #8FD1D1;
+  --clr-steel-200:  #B0C4DE;
 
-  /* --- Light Mode --- */
-  --clr-bg-light: #fcfcfc; /* Slightly cleaner white */
-  --clr-primary-light: #5e88d6; /* More saturated, slightly richer blue */
-  --clr-secondary-light: #e3eaf7; /* Lighter, related blue-grey */
-  --clr-tertiary-light: var(--clr-grey-100); /* Using neutral grey */
-  --clr-text-light: #2a2a2a; /* Slightly darker text */
-  --clr-text-subtle-light: #5f6368; /* Adjusted subtle text */
-  --clr-border-light: var(--clr-grey-300); /* Using neutral grey */
-  --clr-shadow-light: rgba(95, 99, 104, 0.1); /* Subtle grey shadow */
+  /* Neutral greys */
+  --clr-grey-50:   #F8F9FA;
+  --clr-grey-100:  #F1F4F8;
+  --clr-grey-200:  #E2E8F0;
+  --clr-grey-300:  #CBD5E1;
+  --clr-grey-500:  #64748B;
+  --clr-grey-700:  #334155;
+  --clr-grey-900:  #1A1A2E;
 
-  /* --- Dark Mode --- */
-  --clr-bg-dark: var(--clr-dark-blue-grey); /* #2c3e50 */
-  --clr-primary-dark: var(--clr-blue-500); /* #3498db - Kept the bright blue */
-  --clr-secondary-dark: #4a6572; /* Kept original - Provides some contrast */
-  --clr-tertiary-dark: #374f61; /* Darker, but distinct from bg & secondary */
-  --clr-text-dark: #e8eaed; /* Slightly adjusted light text */
-  --clr-text-subtle-dark: #aeb4b8; /* Adjusted subtle text */
-  --clr-border-dark: #526d7b; /* Slightly lighter border for better definition */
-  --clr-shadow-dark: rgba(0, 0, 0, 0.3); /* Slightly stronger dark shadow */
-  /* Optional: Tinted shadow */
-  /* --clr-shadow-dark: rgba(52, 152, 219, 0.15); */
+  --clr-dark-bg:   #1A1F2E;
 
-  /* --- Semantic Colors (Consistent across modes by default) --- */
-  --clr-danger: var(--clr-red-500); /* #e74c3c */
-  --clr-success: var(--clr-green-500); /* #2ecc71 */
-  --clr-info: var(--clr-blue-500); /* #3498db */
-  --clr-warning: var(--clr-orange-500); /* #f39c12 */
+  /* Semantic (muted, academic) */
+  --clr-danger:  #C0392B;
+  --clr-success: #1A6B3A;
+  --clr-info:    var(--clr-navy-500);
+  --clr-warning: #B07A00;
 
-  /* --- Components --- */
-  --clr-link: var(--clr-primary-light); /* Link color in light mode */
-  /* In dark mode, link color might need to be different: */
-  /* Consider setting this within the dark mode scope */
+  /* ── Light Mode ─────────────────────────────────────────────────────── */
+  --clr-bg-light:           #F8F9FA;
+  --clr-primary-light:      #2C4A7C;
+  --clr-secondary-light:    #F1F4F8;
+  --clr-tertiary-light:     #E2E8F0;
+  --clr-text-light:         #1A1A2E;
+  --clr-text-subtle-light:  #64748B;
+  --clr-border-light:       #E2E8F0;
+  --clr-shadow-light:       rgba(0, 0, 0, 0.08);
 
-  /* --- Accessibility & Hover States (Example - Define these too!) --- */
-  --clr-primary-light-hover: #4a76c8;
-  --clr-primary-dark-hover: #5dade2;
+  /* ── Dark Mode ──────────────────────────────────────────────────────── */
+  --clr-bg-dark:           #1A1F2E;
+  --clr-primary-dark:      #4E7FBA;
+  --clr-secondary-dark:    #252C3B;
+  --clr-tertiary-dark:     #2D3548;
+  --clr-text-dark:         #E8ECF0;
+  --clr-text-subtle-dark:  #8B9BB4;
+  --clr-border-dark:       #363E52;
+  --clr-shadow-dark:       rgba(0, 0, 0, 0.30);
+
+  /* ── Hover states ───────────────────────────────────────────────────── */
+  --clr-primary-light-hover: #1E3A5F;
+  --clr-primary-dark-hover:  #6FA3D4;
+
+  /* ── Link / accent ──────────────────────────────────────────────────── */
+  --clr-link: var(--clr-primary-light);
 }
 
-/* Apply base light theme variables */
+/* ── Apply light theme ──────────────────────────────────────────────────── */
 body {
-  --clr-bg: var(--clr-bg-light);
-  --clr-primary: var(--clr-primary-light);
-  --clr-secondary: var(--clr-secondary-light);
-  --clr-tertiary: var(--clr-tertiary-light);
-  --clr-text: var(--clr-text-light);
+  --clr-bg:          var(--clr-bg-light);
+  --clr-primary:     var(--clr-primary-light);
+  --clr-secondary:   var(--clr-secondary-light);
+  --clr-tertiary:    var(--clr-tertiary-light);
+  --clr-text:        var(--clr-text-light);
   --clr-text-subtle: var(--clr-text-subtle-light);
-  --clr-border: var(--clr-border-light);
-  --clr-shadow: var(--clr-shadow-light);
+  --clr-border:      var(--clr-border-light);
+  --clr-shadow:      var(--clr-shadow-light);
 
-  font-family: "Droid Sans", sans-serif;
+  font-family: 'Open Sans', sans-serif;
   background-color: var(--clr-bg);
   color: var(--clr-text);
   transition: background-color 0.3s ease, color 0.3s ease;
 }
 
-/* Dark Theme Override */
+/* ── Dark Theme Override ────────────────────────────────────────────────── */
 body.dark-theme {
-  --clr-bg: var(--clr-bg-dark);
-  --clr-primary: var(--clr-primary-dark);
-  --clr-secondary: var(--clr-secondary-dark);
-  --clr-tertiary: var(--clr-tertiary-dark);
-  --clr-text: var(--clr-text-dark);
+  --clr-bg:          var(--clr-bg-dark);
+  --clr-primary:     var(--clr-primary-dark);
+  --clr-secondary:   var(--clr-secondary-dark);
+  --clr-tertiary:    var(--clr-tertiary-dark);
+  --clr-text:        var(--clr-text-dark);
   --clr-text-subtle: var(--clr-text-subtle-dark);
-  --clr-border: var(--clr-border-dark);
-  --clr-shadow: var(--clr-shadow-dark);
+  --clr-border:      var(--clr-border-dark);
+  --clr-shadow:      var(--clr-shadow-dark);
 }
 
-/* General Bulma Overrides/Adjustments */
+/* ── General Bulma Overrides ────────────────────────────────────────────── */
 .button {
-  font-family: "Droid Sans", sans-serif;
+  font-family: 'Open Sans', sans-serif;
   text-decoration: none;
 }
+
 .input,
 .textarea,
 .select select,
 .modal-card-body .input,
 .modal-card-body .select select {
-  font-family: "Droid Sans", sans-serif;
+  font-family: 'Open Sans', sans-serif;
   border-color: var(--clr-border);
-  background-color: #fff; /* White background for inputs in both themes */
-  color: #363636; /* Dark text for inputs in both themes */
+  background-color: #fff;
+  color: #363636;
   border-radius: 4px;
 }
 body.dark-theme .input,
 body.dark-theme .textarea,
 body.dark-theme .select select {
-  background-color: #f0f0f0; /* Slightly off-white in dark theme */
+  background-color: #f0f0f0;
   color: #363636;
   border-color: var(--clr-border-dark);
 }
 .input::placeholder,
-.textarea::placeholder {
-  color: #aaa;
-} /* Lighter placeholder */
+.textarea::placeholder { color: #aaa; }
 body.dark-theme .input::placeholder,
-body.dark-theme .textarea::placeholder {
-  color: #888;
-}
+body.dark-theme .textarea::placeholder { color: #888; }
 
 .select:not(.is-multiple):not(.is-loading)::after {
   border-color: var(--clr-link);
 }
 
-/* Notifications */
+/* ── Underline-only inputs for config / feature-arg controls ────────────── */
+.config-feature-arg {
+  border: none;
+  border-bottom: 1px solid var(--clr-border);
+  border-radius: 0;
+  padding: 4px 4px 4px 0;
+  background-color: transparent;
+  color: var(--clr-text);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  height: auto;
+  max-width: 120px;
+  transition: border-color 0.15s;
+}
+.config-feature-arg:hover,
+.config-feature-arg:focus {
+  border-bottom-color: var(--clr-primary);
+  outline: none;
+  box-shadow: none;
+}
+body.dark-theme .config-feature-arg {
+  color: var(--clr-text-dark);
+  border-bottom-color: var(--clr-border-dark);
+}
+body.dark-theme .config-feature-arg:hover,
+body.dark-theme .config-feature-arg:focus {
+  border-bottom-color: var(--clr-primary-dark);
+}
+
+/* ── Notifications ──────────────────────────────────────────────────────── */
 .notification {
   background-color: var(--clr-secondary);
   color: var(--clr-text);
@@ -143,9 +178,7 @@ body.dark-theme .notification {
   border: none;
 }
 body.dark-theme .notification.is-info,
-body.dark-theme .notification.is-success {
-  color: #fff;
-}
+body.dark-theme .notification.is-success { color: #fff; }
 
 .subtitle {
   color: var(--clr-text-subtle);
@@ -158,83 +191,223 @@ body.dark-theme .notification.is-success {
   color: var(--clr-text);
   border: none;
 }
-body.dark-theme #task-wrapper {
-  color: var(--clr-text-dark);
+body.dark-theme #task-wrapper { color: var(--clr-text-dark); }
+
+/* ─── TimerView ─────────────────────────────────────────────────────────── */
+.timer-view {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
 }
-#task,
-#timer {
+.timer-title {
+  font-size: 1.25em;
+  font-weight: 600;
+  color: var(--clr-text);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.timer-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+.timer-controls {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+}
+.timer-display {
+  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
+  font-size: 3.5em;
   font-weight: 400;
   line-height: 1.1;
-}
-#task {
-  font-size: 2.5em;
-}
-#timer {
-  font-size: 4em;
-}
-#timer-wrapper {
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 4px 14px;
   background: var(--clr-primary);
   color: white;
-  padding: 10px;
-  border-radius: 4px;
+  user-select: none;
+  min-width: 3ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
-#status {
-  font-size: 2em;
-  font-weight: 800;
-  padding: 15px;
+.timer-display[contenteditable="true"],
+.timer-display.is-editing {
+  outline: 3px solid rgba(255, 255, 255, 0.7);
+  cursor: text;
+  user-select: text;
 }
-#status img {
-  height: 50px;
-}
+/* Smaller display when inside a floating view */
+.floating-view-content .timer-display { font-size: 2.5em; }
 
-body.dark-theme #status img {
-  filter: invert(95%) sepia(6%) saturate(136%) hue-rotate(187deg)
-    brightness(115%) contrast(90%);
+/* ─── SchedulePlaybackView ───────────────────────────────────────────────── */
+.schedule-playback-view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
 }
-
-#total-timer {
-  font-size: 2.5em;
-  font-weight: 400;
+.playback-total-section {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 8px;
+}
+.playback-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--clr-text-subtle);
+  white-space: nowrap;
+  margin: 0;
+}
+.playback-total-timer {
+  font-size: 1em;
+  font-variant-numeric: tabular-nums;
+  color: var(--clr-text-subtle);
+}
+.playback-upcoming-section { padding: 0 8px; }
+.playback-upcoming-section > .playback-section-label {
+  margin-bottom: 6px;
   display: block;
-  margin-top: 0.5rem;
-  float: right;
-  flex-grow: 1;
-  text-align: end;
 }
-#upcoming {
+.playback-upcoming-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.playback-upcoming-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background: var(--clr-tertiary);
+  gap: 8px;
+}
+body.dark-theme .playback-upcoming-item { background: var(--clr-tertiary-dark); }
+.playback-upcoming-name {
+  flex: 1;
   font-size: 0.9em;
-  margin-top: 0.5rem;
-  padding-left: 1.2em;
-} /* Added padding */
-#upcoming li {
-  padding: 2px 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--clr-text);
+}
+.playback-upcoming-duration {
+  font-size: 0.78em;
+  font-variant-numeric: tabular-nums;
+  color: var(--clr-text-subtle);
+  background: var(--clr-secondary);
+  border-radius: 10px;
+  padding: 1px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid var(--clr-border);
+}
+body.dark-theme .playback-upcoming-duration {
+  background: var(--clr-secondary-dark);
+  border-color: var(--clr-border-dark);
+}
+.playback-upcoming-end .playback-upcoming-name {
+  font-weight: 700;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--clr-text-subtle);
+}
+.playback-upcoming-empty {
+  font-size: 0.85em;
+  color: var(--clr-text-subtle);
+  padding: 4px 10px;
+  font-style: italic;
 }
 
-/* --- Main Controls (Start/Reset/Settings) --- */
-/* --- Main Controls (Start/Reset/Settings) --- */
-.main-controls {
+/* ─── ConfigView compact (floating windows) ──────────────────────────────── */
+.config-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 3px 0;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--clr-border);
+}
+.config-compact .field {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 0;
+}
+.config-compact .label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--clr-text-subtle);
+  margin-bottom: 0;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.config-compact .control {
+  display: flex;
   align-items: center;
 }
+.config-compact .buttons.has-addons {
+  flex-wrap: wrap;
+  margin-bottom: 0 !important;
+}
+.config-compact .buttons.has-addons .button {
+  font-size: 0.72rem;
+  height: 22px;
+  padding: 0 7px;
+  margin-bottom: 0 !important;
+}
+.config-compact .select { height: auto; }
+.config-compact .select select {
+  font-size: 0.78rem;
+  height: 26px;
+  padding: 0 1.6em 0 0.55em;
+  border: none;
+  border-bottom: 1px solid var(--clr-border);
+  border-radius: 0;
+  background: transparent;
+  transition: border-color 0.15s;
+}
+.config-compact .select select:hover,
+.config-compact .select select:focus {
+  border-bottom-color: var(--clr-primary);
+  outline: none;
+  box-shadow: none;
+}
+body.dark-theme .config-compact { border-bottom-color: var(--clr-border-dark); }
+body.dark-theme .config-compact .select select {
+  color: var(--clr-text-dark);
+  border-bottom-color: var(--clr-border-dark);
+}
 
+
+/* ─── Main Controls (Start / Reset / Settings) ───────────────────────────── */
+.main-controls { align-items: center; }
 .main-controls .level-item {
   margin: 0 5px;
-  flex-shrink: 0; /* Prevent shrinking */
+  flex-shrink: 0;
 }
-
-/* This targets the icon buttons specifically */
 .main-controls .button.not-text {
-    min-width: auto; /* Remove the minimum width */
-    padding-left: 8px;  /* Reduce horizontal padding */
-    padding-right: 8px; /* Reduce horizontal padding */
-    height: auto; /* Allow height to fit content */
+  min-width: auto;
+  padding-left: 8px;
+  padding-right: 8px;
+  height: auto;
 }
-
-.main-controls .button {
-  min-width: 80px; /* Slightly smaller min-width for text buttons */
-}
+.main-controls .button { min-width: 80px; }
 
 #start-control.is-success {
   background-color: var(--clr-success);
@@ -251,6 +424,13 @@ body.dark-theme #status img {
   color: white;
   border: none;
 }
+
+.topbar-icon-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.topbar-icon-button,
 #settings-button {
   background: none;
   border: none;
@@ -262,48 +442,33 @@ body.dark-theme #status img {
   vertical-align: middle;
   text-decoration: none;
 }
-#settings-button:hover {
-  color: var(--clr-link);
-}
+.topbar-icon-button:hover,
+#settings-button:hover { color: var(--clr-link); }
 
-/* Add this new rule for the floating view button */
 #floating-view-button {
   background: none;
   border: none;
   text-decoration: none;
 }
+#floating-view-button:hover { color: var(--clr-link); }
 
-#settings-button:hover,
-#floating-view-button:hover {
-  color: var(--clr-link);
-}
-
-/* --- Diagram Area --- */
+/* ─── Diagram Area ───────────────────────────────────────────────────────── */
 #diagram {
-    background-color: #fff;
-    border: 1px solid var(--clr-border);
-    color: #363636;
-    min-height: 844px;
-    display: block;
+  background-color: #fff;
+  border: 1px solid var(--clr-border);
+  color: #363636;
+  min-height: 844px;
+  display: block;
 }
-
 #diagram .subtitle {
   margin-bottom: 0.5rem;
   color: #555;
 }
-body.dark-theme #diagram {
-  border-color: var(--clr-border-dark);
-}
+body.dark-theme #diagram { border-color: var(--clr-border-dark); }
 
-/* --- Flash Overlay --- */
-.hidden {
-  display: none;
-  opacity: 0;
-}
-.visible {
-  display: block;
-  opacity: 0.8;
-}
+/* ─── Flash Overlay ──────────────────────────────────────────────────────── */
+.hidden  { display: none;  opacity: 0; }
+.visible { display: block; opacity: 0.8; }
 #overlay {
   background: var(--clr-danger);
   height: 100%;
@@ -316,9 +481,9 @@ body.dark-theme #diagram {
   transition: opacity 0.15s ease-in-out;
 }
 
-/* --- Schedule Editor --- */
+/* ─── Schedule Editor ────────────────────────────────────────────────────── */
 #schedule-editor-container {
-  background-color: var(--clr-tertiary);
+  background-color: transparent;
   padding: 1rem;
   border-radius: 6px;
   border: 1px solid var(--clr-border);
@@ -359,33 +524,25 @@ body.dark-theme #schedule-editor-container {
   align-items: center;
   text-transform: uppercase;
 }
-.config-header .header-item {
-  padding: 0 4px;
-}
+.config-header .header-item { padding: 0 4px; }
 
 .config-entry-row {
-  background-color: var(--clr-bg);
+  background-color: transparent;
   border-radius: 6px;
   padding: 8px;
   border: 1px solid transparent;
-  box-shadow: 0 1px 2px var(--clr-shadow);
-  transition: background-color 0.2s ease, box-shadow 0.2s ease;
+  box-shadow: none;
+  transition: background-color 0.15s ease;
   align-items: center;
 }
 .config-entry-row:hover {
   background-color: var(--clr-secondary);
   border-color: var(--clr-border);
 }
-body.dark-theme .config-entry-row {
-  background-color: var(--clr-tertiary-dark);
-}
-body.dark-theme .config-entry-row:hover {
-  background-color: var(--clr-secondary-dark);
-}
+body.dark-theme .config-entry-row { background-color: transparent; }
+body.dark-theme .config-entry-row:hover { background-color: var(--clr-secondary-dark); }
 
-.config-cell {
-  padding: 0 4px;
-}
+.config-cell { padding: 0 4px; }
 .duration-cell,
 .action-cell,
 .config-header .header-item:first-child,
@@ -395,11 +552,12 @@ body.dark-theme .config-entry-row:hover {
 }
 .feature-args-inner-container {
   display: flex;
+  flex-wrap: wrap;
 }
 .feature-args-cell {
   display: flex;
   flex-direction: row;
-  gap: 6px;
+  gap: 4px;
   align-self: start;
 }
 
@@ -408,20 +566,32 @@ body.dark-theme .config-entry-row:hover {
   display: flex;
   flex-direction: row;
   gap: 3px;
+  align-items: center;
 }
 .feature-arg-wrapper label {
-  font-size: 0.7rem;
+  font-size: 0.65rem;
   color: var(--clr-text-subtle);
-  font-weight: 400;
+  font-weight: 700;
   display: block;
-  margin-bottom: 2px;
-  text-transform: capitalize;
+  margin-bottom: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
 }
 .feature-arg-inputs-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 3px;
   align-items: center;
+}
+
+/* Compact toggle buttons in schedule editor */
+.numeral-toggle-btn.button {
+  font-size: 0.7rem !important;
+  height: 22px !important;
+  padding: 0 5px !important;
+  line-height: 1 !important;
+  border-radius: 3px;
 }
 .variadic-input-wrapper {
   display: inline-flex;
@@ -429,29 +599,8 @@ body.dark-theme .config-entry-row:hover {
   gap: 4px;
   margin-bottom: 4px;
 }
-.config-feature-arg {
-  /* Input/Select */
-  border: 1px solid var(--clr-border);
-  padding: 4px 6px;
-  border-radius: 3px;
-  background-color: #fff;
-  color: #363636;
-  font-size: 0.8rem;
-  line-height: 1.2;
-  height: auto;
-  max-width: 120px;
-}
-body.dark-theme .config-feature-arg {
-  background-color: #f0f0f0;
-  color: #363636;
-  border-color: var(--clr-border-dark);
-}
-.select.is-small {
-  margin: 0;
-}
-.variadic-input-wrapper .select {
-  max-width: 120px;
-}
+.select.is-small { margin: 0; }
+.variadic-input-wrapper .select { max-width: 120px; }
 
 /* Variadic Buttons */
 .remove-variadic-arg-btn {
@@ -464,13 +613,11 @@ body.dark-theme .config-feature-arg {
   border-color: var(--clr-danger);
   background-color: transparent;
 }
-.remove-variadic-arg-btn:hover {
-  background-color: rgba(231, 76, 60, 0.1);
-}
+.remove-variadic-arg-btn:hover { background-color: rgba(192, 57, 43, 0.08); }
 body.dark-theme .remove-variadic-arg-btn {
-  color: #ff7979;
-  border-color: #ff7979;
-} /* Lighter red in dark */
+  color: #f09080;
+  border-color: #f09080;
+}
 
 .add-variadic-group-btn {
   padding: 0 6px !important;
@@ -483,13 +630,11 @@ body.dark-theme .remove-variadic-arg-btn {
   border-color: var(--clr-info);
   background-color: transparent;
 }
-.add-variadic-group-btn:hover {
-  background-color: rgba(52, 152, 219, 0.1);
-}
+.add-variadic-group-btn:hover { background-color: rgba(44, 74, 124, 0.08); }
 body.dark-theme .add-variadic-group-btn {
-  color: #5dade2;
-  border-color: #5dade2;
-} /* Lighter blue in dark */
+  color: var(--clr-primary-dark);
+  border-color: var(--clr-primary-dark);
+}
 
 /* Remove Row Button */
 .remove-interval-btn {
@@ -503,20 +648,12 @@ body.dark-theme .add-variadic-group-btn {
   padding: 0;
   line-height: 1;
 }
-.config-entry-row:hover .remove-interval-btn {
-  opacity: 1;
-}
-.remove-interval-btn:hover {
-  color: #c0392b;
-}
-body.dark-theme .remove-interval-btn {
-  color: #ff7979;
-}
-body.dark-theme .remove-interval-btn:hover {
-  color: #ff4d4d;
-}
+.config-entry-row:hover .remove-interval-btn { opacity: 1; }
+.remove-interval-btn:hover { color: #922B21; }
+body.dark-theme .remove-interval-btn { color: #f09080; }
+body.dark-theme .remove-interval-btn:hover { color: #e87060; }
 
-/* Editor Controls Container (Bottom Buttons) */
+/* Editor Controls Container (bottom buttons) */
 #editor-controls {
   display: flex;
   justify-content: flex-end;
@@ -525,63 +662,53 @@ body.dark-theme .remove-interval-btn:hover {
   padding-top: 1rem;
   border-top: 1px solid var(--clr-border);
 }
-
 #editor-controls .button {
-  font-family: "Droid Sans", sans-serif;
+  font-family: 'Open Sans', sans-serif;
   text-decoration: none;
-  background-color: var(--clr-blue-500); /* Consistent background */
-  border: 0;
-  color: var(--clr-text-dark); /* Consistent text color */
-  padding: 0.25em 0.5em; /* Smaller padding */
-  font-size: 0.85em; /* Smaller font size */
+  background-color: var(--clr-secondary);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+  padding: 0.25em 0.5em;
+  font-size: 0.85em;
   transition: background-color 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out;
   border-radius: 4px;
 }
-
 #editor-controls .button:hover {
-  background-color: var(--clr-secondary); /* Hover effect */
+  background-color: var(--clr-tertiary);
   color: var(--clr-text);
-  border-color: var(--clr-border);
+  border-color: var(--clr-grey-300);
 }
-
 #editor-controls .button:active {
-  background-color: var(--clr-tertiary); /* Active effect */
+  background-color: var(--clr-border);
   color: var(--clr-text-subtle);
 }
-
 #set-schedule-control {
-  background-color: var(--clr-primary); /* Keep primary color */
-  color: white; /* Keep white text */
-  border: none; /* Remove border */
+  background-color: var(--clr-primary);
+  color: white;
+  border: none;
 }
-
-#set-schedule-control:hover {
-  opacity: 0.9; /* Keep opacity hover */
-}
+#set-schedule-control:hover { opacity: 0.9; }
 
 body.dark-theme #editor-controls .button {
-  background-color: var(--clr-bg-dark);
-  color: var(--clr-text-dark);
-  border-color: var(--clr-border-dark);
-  box-shadow: 0 1px 2px var(--clr-shadow-dark);
-}
-
-body.dark-theme #editor-controls .button:hover {
   background-color: var(--clr-secondary-dark);
   color: var(--clr-text-dark);
   border-color: var(--clr-border-dark);
 }
-
+body.dark-theme #editor-controls .button:hover {
+  background-color: var(--clr-tertiary-dark);
+  color: var(--clr-text-dark);
+  border-color: var(--clr-border-dark);
+}
 body.dark-theme #editor-controls .button:active {
-  background-color: #555;
+  background-color: #3A4560;
   color: var(--clr-text-subtle-dark);
   border-color: var(--clr-border-dark);
 }
-
 body.dark-theme #set-schedule-control {
-  background-color: var(--clr-primary); /* Keep primary */
-  color: var(--clr-text-dark); /* Adjust text color */
+  background-color: var(--clr-primary);
+  color: #fff;
 }
+
 #mode-toggle {
   border-color: var(--clr-link);
   color: var(--clr-link);
@@ -590,14 +717,15 @@ body.dark-theme #set-schedule-control {
   border-color: var(--clr-info);
   color: var(--clr-info);
 }
+
+/* duplicate rule kept for specificity */
 #set-schedule-control {
   background-color: var(--clr-primary);
   color: white;
   border: none;
 }
-#set-schedule-control:hover {
-  opacity: 0.9;
-}
+#set-schedule-control:hover { opacity: 0.9; }
+
 body.dark-theme #mode-toggle {
   color: var(--clr-link);
   border-color: var(--clr-link);
@@ -608,64 +736,50 @@ body.dark-theme #add-config-entry {
 }
 body.dark-theme #set-schedule-control {
   background-color: var(--clr-primary);
-  color: var(--clr-text-dark);
+  color: #fff;
 }
 
 /* Drag and Drop Styles */
 .config-entry-row.dragging {
   opacity: 0.4;
   background-color: var(--clr-tertiary);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
-body.dark-theme .config-entry-row.dragging {
-  background-color: var(--clr-tertiary-dark);
-}
+body.dark-theme .config-entry-row.dragging { background-color: var(--clr-tertiary-dark); }
 .drag-over {
   border-top: 2px dashed var(--clr-link);
   margin-top: -2px;
 }
 
-/* Settings Modal */
-.modal-card {
-  background-color: var(--clr-bg);
-}
+/* Settings Modal — must render above floating views (z-index: 90) */
+.modal { z-index: 200; }
+.modal-card { background-color: var(--clr-bg); }
 .modal-card-head {
-  background-color: var(--clr-tertiary);
+  background-color: var(--clr-secondary);
   border-bottom: 1px solid var(--clr-border);
 }
-.modal-card-title {
-  color: var(--clr-text);
-}
+.modal-card-title { color: var(--clr-text); }
 .modal-card-foot {
-  background-color: var(--clr-tertiary);
+  background-color: var(--clr-secondary);
   border-top: 1px solid var(--clr-border);
 }
-.modal-card-body {
-  color: var(--clr-text);
-}
-body.dark-theme .modal-card {
-  background-color: var(--clr-bg-dark);
-}
+.modal-card-body { color: var(--clr-text); }
+
+body.dark-theme .modal-card { background-color: var(--clr-bg-dark); }
 body.dark-theme .modal-card-head {
   background-color: var(--clr-secondary-dark);
   border-bottom-color: var(--clr-border-dark);
 }
-body.dark-theme .modal-card-title {
-  color: var(--clr-text-dark);
-}
+body.dark-theme .modal-card-title { color: var(--clr-text-dark); }
 body.dark-theme .modal-card-foot {
   background-color: var(--clr-secondary-dark);
   border-top-color: var(--clr-border-dark);
 }
-body.dark-theme .modal-card-body {
-  color: var(--clr-text-dark);
-}
-.modal-card-body .field label.label {
-  color: var(--clr-text);
-} /* Ensure labels visible */
-body.dark-theme .modal-card-body .field label.label {
-  color: var(--clr-text-dark);
-}
+body.dark-theme .modal-card-body { color: var(--clr-text-dark); }
+
+.modal-card-body .field label.label { color: var(--clr-text); }
+body.dark-theme .modal-card-body .field label.label { color: var(--clr-text-dark); }
+
 .modal-card-foot .button.is-success {
   background-color: var(--clr-success);
   color: white;
@@ -692,47 +806,36 @@ body.dark-theme .modal-card-foot .button:not(.is-success) {
   display: flex;
   flex-direction: column;
 }
-.tile.is-child > *:last-child {
-  margin-bottom: 0;
-} /* Remove extra margin at bottom */
+.tile.is-child > *:last-child { margin-bottom: 0; }
 #diagram,
-#schedule-editor-container {
-  flex-grow: 1;
-}
+#schedule-editor-container { flex-grow: 1; }
 
 /* Accordion Styles */
 .accordion-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  cursor: pointer; /* Indicate it's clickable */
-  padding-bottom: 0.5rem; /* Add some space below header */
-  border-bottom: 1px solid var(--clr-border); /* Separator line */
-  margin-bottom: 0.5rem; /* Space before content */
+  cursor: pointer;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--clr-border);
+  margin-bottom: 0.5rem;
 }
-body.dark-theme .accordion-header {
-  border-bottom-color: var(--clr-border-dark);
-}
-
-.accordion-header .subtitle {
-  margin-bottom: 0;
-} /* Remove default subtitle margin */
+body.dark-theme .accordion-header { border-bottom-color: var(--clr-border-dark); }
+.accordion-header .subtitle { margin-bottom: 0; }
 
 .accordion-toggle-icon {
-  transition: transform 0.3s ease; /* Smooth rotation */
-  font-size: 1.2em; /* Make icon slightly larger */
+  transition: transform 0.3s ease;
+  font-size: 1.2em;
   color: var(--clr-text-subtle);
 }
-body.dark-theme .accordion-toggle-icon {
-  color: var(--clr-text-subtle-dark);
-}
+body.dark-theme .accordion-toggle-icon { color: var(--clr-text-subtle-dark); }
 
 .accordion-content {
-  max-height: 1000px; /* Set a large max-height for transition */
+  max-height: 1000px;
   overflow: hidden;
   transition: max-height 0.5s ease-in-out, padding-top 0.5s ease-in-out,
     padding-bottom 0.5s ease-in-out;
-  padding-top: 0; /* Start with no padding */
+  padding-top: 0;
   padding-bottom: 0;
 }
 
@@ -740,295 +843,280 @@ body.dark-theme .accordion-toggle-icon {
   max-height: 0;
   padding-top: 0;
   padding-bottom: 0;
-  overflow: hidden; /* Explicitly hide overflow */
-  /* Remove border/padding from the container *inside* the content area when collapsed */
+  overflow: hidden;
   #schedule-editor-container {
     border: none;
     padding: 0;
-    margin: 0; /* Adjust if needed */
+    margin: 0;
     transition: padding 0.5s ease-in-out, border 0.5s ease-in-out;
   }
 }
-
 #schedule-accordion.collapsed .accordion-header {
-  margin-bottom: 0; /* Remove margin below header when collapsed */
-  border-bottom-color: transparent; /* Hide border when collapsed */
+  margin-bottom: 0;
+  border-bottom-color: transparent;
 }
+#schedule-accordion.collapsed .accordion-toggle-icon { transform: rotate(-90deg); }
 
-#schedule-accordion.collapsed .accordion-toggle-icon {
-  transform: rotate(-90deg); /* Rotate arrow */
-}
-
-/* Adjust schedule editor container padding when *not* collapsed */
 #schedule-accordion:not(.collapsed) #schedule-editor-container {
-  padding: 1rem; /* Restore padding */
-  border: 1px solid var(--clr-border); /* Restore border */
+  padding: 1rem;
+  border: 1px solid var(--clr-border);
   transition: padding 0.5s ease-in-out, border 0.5s ease-in-out;
 }
 body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
   border-color: var(--clr-border-dark);
 }
 
-/* --- Chord Diagram View --- */
+/* ─── Feature Title Helpers ─────────────────────────────────────────────── */
+.feature-main-title {
+  font-size: 0.9rem !important;
+  margin-top: 0 !important;
+  margin-bottom: 4px !important;
+  padding: 0 !important;
+}
+.floating-view-content .feature-main-title { display: none !important; }
+
+.feature-subtitle {
+  font-size: 0.9rem !important;
+  margin-top: 4px !important;
+  margin-bottom: 2px !important;
+  padding: 0 !important;
+}
+
+/* ─── Chord Diagram View ─────────────────────────────────────────────────── */
 .chord-diagram-view {
   display: inline-block;
   vertical-align: top;
   padding: 5px;
-  /* min-width set dynamically */
 }
-
-/* Adjust chord diagram title size */
-.chord-diagram-view .title.is-6 {
-  margin-bottom: 4px !important; /* Adjust spacing */
-  /* You could add font-size override here if needed */
-  /* font-size: 1.1rem !important; */
+.chord-diagram-view .title.is-6 { margin-bottom: 4px !important; }
+.chord-diagram-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--clr-text);
+  margin-bottom: 2px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-
-/* Style for the added notes list */
 .chord-notes-list {
   font-size: 0.75rem;
   text-align: center;
   color: var(--clr-text-subtle);
   margin-bottom: 8px;
-  line-height: 1.2; /* Ensure single line */
-  white-space: nowrap; /* Prevent wrapping */
-  overflow: hidden; /* Hide overflow */
-  text-overflow: ellipsis; /* Add ellipsis if too long */
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-/* --- Metronome View (Compact & Contained) --- */
+/* ─── Metronome View ─────────────────────────────────────────────────────── */
 .metronome-view {
-  max-width: 250px; /* <<< SET MAX WIDTH */
-  margin: 15px auto; /* Center horizontally, keep vertical margin */
-  padding: 12px 15px; /* Adjusted padding */
+  max-width: 250px;
+  margin: 15px auto;
+  padding: 12px 15px;
   border: 1px solid var(--clr-border);
   border-radius: 8px;
-  box-shadow: 0 2px 5px var(--clr-shadow);
-  background-color: var(--clr-background-offset);
-  margin-top: 15px;
-  margin-bottom: 15px; /* Consistent vertical margin */
-  box-sizing: border-box; /* Include padding/border in width */
+  box-shadow: 0 2px 4px var(--clr-shadow);
+  background-color: var(--clr-secondary);
+  box-sizing: border-box;
 }
-
-/* Dark theme adjustments for the view container */
 body.dark-theme .metronome-view {
   border-color: var(--clr-border-dark);
-  box-shadow: 0 2px 5px var(--clr-shadow-dark);
-  background-color: var(--clr-tertiary-dark); /* Match other dark backgrounds */
+  box-shadow: 0 2px 4px var(--clr-shadow-dark);
+  background-color: var(--clr-tertiary-dark);
 }
 
-/* Adjust beats container padding slightly if needed */
 .metronome-beats-container {
   display: flex;
-  justify-content: space-around; /* Space around might look better in compact */
+  justify-content: space-around;
   align-items: center;
   min-height: 30px;
   padding: 5px 0;
-  /* Removed bottom border/margin for compactness inside the view */
   border-bottom: none;
-  margin-bottom: 10px; /* Reduced space before controls */
+  margin-bottom: 10px;
 }
+.metronome-beat.beat-downbeat { width: 20px; height: 20px; }
+.metronome-beat.beat-subdivision { width: 16px; height: 16px; opacity: 0.75; }
 
-/* Adjust beat sizes slightly if needed for the smaller width */
-.metronome-beat.beat-downbeat {
-  width: 20px; /* Slightly smaller */
-  height: 20px;
-}
-.metronome-beat.beat-subdivision {
-  width: 16px; /* Slightly smaller */
-  height: 16px;
-  opacity: 0.75;
-}
-
-/* Keep existing beat state styles (.beat-normal, .beat-accent, etc.) */
-/* ... */
 .metronome-beat.beat-normal {
-  background-color: var(--clr-text-subtle);
-  opacity: 0.6;
+  background-color: var(--clr-grey-300);
+  opacity: 0.7;
 }
 .metronome-beat.beat-accent {
-  background-color: var(--clr-info);
+  background-color: var(--clr-navy-500);
   opacity: 1;
 }
 .metronome-beat.beat-silent {
   background-color: transparent;
-  border: 2px dashed var(--clr-warning);
-  opacity: 0.4;
+  border: 2px dashed var(--clr-grey-300);
+  opacity: 0.5;
 }
-body.dark-theme .metronome-beat.beat-normal {
-  background-color: var(--clr-text-subtle-dark);
-}
-body.dark-theme .metronome-beat.beat-accent {
-  background-color: var(--clr-info);
-}
-body.dark-theme .metronome-beat.beat-silent {
-  border-color: var(--clr-border-dark);
-}
+body.dark-theme .metronome-beat.beat-normal { background-color: var(--clr-text-subtle-dark); }
+body.dark-theme .metronome-beat.beat-accent { background-color: var(--clr-primary-dark); }
+body.dark-theme .metronome-beat.beat-silent { border-color: var(--clr-border-dark); }
+
 .metronome-beat.beat-current {
-  border-color: var(--clr-warning);
+  border-color: var(--clr-navy-500);
   transform: scale(1.15);
-  box-shadow: 0 0 5px var(--clr-warning);
+  box-shadow: 0 0 5px rgba(44, 74, 124, 0.55);
 }
 .metronome-beat.beat-current.beat-normal,
-.metronome-beat.beat-current.beat-silent {
-  opacity: 1;
-}
+.metronome-beat.beat-current.beat-silent { opacity: 1; }
 
 .metronome-beat {
-    cursor: pointer;
-    transition: transform 0.1s ease-out;
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
 }
-.metronome-beat:hover {
-    transform: scale(1.1);
-}
+.metronome-beat:hover { transform: scale(1.1); }
 
-/* Add this to center the play/pause icon */
-.play-pause-btn .material-icons {
-    vertical-align: middle;
-}
+.play-pause-btn .material-icons { vertical-align: middle; }
 
-/* Controls might need adjusting */
 .metronome-controls {
   display: flex;
-  flex-wrap: wrap; /* Allow controls to wrap if needed */
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px; /* Reduced gap */
+  gap: 8px;
 }
-
 .metronome-controls > div {
-  /* Target the left/right control groups */
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
 .metronome-controls .left-controls,
 .metronome-controls .right-controls {
   display: flex;
   align-items: center;
   gap: 8px;
 }
-
-.metronome-controls .left-controls {
-  flex-shrink: 0;
-}
-
+.metronome-controls .left-controls { flex-shrink: 0; }
 .metronome-controls .right-controls {
   flex-grow: 1;
   justify-content: flex-end;
 }
 
-/* Style for the new play/pause button */
 .play-pause-btn {
-    min-width: 40px;
-    font-size: 1.2em;
-    padding-top: 0;
-    padding-bottom: 0;
-    line-height: 1.5;
+  min-width: 40px;
+  font-size: 1.2em;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1.5;
 }
-
-/* Ensure slider doesn't overflow */
 .metronome-bpm-slider {
-  flex-grow: 1; /* Allow shrinking */
-  max-width: 100px; /* Further reduce max width */
-  min-width: 60px; /* Prevent excessive shrinking */
+  flex-grow: 1;
+  max-width: 100px;
+  min-width: 60px;
 }
-
-.metronome-bpm-display {
-  min-width: 50px; /* Slightly smaller min-width */
-}
-
+.metronome-bpm-display { min-width: 50px; }
 .metronome-mute-btn.is-warning {
   background-color: var(--clr-warning);
   color: rgba(0, 0, 0, 0.8);
   border-color: transparent;
 }
 
-/* --- Floating View Dropdown --- */
-#floating-view-dropdown-container .dropdown-menu {
-  /* Adjust positioning if needed */
-  min-width: 180px; /* Example width */
-}
-
+/* ─── Floating View Dropdown ─────────────────────────────────────────────── */
+#floating-view-dropdown-container .dropdown-menu { min-width: 180px; }
 #floating-view-dropdown-content {
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
 }
-
-/* Style for dropdown items containing checkboxes */
-.dropdown-item.has-checkbox {
-  padding: 0; /* Remove default padding */
-}
+.dropdown-item.has-checkbox { padding: 0; }
 .dropdown-item.has-checkbox label.checkbox {
-  padding: 0.375rem 1rem; /* Re-apply padding to the label */
-  display: block; /* Make label take full width */
+  padding: 0.375rem 1rem;
+  display: block;
   width: 100%;
-  cursor: pointer; /* Make the whole area clickable */
+  cursor: pointer;
 }
-/* Optional hover effect for the label */
 .dropdown-item.has-checkbox label.checkbox:hover {
-  background-color: #f5f5f5; /* Bulma's hover color */
+  background-color: var(--clr-secondary);
 }
 body.dark-theme .dropdown-item.has-checkbox label.checkbox:hover {
-   background-color: rgba(255,255,255, 0.05); /* Dark theme hover */
+  background-color: rgba(255, 255, 255, 0.05);
 }
-
-/* Ensure checkbox is vertically aligned with text */
 .dropdown-item.has-checkbox label.checkbox input[type="checkbox"] {
   vertical-align: middle;
   margin-right: 0.5em;
 }
 
-/* --- Floating View System --- */
+/* ─── Floating View System ───────────────────────────────────────────────── */
 #floating-view-area {
-  position: absolute; /* Or fixed, depending on desired behavior */
+  position: absolute;
   top: 0;
   left: 0;
   width: 100%;
   height: 100%;
-  pointer-events: none; /* Allow clicks to pass through the area */
-  overflow: hidden; /* Prevent scrollbars on the area itself */
-  z-index: 90; /* Below modals? */
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 90;
 }
 
 .floating-view-wrapper {
-  position: absolute; /* Required for positioning */
+  position: absolute;
   background-color: var(--clr-bg);
-  border: 1px solid var(--clr-border);
-  box-shadow: 3px 3px 8px rgba(0,0,0,0.2);
-  border-radius: 4px;
+  border: none;
+  box-shadow:
+    0 4px 6px -1px rgba(0, 0, 0, 0.10),
+    0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  border-radius: 6px;
   display: flex;
   flex-direction: column;
-  min-width: 150px; /* Example minimum */
-  min-height: 50px; /* Example minimum */
-  pointer-events: auto; /* Re-enable pointer events for the view itself */
-  overflow: hidden; /* Hide content overflow */
-  resize: both; /* Optional: Allow resizing */
-  /* Base size - can be overridden by JS */
+  min-width: 150px;
+  min-height: 50px;
+  pointer-events: auto;
+  overflow: hidden;
+  resize: both;
   width: 250px;
-  /* height: auto; Let content define height initially */
 }
-
-.floating-view-wrapper.is-dragging {
-  opacity: 0.8;
-  /* Add other dragging styles */
-}
+.floating-view-wrapper.is-dragging { opacity: 0.85; }
 
 .floating-view-titlebar {
-  background-color: var(--clr-tertiary);
+  background-color: var(--clr-secondary);
   color: var(--clr-text);
   padding: 4px 8px;
-  font-weight: bold;
+  font-weight: 600;
   font-size: 0.8rem;
   cursor: grab;
   border-bottom: 1px solid var(--clr-border);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  user-select: none; /* Prevent text selection during drag */
-  flex-shrink: 0; /* Prevent title bar from shrinking */
+  user-select: none;
+  flex-shrink: 0;
 }
+
+.floating-view-button-group {
+  display: flex;
+  align-items: center;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.floating-view-rotate {
+  background: none;
+  border: none;
+  color: var(--clr-text-subtle);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  margin-left: 5px;
+}
+.floating-view-rotate:hover { color: var(--clr-text); }
+
+.floating-view-zoom {
+  background: none;
+  border: none;
+  color: var(--clr-text-subtle);
+  font-size: 1.1rem;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  margin-left: 5px;
+}
+.floating-view-zoom:hover { color: var(--clr-text); }
+.floating-view-zoom.is-active { color: var(--clr-link); }
 
 .floating-view-close {
   background: none;
@@ -1040,19 +1128,17 @@ body.dark-theme .dropdown-item.has-checkbox label.checkbox:hover {
   cursor: pointer;
   margin-left: 5px;
 }
-.floating-view-close:hover {
-  color: var(--clr-danger);
-}
+.floating-view-close:hover { color: var(--clr-danger); }
 
 .floating-view-content {
-  padding: 10px;
-  overflow: auto; /* Allow scrolling if content exceeds size */
-  flex-grow: 1; /* Allow content to fill remaining space */
+  padding: 5px;
+  overflow: auto;
+  flex-grow: 1;
 }
 
-/* --- Color Legend View Specific Styles --- */
+/* ─── Color Legend View ──────────────────────────────────────────────────── */
 .color-legend-view .legend-title {
-  font-weight: bold;
+  font-weight: 600;
   margin-bottom: 8px;
   font-size: 0.8rem;
   text-align: center;
@@ -1069,34 +1155,408 @@ body.dark-theme .dropdown-item.has-checkbox label.checkbox:hover {
   display: inline-block;
   width: 14px;
   height: 14px;
-  border: 1px solid rgba(0,0,0,0.2);
+  border: 1px solid rgba(0, 0, 0, 0.15);
   margin-right: 6px;
   flex-shrink: 0;
 }
-.legend-label {
-  flex-grow: 1;
-}
+.legend-label { flex-grow: 1; }
 
-/* --- Dark Theme Adjustments for Floating Views --- */
+/* ─── Dark Theme — Floating Views ────────────────────────────────────────── */
 body.dark-theme .floating-view-wrapper {
- background-color: var(--clr-bg-dark);
- border-color: var(--clr-border-dark);
- box-shadow: 3px 3px 8px rgba(0,0,0,0.4);
+  background-color: var(--clr-bg-dark);
+  border: none;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.45),
+    0 2px 6px  rgba(0, 0, 0, 0.30);
 }
 body.dark-theme .floating-view-titlebar {
   background-color: var(--clr-secondary-dark);
   color: var(--clr-text-dark);
   border-bottom-color: var(--clr-border-dark);
 }
-body.dark-theme .floating-view-close {
-   color: var(--clr-text-subtle-dark);
+body.dark-theme .floating-view-rotate { color: var(--clr-text-subtle-dark); }
+body.dark-theme .floating-view-rotate:hover { color: var(--clr-text-dark); }
+body.dark-theme .floating-view-zoom { color: var(--clr-text-subtle-dark); }
+body.dark-theme .floating-view-zoom:hover { color: var(--clr-text-dark); }
+body.dark-theme .floating-view-zoom.is-active { color: var(--clr-link); }
+body.dark-theme .floating-view-close { color: var(--clr-text-subtle-dark); }
+body.dark-theme .floating-view-close:hover { color: #f09080; }
+body.dark-theme .color-legend-view .legend-title { border-bottom-color: var(--clr-border-dark); }
+body.dark-theme .color-swatch { border-color: rgba(255, 255, 255, 0.20); }
+
+/* ─── Reference Page Layout ──────────────────────────────────────────────── */
+.reference-layout {
+  display: grid;
+  grid-template-areas: "side-bar main-content";
+  grid-template-columns: 200px 1fr;
+  grid-template-rows: 1fr;
+  height: 100vh;
 }
-body.dark-theme .floating-view-close:hover {
-   color: #ff7979; /* Lighter red for dark theme */
+.side-bar-container {
+  grid-area: side-bar;
+  border-right: 1px solid var(--clr-border);
+  background-color: var(--clr-secondary);
+  display: flex;
+  flex-direction: column;
 }
-body.dark-theme .color-legend-view .legend-title {
-   border-bottom-color: var(--clr-border-dark);
+.sidebar-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  padding: 1rem;
+  overflow-y: auto;
 }
-body.dark-theme .color-swatch {
-    border-color: rgba(255,255,255,0.3);
+.sidebar-bottom-bar {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 4px;
+  padding: 0.5rem;
+  border-top: 1px solid var(--clr-border);
+}
+.main-content-container {
+  grid-area: main-content;
+  padding: 1rem;
+  overflow: auto;
+}
+#side-bar .buttons.is-vertical {
+  display: flex;
+  flex-direction: column;
+}
+#side-bar .buttons.is-vertical .button {
+  justify-content: flex-start;
+  margin-bottom: 0.5rem;
+}
+
+/* ─── DrumMachineView ────────────────────────────────────────────────────── */
+.drum-machine-view {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 8px 10px;
+  min-width: 440px;
+}
+
+.dm-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.dm-control-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dm-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--clr-text-subtle);
+  white-space: nowrap;
+}
+.dm-bpm-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.dm-bpm-slider {
+  width: 80px;
+  cursor: pointer;
+  accent-color: var(--clr-primary);
+}
+.dm-bpm-display {
+  font-size: 0.78rem;
+  font-weight: 700;
+  min-width: 3.2ch;
+  text-align: right;
+  color: var(--clr-text);
+  font-variant-numeric: tabular-nums;
+}
+.dm-play-btn {
+  margin-left: auto;
+  min-width: 56px;
+}
+
+/* Sound palette — override dynamic --dm-color with muted navy tones */
+.dm-palette {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: wrap;
+}
+.dm-sound-btn {
+  border: 2px solid transparent !important;
+  font-size: 0.7rem !important;
+  padding: 2px 8px !important;
+  height: auto !important;
+  line-height: 1.6 !important;
+  transition: border-color 0.1s, background 0.1s, color 0.1s;
+}
+.dm-sound-btn:hover {
+  border-color: var(--clr-navy-500) !important;
+  color: var(--clr-navy-500) !important;
+}
+.dm-sound-btn.is-active {
+  background: var(--clr-navy-500) !important;
+  border-color: var(--clr-navy-500) !important;
+  color: #fff !important;
+}
+
+/* Grid */
+.dm-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dm-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.dm-track-label {
+  width: 26px;
+  min-width: 26px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: right;
+  padding-right: 4px;
+  color: var(--clr-text-subtle);
+  user-select: none;
+}
+.dm-step-num {
+  width: 28px;
+  min-width: 28px;
+  height: 14px;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--clr-grey-300);
+  user-select: none;
+  line-height: 14px;
+}
+.dm-step-num.dm-step-current { color: var(--clr-primary); }
+
+/* Extra left margin at beat boundaries (steps 4, 8, 12, …) */
+.dm-beat-start { margin-left: 4px; }
+
+.dm-cell {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  background: #D8DDE4;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  user-select: none;
+  transition: filter 0.07s, transform 0.06s;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+.dm-cell:hover {
+  filter: brightness(1.10);
+  transform: scale(1.07);
+}
+/* Filled steps: color comes from SOUND_COLORS inline style (muted blue family) */
+.dm-cell.dm-cell-filled {
+  border-color: rgba(0, 0, 0, 0.18);
+}
+.dm-cell.dm-cell-current {
+  outline: 2px solid var(--clr-primary);
+  outline-offset: 1px;
+}
+
+/* Dark theme — drum machine */
+body.dark-theme .dm-label,
+body.dark-theme .dm-track-label,
+body.dark-theme .dm-step-num { color: var(--clr-text-subtle-dark); }
+body.dark-theme .dm-bpm-display { color: var(--clr-text-dark); }
+body.dark-theme .dm-cell {
+  background: #2A3040;
+  border-color: rgba(255, 255, 255, 0.06);
+}
+body.dark-theme .dm-cell.dm-cell-filled {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+body.dark-theme .dm-sound-btn:not(.is-active) {
+  color: var(--clr-text-subtle-dark) !important;
+  border-color: transparent !important;
+  background: var(--clr-secondary-dark) !important;
+}
+
+/* ── Volume control ─────────────────────────────────────────────────────────── */
+.vol-ctrl {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+/* Floating window popup — fixed to viewport so it's never clipped */
+.vol-ctrl-popup {
+  position: fixed;
+  background: var(--clr-bg);
+  border: 1px solid var(--clr-border);
+  border-radius: 8px;
+  z-index: 9999;
+  box-shadow: 0 6px 20px var(--clr-shadow);
+  min-width: 170px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.vol-ctrl-popup[hidden] { display: none; }
+.vol-ctrl-popup-title {
+  background: var(--clr-secondary);
+  border-bottom: 1px solid var(--clr-border);
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--clr-text-subtle);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.vol-ctrl-popup-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.vol-ctrl-slider {
+  flex: 1;
+  cursor: pointer;
+  accent-color: var(--clr-primary);
+}
+.vol-ctrl-pct {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--clr-text);
+  min-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+body.dark-theme .vol-ctrl-popup-title {
+  background: var(--clr-secondary-dark);
+  border-bottom-color: var(--clr-border-dark);
+}
+
+/* ── Scale / CAGED feature title row with drone button ──────────────────────── */
+.feature-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.feature-title-row .feature-main-title {
+  flex: 1;
+  margin: 0 !important;
+}
+.drone-icon-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--clr-border);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--clr-text-subtle);
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.drone-icon-btn .material-icons { font-size: 18px; }
+.drone-icon-btn:hover {
+  color: var(--clr-primary);
+  border-color: var(--clr-primary);
+}
+.drone-icon-btn.is-active {
+  background: var(--clr-primary);
+  border-color: var(--clr-primary);
+  color: #fff;
+}
+body.dark-theme .drone-icon-btn {
+  border-color: var(--clr-border-dark);
+  color: var(--clr-text-subtle-dark);
+}
+body.dark-theme .drone-icon-btn:hover {
+  color: var(--clr-primary-dark);
+  border-color: var(--clr-primary-dark);
+}
+body.dark-theme .drone-icon-btn.is-active {
+  background: var(--clr-primary-dark);
+  border-color: var(--clr-primary-dark);
+  color: #fff;
+}
+
+/* ── Drum machine — palette row additions ───────────────────────────────────── */
+.dm-palette-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--clr-border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+.dm-key-type-btn {
+  font-size: 0.68rem !important;
+  padding: 2px 6px !important;
+  height: auto !important;
+  border-radius: 4px !important;
+  white-space: nowrap;
+}
+.dm-chord-tool-select { font-size: 0.72rem !important; }
+.dm-chord-tool-active  { border-color: var(--clr-primary) !important; }
+body.dark-theme .dm-palette-sep { background: var(--clr-border-dark); }
+
+/* ── Drum machine — chord progression rows (stacked, full-width) ────────────── */
+.dm-prog-separator {
+  height: 1px;
+  background: var(--clr-border);
+  margin: 4px 0 2px;
+  opacity: 0.6;
+}
+/* Each chord row looks like a drum track row */
+.dm-prog-measure-row { /* inherits dm-row layout */ }
+
+/* The single wide chord cell: stretches to fill the entire step-content area */
+.dm-measure-cell {
+  flex: 1;
+  height: 28px;
+  min-width: 0;
+  border-radius: 4px;
+  border: 1px solid var(--clr-border);
+  background: var(--clr-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--clr-text-subtle);
+  user-select: none;
+  box-sizing: border-box;
+  transition: filter 0.1s, transform 0.07s;
+  gap: 6px;
+}
+.dm-measure-cell:hover { filter: brightness(1.08); }
+.dm-measure-cell.dm-measure-filled {
+  background: var(--dm-measure-color, #2C4A7C);
+  color: #fff;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+.dm-measure-cell.dm-measure-current {
+  outline: 2px solid var(--clr-primary);
+  outline-offset: 1px;
+}
+body.dark-theme .dm-prog-separator { background: var(--clr-border-dark); }
+body.dark-theme .dm-measure-cell {
+  background: #2A3040;
+  border-color: rgba(255, 255, 255, 0.06);
+  color: var(--clr-text-subtle-dark);
+}
+body.dark-theme .dm-measure-cell.dm-measure-filled {
+  border-color: rgba(255, 255, 255, 0.15);
 }

@@ -88,6 +88,7 @@ export class Schedule {
     if (!this.isFinished()) {
       const nextInterval = this.getCurrentInterval();
       this.setDisplayTask(nextInterval); // Prepare display for the next interval
+      this.display.setTimerDuration(nextInterval.getTotalDuration());
       this.updateUpcoming();
       nextInterval.start(); // Start the next interval timer AND its features/views
     } else {
@@ -166,11 +167,25 @@ export class Schedule {
     }
     console.log("Schedule prepare: Setting up display for interval", this.currentIntervalIndex);
     this.display.setTime(interval.getCurrentTimeRemaining());
+    this.display.setTimerDuration(interval.getTotalDuration());
     this.setDisplayTask(interval); // Renders feature/views via DisplayController
     this.setTotalTime();
     this.updateUpcoming();
     this.display.setStart(); // Ensure button shows START initially or after pause
     this.display.setStatus(Status.Pause); // Show pause icon initially
+  }
+
+  /** Updates the current interval's remaining time (called when user edits the timer). */
+  setCurrentIntervalTime(seconds: number): void {
+    const interval = this.getCurrentInterval();
+    if (!interval) return;
+    const clamped = Math.max(0, Math.floor(seconds));
+    if (interval.isIntroActive()) {
+      interval.timer.introTimeRemaining = clamped;
+    } else {
+      interval.timer.timeRemaining = clamped;
+    }
+    this.display.setTime(clamped);
   }
 
   // Pause the current interval
@@ -234,6 +249,7 @@ export class Schedule {
 
         // Set timer display to the *start* of the new interval
         this.display.setTime(nextInterval.getCurrentTimeRemaining());
+        this.display.setTimerDuration(nextInterval.getTotalDuration());
         this.setTotalTime(); // Update total time display
     }
 }

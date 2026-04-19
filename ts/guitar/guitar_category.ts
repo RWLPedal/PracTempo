@@ -15,10 +15,12 @@ import { ChordProgressionFeature } from "./features/chord_progression_feature";
 import { TriadFeature } from "./features/triad_feature";
 import { MetronomeFeature } from "./features/metronome_feature";
 import { registerFloatingView } from "../floating_views/floating_view_registry";
+import { FretboardFloatingViewDescriptor } from "../floating_views/floating_view_types";
 import { ColorLegendView } from "./views/color_legend_view";
 import { FloatingMetronomeView } from "./views/floating_metronome_view";
-import { FretboardReferenceView } from './views/fretboard_reference_view';
+import { ConfigurableFeatureView } from '../views/configurable_feature_view';
 import { AppSettings } from "../settings";
+import { AudioController } from "../audio_controller";
 
 // Import Guitar Settings related items
 import { DEFAULT_GUITAR_SETTINGS, GuitarSettings } from "./guitar_settings";
@@ -31,6 +33,7 @@ import {
 import { AVAILABLE_TUNINGS } from "./fretboard";
 import { FretboardColorScheme } from "./colors";
 import { CagedFeature } from "./features/caged_feature";
+import { MultiSelectFretboardFeature } from "./features/multi_select_fretboard_feature";
 
 // Helper function to generate UI Schema (can be kept here or imported)
 function getGuitarGlobalSettingsUISchema(): SettingsUISchemaItem[] {
@@ -41,6 +44,10 @@ function getGuitarGlobalSettingsUISchema(): SettingsUISchemaItem[] {
   const handednessOptions = [
     { value: "right", text: "Right-Handed" },
     { value: "left", text: "Left-Handed" },
+  ];
+  const orientationOptions = [
+    { value: "vertical", text: "Vertical (Default)" },
+    { value: "horizontal", text: "Horizontal" },
   ];
   // Updated color scheme options
   const colorSchemeOptions: { value: FretboardColorScheme; text: string }[] = [
@@ -55,6 +62,13 @@ function getGuitarGlobalSettingsUISchema(): SettingsUISchemaItem[] {
       type: "select",
       options: handednessOptions,
       description: "Orientation of fretboard diagrams.",
+    },
+    {
+      key: "orientation",
+      label: "Fretboard Layout",
+      type: "select",
+      options: orientationOptions,
+      description: "Display the fretboard vertically or horizontally.",
     },
     {
       key: "tuning",
@@ -94,6 +108,10 @@ export class GuitarCategory implements Category {
         MetronomeFeature.typeName,
         MetronomeFeature as unknown as FeatureTypeDescriptor,
       ],
+      [
+        MultiSelectFretboardFeature.typeName,
+        MultiSelectFretboardFeature as unknown as FeatureTypeDescriptor,
+      ],
     ]);
 
     this.registerFloatingViews();
@@ -122,15 +140,73 @@ export class GuitarCategory implements Category {
     });
 
     registerFloatingView({
-      viewId: "guitar_fretboard_reference", // Unique ID
-      displayName: "Fretboard Reference",  // Name for the dropdown menu
+      viewId: "configurable_guitar_feature", // New ID
+      displayName: "Configurable Feature",  // Generic name
       categoryName: this.getName(),
-      defaultWidth: 180, // A bit wider to accommodate the fretboard
-      defaultHeight: 550, // Taller to show more frets
-      createView: (initialState?: any, appSettings?: AppSettings) => {
-        return new FretboardReferenceView(appSettings);
+      defaultWidth: 420,
+      defaultHeight: 550,
+      showInMenu: false,
+      isFretboardView: true,
+      supportsRotate: true,
+      supportsZoom: true,
+      createView: (initialState, appSettings) => {
+        return new ConfigurableFeatureView(initialState, appSettings);
       },
-    });
+    } as FretboardFloatingViewDescriptor);
+
+    registerFloatingView({
+        viewId: "guitar_notes_reference",
+        displayName: "Fretboard Notes",
+        categoryName: this.getName(),
+        defaultWidth: 340,
+        defaultHeight: 550,
+        showInMenu: true,
+        isFretboardView: true,
+        supportsRotate: true,
+        supportsZoom: true,
+        createView: (initialState, appSettings) => {
+          // This view will just create and render a NotesFeature with default config
+          const feature = NotesFeature.createFeature(
+              ['None'], // Config for showing all notes
+              new AudioController(null,null,null,null),
+              appSettings,
+              new GuitarIntervalSettings(),
+              650,
+              'Guitar'
+          );
+  
+          // We need a view object that wraps the feature.
+          return {
+              render: (container: HTMLElement) => {
+                  feature.render(container);
+                  if (feature.views) {
+                    feature.views.forEach(v => v.render(container));
+                  }
+              },
+              start: () => feature.start?.(),
+              stop: () => feature.stop?.(),
+              destroy: () => feature.destroy?.()
+          };
+        },
+      } as FretboardFloatingViewDescriptor);
+
+    registerFloatingView({
+      viewId: "guitar_chord_progression",
+      displayName: "Chord Progression",
+      categoryName: this.getName(),
+      defaultWidth: 420,
+      defaultHeight: 600,
+      showInMenu: true,
+      isFretboardView: true,
+      supportsRotate: true,
+      supportsZoom: true,
+      createView: (initialState, appSettings) => {
+        return new ConfigurableFeatureView(
+          { ...initialState, featureTypeName: ChordProgressionFeature.typeName },
+          appSettings
+        );
+      },
+    } as FretboardFloatingViewDescriptor);
 
     registerFloatingView({
       viewId: "guitar_floating_metronome",

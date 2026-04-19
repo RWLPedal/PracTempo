@@ -75,48 +75,74 @@ export function createDropdownInput(
   return wrapper;
 }
 
-/** Creates the toggle button UI for selecting multiple discrete options */
+/** Creates the toggle button UI for selecting multiple discrete options.
+ *  Supports key-aware button sets (major/minor) and advanced (7th chord) buttons
+ *  that are hidden by default and revealed by an "Advanced" checkbox. */
 export function createToggleButtonInput(
   container: HTMLElement,
   arg: ConfigurationSchemaArg,
-  initialSelection: string[] // Array of initially selected values
+  initialSelection: string[], // Array of initially selected values
+  keyType: string = "Major",
+  showAdvanced: boolean = false
 ): void {
     container.style.display = "flex";
     container.style.flexWrap = "wrap";
-    container.style.gap = "5px";
-    container.style.width = "100%"; // Ensure container takes width
-    const selectionSet = new Set(initialSelection); // Efficient lookup
-    // Get labels from uiComponentData, default to empty array
-    const buttonLabels = arg.uiComponentData?.buttonLabels || [];
+    container.style.gap = "3px";
+    container.style.width = "100%";
+    const selectionSet = new Set(initialSelection);
 
-    if (buttonLabels.length === 0) {
+    const data = arg.uiComponentData ?? {};
+    const basicLabels: string[] =
+        keyType === "Minor" && data.minorButtonLabels
+            ? data.minorButtonLabels
+            : (data.buttonLabels ?? []);
+    const advancedLabels: string[] =
+        keyType === "Minor" && data.minorAdvancedButtonLabels
+            ? data.minorAdvancedButtonLabels
+            : (data.advancedButtonLabels ?? []);
+
+    if (basicLabels.length === 0 && advancedLabels.length === 0) {
         console.warn(`ToggleButtonInput: No buttonLabels provided for arg "${arg.name}".`);
         container.textContent = "[No options configured]";
         return;
     }
 
-    buttonLabels.forEach((label) => {
+    const makeButton = (label: string, isAdvanced: boolean): void => {
         const button = document.createElement("button");
-        button.type = "button"; // Important for forms
+        button.type = "button";
         button.classList.add("button", "is-small", "is-outlined", "numeral-toggle-btn");
         button.textContent = label;
-        button.dataset.value = label; // Store the value associated with the button
-        button.title = `Toggle ${label}`; // Accessibility
+        button.dataset.value = label;
+        button.title = `Toggle ${label}`;
 
-        // Set initial active state
-        if (selectionSet.has(label)) {
-        button.classList.add("is-active", "is-info");
+        if (isAdvanced) {
+            button.classList.add("is-advanced-btn");
+            if (!showAdvanced) button.style.display = "none";
         }
-
-        // Toggle logic
+        if (selectionSet.has(label)) {
+            button.classList.add("is-active", "is-info");
+        }
         button.onclick = () => {
-        button.classList.toggle("is-active");
-        button.classList.toggle("is-info");
-        // Optional: Trigger a change event on the container or a hidden input
-        // if needed for external data binding or validation frameworks.
+            button.classList.toggle("is-active");
+            button.classList.toggle("is-info");
         };
         container.appendChild(button);
-    });
+    };
+
+    basicLabels.forEach(label => makeButton(label, false));
+    advancedLabels.forEach(label => makeButton(label, true));
+}
+
+/** Clears and rebuilds toggle buttons inside `container` with the given key type and advanced state. */
+export function rebuildToggleButtons(
+  container: HTMLElement,
+  arg: ConfigurationSchemaArg,
+  selectedValues: string[],
+  keyType: string,
+  showAdvanced: boolean
+): void {
+    container.innerHTML = "";
+    createToggleButtonInput(container, arg, selectedValues, keyType, showAdvanced);
 }
 
 /** Creates the ellipsis dropdown UI for nested settings */
@@ -403,4 +429,356 @@ export function clearAllChildren(element: HTMLElement): void {
   while (element.firstChild) {
     element.removeChild(element.firstChild);
   }
+}
+
+// --- Layer List UI (for MultiSelectFretboard feature) ---
+
+interface ChordEntry { key: string; label: string; }
+
+/** Data passed via arg.uiComponentData for the layer_list component */
+interface LayerListComponentData {
+  scaleNames?: string[];
+  rootNoteOptions?: string[];
+  chordEntries?: ChordEntry[];
+  noteNames?: string[];
+}
+
+type LayerType = "scale" | "chord" | "notes";
+
+const LAYER_TYPE_LABELS: Record<LayerType, string> = {
+  scale: "Scale",
+  chord: "Chord Tones",
+  notes: "Notes",
+};
+
+const DEFAULT_LAYER_COLORS: Record<LayerType, string> = {
+  scale: "#4a90d9",
+  chord: "#e67e22",
+  notes: "#27ae60",
+};
+
+/** Parses a layer encoded string back into its parts for pre-populating the UI */
+function parseLayerStringForUI(
+  layerStr: string
+): { type: LayerType; fields: string[]; color: string } | null {
+  const parts = layerStr.split("|");
+  if (parts.length < 3) return null;
+  const type = parts[0] as LayerType;
+  const color = parts[parts.length - 1];
+  if (type === "scale" && parts.length >= 4) {
+    return { type, fields: [parts[1], parts[2]], color };
+  } else if (type === "chord" && parts.length >= 3) {
+    return { type, fields: [parts[1]], color };
+  } else if (type === "notes" && parts.length >= 3) {
+    // notes field is a comma-separated string of note names
+    return { type, fields: [parts[1]], color };
+  }
+  return null;
+}
+
+/** Builds the dynamic-fields section for a layer row based on layer type */
+function buildLayerFields(
+  fieldsContainer: HTMLElement,
+  layerType: LayerType,
+  data: LayerListComponentData,
+  initialFields: string[],
+  onChange?: () => void
+): void {
+  fieldsContainer.innerHTML = "";
+
+  if (layerType === "scale") {
+    // Scale name dropdown
+    const scaleNames = data.scaleNames ?? [];
+    const scaleWrapper = document.createElement("div");
+    scaleWrapper.classList.add("select", "is-small");
+    const scaleSelect = document.createElement("select");
+    scaleSelect.dataset.field = "scaleName";
+    scaleNames.forEach((name) => {
+      const opt = new Option(name, name);
+      if (name === (initialFields[0] ?? "")) opt.selected = true;
+      scaleSelect.appendChild(opt);
+    });
+    scaleSelect.addEventListener("change", () => onChange?.());
+    scaleWrapper.appendChild(scaleSelect);
+    fieldsContainer.appendChild(scaleWrapper);
+
+    // Root note dropdown
+    const rootNotes = data.rootNoteOptions ?? [];
+    const rootWrapper = document.createElement("div");
+    rootWrapper.classList.add("select", "is-small");
+    const rootSelect = document.createElement("select");
+    rootSelect.dataset.field = "rootNote";
+    rootNotes.forEach((note) => {
+      const opt = new Option(note, note);
+      if (note === (initialFields[1] ?? "")) opt.selected = true;
+      rootSelect.appendChild(opt);
+    });
+    rootSelect.addEventListener("change", () => onChange?.());
+    rootWrapper.appendChild(rootSelect);
+    fieldsContainer.appendChild(rootWrapper);
+
+  } else if (layerType === "chord") {
+    // Chord key dropdown
+    const entries = data.chordEntries ?? [];
+    const chordWrapper = document.createElement("div");
+    chordWrapper.classList.add("select", "is-small");
+    const chordSelect = document.createElement("select");
+    chordSelect.dataset.field = "chordKey";
+    entries.forEach(({ key, label }) => {
+      const opt = new Option(label, key);
+      if (key === (initialFields[0] ?? "")) opt.selected = true;
+      chordSelect.appendChild(opt);
+    });
+    chordSelect.addEventListener("change", () => onChange?.());
+    chordWrapper.appendChild(chordSelect);
+    fieldsContainer.appendChild(chordWrapper);
+
+  } else if (layerType === "notes") {
+    // Toggle buttons for individual note selection
+    const noteNames = data.noteNames ?? [];
+    const activeNotes = new Set(
+      (initialFields[0] ?? "").split(",").map((n) => n.trim()).filter((n) => n)
+    );
+    const toggleContainer = document.createElement("div");
+    toggleContainer.dataset.field = "noteNames";
+    toggleContainer.style.display = "flex";
+    toggleContainer.style.flexWrap = "wrap";
+    toggleContainer.style.gap = "3px";
+    noteNames.forEach((note) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.classList.add("button", "is-small", "is-outlined", "note-layer-toggle-btn");
+      btn.textContent = note;
+      btn.dataset.value = note;
+      btn.title = note;
+      if (activeNotes.has(note)) btn.classList.add("is-active", "is-info");
+      btn.onclick = () => {
+        btn.classList.toggle("is-active");
+        btn.classList.toggle("is-info");
+        onChange?.();
+      };
+      toggleContainer.appendChild(btn);
+    });
+    fieldsContainer.appendChild(toggleContainer);
+  }
+}
+
+/**
+ * Creates a draggable layer list input component for the MultiSelectFretboard feature.
+ * Each row encodes one layer as a pipe-delimited string.
+ * @param onChange - Optional callback invoked whenever the layer list is modified.
+ */
+export function createLayerListInput(
+  container: HTMLElement,
+  arg: ConfigurationSchemaArg,
+  currentValues: string[],
+  onChange?: () => void
+): void {
+  const data: LayerListComponentData = (arg.uiComponentData as LayerListComponentData) ?? {};
+
+  // Outer container
+  const listContainer = document.createElement("div");
+  listContainer.classList.add("layer-list-container");
+  listContainer.style.display = "flex";
+  listContainer.style.flexDirection = "column";
+  listContainer.style.gap = "4px";
+  listContainer.style.width = "100%";
+
+  // Rows container (the ordered list of layer rows)
+  const rowsContainer = document.createElement("div");
+  rowsContainer.classList.add("layer-list-rows");
+  rowsContainer.style.display = "flex";
+  rowsContainer.style.flexDirection = "column";
+  rowsContainer.style.gap = "4px";
+
+  // --- Drag-and-drop state ---
+  let dragSrcEl: HTMLElement | null = null;
+
+  function attachDragHandlers(row: HTMLElement): void {
+    const handle = row.querySelector<HTMLElement>(".layer-drag-handle");
+    if (!handle) return;
+
+    row.addEventListener("dragstart", (e: DragEvent) => {
+      dragSrcEl = row;
+      row.style.opacity = "0.4";
+      e.dataTransfer?.setData("text/plain", "");
+    });
+    row.addEventListener("dragend", () => {
+      row.style.opacity = "";
+      rowsContainer
+        .querySelectorAll<HTMLElement>(".layer-list-row")
+        .forEach((r) => r.classList.remove("drag-over"));
+    });
+    row.addEventListener("dragover", (e: DragEvent) => {
+      e.preventDefault();
+      if (dragSrcEl && dragSrcEl !== row) {
+        row.classList.add("drag-over");
+      }
+    });
+    row.addEventListener("dragleave", () => row.classList.remove("drag-over"));
+    row.addEventListener("drop", (e: DragEvent) => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      if (dragSrcEl && dragSrcEl !== row) {
+        const allRows = Array.from(
+          rowsContainer.querySelectorAll<HTMLElement>(".layer-list-row")
+        );
+        const srcIdx = allRows.indexOf(dragSrcEl);
+        const dstIdx = allRows.indexOf(row);
+        if (srcIdx !== -1 && dstIdx !== -1) {
+          if (srcIdx < dstIdx) {
+            rowsContainer.insertBefore(dragSrcEl, row.nextSibling);
+          } else {
+            rowsContainer.insertBefore(dragSrcEl, row);
+          }
+          onChange?.();
+        }
+      }
+    });
+  }
+
+  /** Builds one layer row and appends it to rowsContainer */
+  function addLayerRow(layerType: LayerType, initialFields: string[], color: string): void {
+    const row = document.createElement("div");
+    row.classList.add("layer-list-row");
+    row.draggable = true;
+    row.style.display = "flex";
+    row.style.alignItems = "center";
+    row.style.gap = "5px";
+    row.style.padding = "3px 4px";
+    row.style.border = "1px solid var(--clr-border, #ccc)";
+    row.style.borderRadius = "4px";
+    row.style.background = "var(--clr-surface, #fff)";
+
+    // Drag handle
+    const dragHandle = document.createElement("span");
+    dragHandle.classList.add("layer-drag-handle");
+    dragHandle.innerHTML = "&#x2630;";
+    dragHandle.style.cursor = "grab";
+    dragHandle.style.color = "var(--clr-text-subtle, #aaa)";
+    dragHandle.style.flexShrink = "0";
+    row.appendChild(dragHandle);
+
+    // Layer type dropdown
+    const typeWrapper = document.createElement("div");
+    typeWrapper.classList.add("select", "is-small");
+    typeWrapper.style.flexShrink = "0";
+    const typeSelect = document.createElement("select");
+    typeSelect.classList.add("layer-type-select");
+    (Object.keys(LAYER_TYPE_LABELS) as LayerType[]).forEach((t) => {
+      const opt = new Option(LAYER_TYPE_LABELS[t], t);
+      if (t === layerType) opt.selected = true;
+      typeSelect.appendChild(opt);
+    });
+    typeWrapper.appendChild(typeSelect);
+    row.appendChild(typeWrapper);
+
+    // Dynamic fields container
+    const fieldsContainer = document.createElement("div");
+    fieldsContainer.classList.add("layer-fields-container");
+    fieldsContainer.style.display = "flex";
+    fieldsContainer.style.gap = "4px";
+    fieldsContainer.style.flexWrap = "wrap";
+    fieldsContainer.style.flexGrow = "1";
+    buildLayerFields(fieldsContainer, layerType, data, initialFields, onChange);
+    row.appendChild(fieldsContainer);
+
+    // Color picker
+    const colorInput = document.createElement("input");
+    colorInput.type = "color";
+    colorInput.classList.add("layer-color-input");
+    colorInput.value = color;
+    colorInput.style.width = "32px";
+    colorInput.style.height = "28px";
+    colorInput.style.border = "none";
+    colorInput.style.padding = "1px";
+    colorInput.style.cursor = "pointer";
+    colorInput.style.flexShrink = "0";
+    colorInput.title = "Layer color";
+    row.appendChild(colorInput);
+
+    // Remove button
+    const removeBtn = document.createElement("button");
+    removeBtn.type = "button";
+    removeBtn.classList.add("button", "is-small", "is-danger", "is-outlined");
+    removeBtn.innerHTML = "&#10005;";
+    removeBtn.title = "Remove layer";
+    removeBtn.style.flexShrink = "0";
+    removeBtn.onclick = () => { row.remove(); onChange?.(); };
+    row.appendChild(removeBtn);
+
+    // Color change — use "input" so it fires live as the picker moves, not just on close
+    colorInput.addEventListener("input", () => onChange?.());
+
+    // Re-build fields when layer type changes
+    typeSelect.addEventListener("change", () => {
+      const newType = typeSelect.value as LayerType;
+      colorInput.value = DEFAULT_LAYER_COLORS[newType];
+      buildLayerFields(fieldsContainer, newType, data, [], onChange);
+      onChange?.();
+    });
+
+    attachDragHandlers(row);
+    rowsContainer.appendChild(row);
+  }
+
+  // Populate from existing values
+  for (const val of currentValues) {
+    if (!val) continue;
+    const parsed = parseLayerStringForUI(val);
+    if (parsed) {
+      addLayerRow(parsed.type, parsed.fields, parsed.color);
+    }
+  }
+
+  listContainer.appendChild(rowsContainer);
+
+  // "Add Layer" button
+  const addBtn = document.createElement("button");
+  addBtn.type = "button";
+  addBtn.classList.add("button", "is-small", "is-info", "is-outlined", "add-layer-btn");
+  addBtn.textContent = "+ Add Layer";
+  addBtn.style.alignSelf = "flex-start";
+  addBtn.style.marginTop = "4px";
+  addBtn.onclick = () => {
+    addLayerRow("scale", [], DEFAULT_LAYER_COLORS.scale);
+    onChange?.();
+  };
+  listContainer.appendChild(addBtn);
+
+  container.appendChild(listContainer);
+}
+
+/** Reads all layer rows from a layer-list container and returns encoded layer strings */
+export function extractLayerListValues(container: HTMLElement): string[] {
+  const results: string[] = [];
+  const rows = container.querySelectorAll<HTMLElement>(".layer-list-row");
+  rows.forEach((row) => {
+    const type = row.querySelector<HTMLSelectElement>(".layer-type-select")?.value as LayerType | undefined;
+    const color = row.querySelector<HTMLInputElement>(".layer-color-input")?.value ?? "#4a90d9";
+    if (!type) return;
+
+    let encoded = "";
+    if (type === "scale") {
+      const scaleName =
+        row.querySelector<HTMLSelectElement>("[data-field='scaleName']")?.value ?? "";
+      const rootNote =
+        row.querySelector<HTMLSelectElement>("[data-field='rootNote']")?.value ?? "";
+      if (scaleName && rootNote) encoded = `scale|${scaleName}|${rootNote}|${color}`;
+    } else if (type === "chord") {
+      const chordKey =
+        row.querySelector<HTMLSelectElement>("[data-field='chordKey']")?.value ?? "";
+      if (chordKey) encoded = `chord|${chordKey}|${color}`;
+    } else if (type === "notes") {
+      const activeNotes = Array.from(
+        row.querySelectorAll<HTMLButtonElement>(".note-layer-toggle-btn.is-active")
+      )
+        .map((btn) => btn.dataset.value ?? "")
+        .filter((v) => v);
+      // Always emit the row (even if no notes selected) to preserve position
+      encoded = `notes|${activeNotes.join(",")}|${color}`;
+    }
+    if (encoded) results.push(encoded);
+  });
+  return results;
 }

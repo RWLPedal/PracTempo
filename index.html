@@ -7,7 +7,7 @@
   <title>Guitar Timer</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Droid+Sans:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css">
   <script src="./js/bundle.js" defer></script>
@@ -20,48 +20,11 @@
     <div class="tile is-ancestor">
 
       <div class="tile is-vertical is-parent is-5">
+        <!-- ScheduleTimerView renders its content (buttons) here -->
         <div class="tile is-child notification" id="task-wrapper">
-          <p class="subtitle">PracTempo!</p>
-          <div class="level main-controls is-mobile">
-              <div class="level-item">
-                  <button id="start-control" class="button is-success is-medium">START</button>
-              </div>
-              <div class="level-item">
-                  <button id="skip-control" class="button is-info is-medium" title="Skip to next task">SKIP</button>
-              </div>
-              <div class="level-item">
-                  <button id="reset-control" class="button is-danger is-medium">RESET</button>
-              </div>
-              <div class="level-item">
-                  <button id="settings-button" class="button not-text" title="Settings">
-                      <span class="material-icons">settings</span>
-                  </button>
-              </div>
-              <div class="level-item">
-                  <div class="dropdown" id="floating-view-dropdown-container">
-                      <div class="dropdown-trigger">
-                          <button id="floating-view-button" class="button not-text" aria-haspopup="true" aria-controls="floating-view-dropdown-menu" title="Floating Views">
-                              <span class="material-icons">widgets</span>
-                          </button>
-                      </div>
-                      <div class="dropdown-menu" id="floating-view-dropdown-menu" role="menu">
-                          <div class="dropdown-content" id="floating-view-dropdown-content">
-                              </div>
-                      </div>
-                  </div>
-              </div>
-          </div>
-      </div>
-        <div class="tile is-child notification">
-          <p class="subtitle">Current Task</p>
-          <div id="timer-wrapper">
-            <div id="task">Your task</div>
-            <span id="status">‖</span>
-            <div id="timer">0:00</div>
-          </div>
-          <span id="total-timer">0:00 / 0:00</span>
-          <p class="subtitle">Upcoming Tasks</p>
-          <ol id="upcoming"></ol>
+        </div>
+        <!-- SchedulePlaybackView (timer + total + upcoming) renders here -->
+        <div class="tile is-child notification" id="playback-view-container">
         </div>
       </div> <div class="tile is-parent is-7">
         <article id="diagram" class="tile is-child notification">
@@ -95,42 +58,6 @@
   <audio id="metronome-accent-sound" src="sounds/metronome_accent.wav" preload="auto"></audio>
 
   <div id="overlay" class="hidden"></div>
-
-  <div class="modal" id="settings-modal">
-    <div class="modal-background"></div>
-    <div class="modal-card">
-      <header class="modal-card-head">
-        <p class="modal-card-title">Application Settings</p>
-        <button class="delete" aria-label="close" id="settings-modal-close"></button>
-      </header>
-      <section class="modal-card-body">
-        <h4 class="title is-6">Global Settings</h4>
-        <div class="field is-horizontal">
-          <div class="field-label is-normal"><label class="label">Theme</label></div>
-          <div class="field-body"><div class="field"><div class="control">
-              <div class="select is-fullwidth"><select id="theme-select">
-                  <option value="light">Light</option>
-                  <option value="dark">Dark</option>
-              </select></div>
-          </div></div></div>
-      </div>
-      <div class="field is-horizontal">
-          <div class="field-label is-normal"><label class="label">Warmup (sec)</label></div>
-          <div class="field-body"><div class="field"><div class="control">
-              <input class="input" type="number" id="warmup-input" min="0" step="1" value="0">
-          </div></div></div>
-      </div>
-
-      <hr>
-      <div id="category-settings-container">
-          </div>
-        </section>
-      <footer class="modal-card-foot is-justify-content-flex-end">
-        <button class="button is-success" id="settings-save-button">Save changes</button>
-        <button class="button" id="settings-cancel-button">Cancel</button>
-      </footer>
-    </div>
-  </div>
 
   <div class="modal" id="load-schedule-modal">
     <div class="modal-background"></div>

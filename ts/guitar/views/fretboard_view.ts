@@ -44,23 +44,10 @@ export class FretboardView implements View {
     );
   }
 
-  /** Calculates the required canvas dimensions. */
+  /** Calculates the required canvas dimensions, accounting for orientation. */
   private calculateDimensions(): void {
-    const config = this.fretboardConfig;
-    const scaleFactor = config.scaleFactor;
-    const scaledNoteRadius = config.noteRadiusPx;
-    const scaledStartPx = START_PX * scaleFactor;
-    const openNoteClearance = scaledNoteRadius * 1.5 + 5 * scaleFactor;
-    const fretboardLinesHeight = this.fretCount * config.fretLengthPx;
-    const bottomClearance = scaledNoteRadius + 5 * scaleFactor;
-    this.requiredWidth =
-      scaledStartPx + config.stringSpacingPx * 5 + scaledStartPx;
-    this.requiredHeight =
-      scaledStartPx +
-      openNoteClearance +
-      fretboardLinesHeight +
-      bottomClearance +
-      scaledStartPx;
+    this.requiredWidth = this.fretboardConfig.getRequiredWidth(this.fretCount);
+    this.requiredHeight = this.fretboardConfig.getRequiredHeight(this.fretCount);
   }
 
   /** Creates the canvas and triggers the initial render via the Fretboard instance. */
@@ -86,8 +73,8 @@ export class FretboardView implements View {
   private createCanvas(container: HTMLElement): void {
     const canvasIdSuffix = `fretboard-${Date.now()}`;
     this.canvas = addCanvas(container, canvasIdSuffix);
-    this.canvas.width = Math.max(150, this.requiredWidth);
-    this.canvas.height = Math.max(150, this.requiredHeight);
+    this.canvas.width = Math.max(50, this.requiredWidth);
+    this.canvas.height = Math.max(50, this.requiredHeight);
     this.canvas.classList.add("fretboard-view-canvas");
 
     this.ctx = this.canvas.getContext("2d");

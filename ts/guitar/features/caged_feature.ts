@@ -22,34 +22,35 @@ import {
 } from "../guitar_utils";
 import { FretboardView } from "../views/fretboard_view";
 import { getColor as getColorFromScheme, NOTE_COLORS } from "../colors";
+import { volumeManager } from "../../sounds/volume_manager";
 
 // --- CAGED Definitions ---
-type CagedShapeName = "C" | "A" | "G" | "E" | "D";
+export type CagedShapeName = "C" | "A" | "G" | "E" | "D";
 type LabelDisplayType = "Note Name" | "Interval";
+type FillDisplayType = "Filled" | "Note" | "Empty";
 
 // --- Reference CAGED Pattern Structure ---
 interface CagedReferenceNote {
   string: number; // 0-5 (0=Low E)
-  fret: number; // Absolute fret number for the reference key (A Major)
+  fret: number;   // Absolute fret number for the reference key (A Major)
 }
 interface CagedReferencePattern {
   shape: CagedShapeName;
   position: number; // Position number (1-5)
   notes: CagedReferenceNote[];
-  // baseKeyOffset removed
 }
 
 // Helper function to compare CAGED positions (5 < 1 < 2 < 3 < 4)
-function compareCagedPositions(a: number, b: number): number {
-  if (a === 5 && b === 1) return -1; // 5 always comes first unless compared with itself
-  if (b === 5 && a === 1) return 1; // 5 always comes first unless compared with itself
-  return a - b; // Normal sort order for 1, 2, 3, 4
+export function compareCagedPositions(a: number, b: number): number {
+  if (a === 5 && b === 1) return -1;
+  if (b === 5 && a === 1) return 1;
+  return a - b;
 }
 
 // --- Reference CAGED Pattern Data (Key of A Major) ---
 // NOTE: This data MUST be accurately populated for the A Major scale notes
 // within the bounds of each visual CAGED shape across the fretboard.
-const CAGED_REFERENCE_PATTERNS: CagedReferencePattern[] = [
+export const CAGED_REFERENCE_PATTERNS: CagedReferencePattern[] = [
   // A-Shape (Position 4)
   {
     shape: "A",
@@ -172,6 +173,38 @@ const CAGED_REFERENCE_PATTERNS: CagedReferencePattern[] = [
   },
 ];
 
+/**
+ * Builds a lookup map from "string:fret" to the CAGED shapes (up to 2) that
+ * contain that position, transposed from the A-major reference to the given
+ * relative-major key index.
+ */
+export function buildCagedLookup(
+  relativeMajorKeyIndex: number,
+  fretCount: number
+): Map<string, { shape: CagedShapeName; position: number }[]> {
+  const lookup = new Map<string, { shape: CagedShapeName; position: number }[]>();
+  // Reference patterns are in A major (index 0 in our offset system)
+  const slideOffset = (relativeMajorKeyIndex + 12) % 12;
+
+  for (const pattern of CAGED_REFERENCE_PATTERNS) {
+    for (const refNote of pattern.notes) {
+      for (let octave = -2; octave <= 2; octave++) {
+        const expectedFret = refNote.fret + slideOffset + octave * 12;
+        if (expectedFret < 0 || expectedFret > fretCount) continue;
+
+        const key = `${refNote.string}:${expectedFret}`;
+        const existing = lookup.get(key) ?? [];
+        if (existing.length < 2 && !existing.some(s => s.shape === pattern.shape)) {
+          existing.push({ shape: pattern.shape, position: pattern.position });
+          lookup.set(key, existing);
+        }
+      }
+    }
+  }
+
+  return lookup;
+}
+
 export class CagedFeature extends GuitarFeature {
   static readonly typeName = "CAGED";
   static readonly displayName = "CAGED Scale Shapes";
@@ -181,12 +214,19 @@ export class CagedFeature extends GuitarFeature {
   readonly typeName = CagedFeature.typeName;
   private readonly keyIndex: number;
   private readonly rootNoteName: string;
-  private readonly scaleType: string; // Keep the original user selection string
+  private readonly scaleType: string;
   private readonly scale: Scale;
   private readonly labelDisplay: LabelDisplayType;
+  private readonly fillDisplay: FillDisplayType;
   private readonly headerText: string;
   private fretboardViewInstance: FretboardView;
   private fretCount: number;
+
+  // Drone state
+  private _droneActive = false;
+  private _droneOsc: OscillatorNode | null = null;
+  private _droneGain: GainNode | null = null;
+  private _droneVolumeUnsubscribe: (() => void) | null = null;
 
   constructor(
     config: ReadonlyArray<string>,
@@ -195,6 +235,7 @@ export class CagedFeature extends GuitarFeature {
     scaleType: string,
     scale: Scale,
     labelDisplay: LabelDisplayType,
+    fillDisplay: FillDisplayType,
     headerText: string,
     settings: AppSettings,
     intervalSettings: GuitarIntervalSettings,
@@ -207,6 +248,7 @@ export class CagedFeature extends GuitarFeature {
     this.scaleType = scaleType;
     this.scale = scale;
     this.labelDisplay = labelDisplay;
+    this.fillDisplay = fillDisplay;
     this.headerText = headerText;
     this.fretCount = 18;
 
@@ -214,12 +256,11 @@ export class CagedFeature extends GuitarFeature {
       this.fretboardConfig,
       this.fretCount
     );
-    this._views.unshift(this.fretboardViewInstance); // Add FretboardView first
+    this._views.unshift(this.fretboardViewInstance);
 
     this.calculateAndSetCagedNotes();
   }
 
-  // Static methods (getConfigurationSchema, createFeature) remain the same
   static getConfigurationSchema(): ConfigurationSchema {
     const availableKeys = MUSIC_NOTES.flat();
     const availableScales = [
@@ -229,6 +270,7 @@ export class CagedFeature extends GuitarFeature {
       "Minor Pentatonic",
     ];
     const labelOptions: LabelDisplayType[] = ["Interval", "Note Name"];
+    const fillOptions: FillDisplayType[] = ["Filled", "Note", "Empty"];
     const specificArgs: ConfigurationSchemaArg[] = [
       {
         name: "Key",
@@ -251,9 +293,17 @@ export class CagedFeature extends GuitarFeature {
         enum: labelOptions,
         description: "Display intervals or note names on the dots.",
       },
+      {
+        name: "Fill Display",
+        type: "enum",
+        required: true,
+        enum: fillOptions,
+        description:
+          "Filled: color circles by CAGED shape. Note: color by interval. Empty: grey circles with CAGED outline.",
+      },
     ];
     return {
-      description: `Config: ${this.typeName},Key,ScaleType,LabelDisplay[,GuitarSettings]`,
+      description: `Config: ${this.typeName},Key,ScaleType,LabelDisplay,FillDisplay[,GuitarSettings]`,
       args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
@@ -272,9 +322,14 @@ export class CagedFeature extends GuitarFeature {
       );
     }
     const rootNoteName = config[0];
-    const scaleTypeName = config[1]; // Keep original name for header/minor check
+    const scaleTypeName = config[1];
     const labelDisplay = config[2] as LabelDisplayType;
-    const featureSpecificConfig = [rootNoteName, scaleTypeName, labelDisplay];
+    // config[3] is FillDisplay; default to "Filled" for backward compatibility
+    const rawFill = config[3] as FillDisplayType | undefined;
+    const fillDisplay: FillDisplayType =
+      rawFill === "Note" || rawFill === "Empty" ? rawFill : "Filled";
+
+    const featureSpecificConfig = [rootNoteName, scaleTypeName, labelDisplay, fillDisplay];
     const keyIndex = getKeyIndex(rootNoteName);
     if (keyIndex === -1)
       throw new Error(`[${this.typeName}] Unknown key: "${rootNoteName}"`);
@@ -302,9 +357,10 @@ export class CagedFeature extends GuitarFeature {
       featureSpecificConfig,
       keyIndex,
       validRootName,
-      scaleTypeName, // Pass original user-selected name
+      scaleTypeName,
       scale,
       validLabelDisplay,
+      fillDisplay,
       headerText,
       settings,
       guitarIntervalSettings,
@@ -314,102 +370,114 @@ export class CagedFeature extends GuitarFeature {
   }
 
   /** Calculates scale notes and their CAGED membership using reference patterns. */
-  /** Calculates scale notes and their CAGED membership using reference patterns. */
   private calculateAndSetCagedNotes(): void {
     const notesData: NoteRenderData[] = [];
     const config = this.fretboardConfig;
     const tuning = config.tuning.tuning;
     const fretCount = this.fretCount;
 
-    // Determine if the selected scale is minor to find the relative major
-    // Use the selected scaleType string for robust checking
+    // For minor scales use the relative major key for CAGED lookup
     const isMinorScale = this.scaleType.toLowerCase().includes("minor");
-    const relativeMajorKeyIndex = isMinorScale ? (this.keyIndex + 3) % 12 : this.keyIndex;
+    const relativeMajorKeyIndex = isMinorScale
+      ? (this.keyIndex + 3) % 12
+      : this.keyIndex;
 
-    // Pre-calculate expected fret positions based on the RELATIVE MAJOR key
-    // Map key: "string:fret", Value: Array of { shape: CagedShapeName; position: number }
-    const expectedFretLookup = new Map<string, { shape: CagedShapeName; position: number }[]>();
-    const referenceKeyIndex = 0; // Reference key is A
-    // Calculate slide offset from reference A to the relative major key
-    const slideOffset = (relativeMajorKeyIndex - referenceKeyIndex + 12) % 12;
+    const cagedLookup = buildCagedLookup(relativeMajorKeyIndex, fretCount);
 
-    CAGED_REFERENCE_PATTERNS.forEach(pattern => {
-        pattern.notes.forEach(refNote => {
-            // Calculate all expected frets for this reference note in the target relative major key
-            for (let octave = -2; octave <= 2; octave++) {
-                const expectedFret = refNote.fret + slideOffset + (octave * 12);
-                if (expectedFret >= 0 && expectedFret <= fretCount) {
-                    const lookupKey = `${refNote.string}:${expectedFret}`;
-                    const shapes = expectedFretLookup.get(lookupKey) || [];
-                    const newShapeInfo = { shape: pattern.shape, position: pattern.position };
-                    if (!shapes.some(s => s.shape === newShapeInfo.shape)) {
-                        shapes.push(newShapeInfo);
-                        if (shapes.length <= 2) { // Only keep up to 2 shapes
-                            expectedFretLookup.set(lookupKey, shapes);
-                        }
-                    }
-                }
-            }
-        });
-    });
-
-    // Iterate through fretboard to find notes in the SELECTED scale (major or minor)
     for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
       if (stringIndex >= tuning.length) continue;
       const stringTuning = tuning[stringIndex];
 
       for (let fretIndex = 0; fretIndex <= fretCount; fretIndex++) {
         const noteOffsetFromA = (stringTuning + fretIndex) % 12;
-        // Calculate note relative to the SELECTED key (this.keyIndex)
         const noteRelativeToKey = (noteOffsetFromA - this.keyIndex + 12) % 12;
 
-        // Check if the note is part of the *selected* scale (this.scale)
-        if (this.scale.degrees.includes(noteRelativeToKey)) {
-          const noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
-          const intervalLabel = getIntervalLabel(noteRelativeToKey);
+        if (!this.scale.degrees.includes(noteRelativeToKey)) continue;
 
-          // Determine CAGED membership by looking up this note's position
-          // in the lookup map (which is based on the relative major key)
-          const lookupKey = `${stringIndex}:${fretIndex}`;
-          const shapeMembershipInfo = expectedFretLookup.get(lookupKey) || []; // Array of {shape, position}
+        const noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
+        const intervalLabel = getIntervalLabel(noteRelativeToKey);
 
-          // Determine stroke color based on CAGED membership using NOTE_COLORS
-          let strokeColor: string | string[] = "rgba(50, 50, 50, 0.7)"; // Default subtle stroke
-          if (shapeMembershipInfo.length === 1) {
-            const shapeName = shapeMembershipInfo[0].shape;
-            strokeColor = NOTE_COLORS[shapeName] ?? strokeColor;
-          } else if (shapeMembershipInfo.length >= 2) {
-            // Sort the shapes based on position (5 < 1 < 2 < 3 < 4)
-            const sortedShapes = shapeMembershipInfo.sort((a, b) => compareCagedPositions(a.position, b.position));
-            strokeColor = [
-              NOTE_COLORS[sortedShapes[0].shape] ?? "grey",
-              NOTE_COLORS[sortedShapes[1].shape] ?? "grey",
-            ];
+        const lookupKey = `${stringIndex}:${fretIndex}`;
+        const shapeMembership = cagedLookup.get(lookupKey) ?? [];
+
+        // Sort overlap pairs consistently (5 < 1 < 2 < 3 < 4)
+        const sorted =
+          shapeMembership.length >= 2
+            ? [...shapeMembership].sort((a, b) =>
+                compareCagedPositions(a.position, b.position)
+              )
+            : shapeMembership;
+
+        const cagedColor1 =
+          sorted.length >= 1 ? (NOTE_COLORS[sorted[0].shape] ?? "#888888") : "#888888";
+        const cagedColor2 =
+          sorted.length >= 2 ? (NOTE_COLORS[sorted[1].shape] ?? "#888888") : null;
+
+        let fillColor: string | string[];
+        let strokeColor: string | string[];
+        let strokeWidth: number;
+
+        if (this.fillDisplay === "Filled") {
+          // Fill circles with CAGED shape color(s); thin neutral outline
+          if (sorted.length === 0) {
+            fillColor = "#909090";
+          } else if (sorted.length === 1) {
+            fillColor = cagedColor1;
+          } else {
+            fillColor = [cagedColor1, cagedColor2!];
+          }
+          strokeColor = "rgba(40, 40, 40, 0.6)";
+          strokeWidth = 1;
+
+        } else if (this.fillDisplay === "Note") {
+          // Fill by interval color; CAGED colors on the stroke (existing behavior)
+          fillColor = getColorFromScheme("interval", noteName, intervalLabel);
+          if (sorted.length === 0) {
+            strokeColor = "rgba(50, 50, 50, 0.7)";
+            strokeWidth = 1;
+          } else if (sorted.length === 1) {
+            strokeColor = cagedColor1;
+            strokeWidth = 3;
+          } else {
+            strokeColor = [cagedColor1, cagedColor2!];
+            strokeWidth = 3;
           }
 
-          // Determine fill color (based on interval relative to the selected key)
-          const fillColor = getColorFromScheme("interval", noteName, intervalLabel);
-          // Determine display label
-          const displayLabel = this.labelDisplay === "Interval" ? intervalLabel : noteName;
-          // Determine stroke width
-          const strokeWidth = shapeMembershipInfo.length > 0 ? 3 : 1;
-
-          notesData.push({
-            fret: fretIndex,
-            stringIndex: stringIndex,
-            noteName: noteName,
-            intervalLabel: intervalLabel,
-            displayLabel: displayLabel,
-            fillColor: fillColor,
-            strokeColor: strokeColor,
-            strokeWidth: strokeWidth,
-            radiusOverride: fretIndex === 0 ? config.noteRadiusPx * OPEN_NOTE_RADIUS_FACTOR : undefined,
-          });
+        } else {
+          // "Empty" — grey fill; CAGED colors on the stroke
+          fillColor = "#a0a0a0";
+          if (sorted.length === 0) {
+            strokeColor = "rgba(50, 50, 50, 0.7)";
+            strokeWidth = 1;
+          } else if (sorted.length === 1) {
+            strokeColor = cagedColor1;
+            strokeWidth = 3;
+          } else {
+            strokeColor = [cagedColor1, cagedColor2!];
+            strokeWidth = 3;
+          }
         }
+
+        const displayLabel =
+          this.labelDisplay === "Interval" ? intervalLabel : noteName;
+
+        notesData.push({
+          fret: fretIndex,
+          stringIndex,
+          noteName,
+          intervalLabel,
+          displayLabel,
+          fillColor,
+          strokeColor,
+          strokeWidth,
+          radiusOverride:
+            fretIndex === 0
+              ? config.noteRadiusPx * OPEN_NOTE_RADIUS_FACTOR
+              : undefined,
+        });
       }
     }
 
-    // Update the view
     requestAnimationFrame(() => {
       if (this.fretboardViewInstance) {
         this.fretboardViewInstance.setNotes(notesData);
@@ -420,6 +488,84 @@ export class CagedFeature extends GuitarFeature {
 
   render(container: HTMLElement): void {
     clearAllChildren(container);
-    addHeader(container, this.headerText);
+    const titleRow = document.createElement('div');
+    titleRow.classList.add('feature-title-row');
+    const header = addHeader(titleRow, this.headerText);
+    header.classList.add('feature-main-title');
+    titleRow.appendChild(this.buildDroneButton());
+    container.appendChild(titleRow);
+  }
+
+  private buildDroneButton(): HTMLButtonElement {
+    const btn = document.createElement('button');
+    btn.classList.add('drone-icon-btn');
+    btn.title = 'Toggle root-note drone';
+    const icon = document.createElement('span');
+    icon.classList.add('material-icons');
+    icon.textContent = 'graphic_eq';
+    btn.appendChild(icon);
+    if (this._droneActive) btn.classList.add('is-active');
+    btn.addEventListener('click', () => {
+      this._droneActive = !this._droneActive;
+      btn.classList.toggle('is-active', this._droneActive);
+      if (this._droneActive) this.startDrone();
+      else this.stopDrone();
+    });
+    return btn;
+  }
+
+  destroy(): void {
+    this.stopDrone();
+  }
+
+  /** freq = 440 * 2^((keyIndex + 12*(octave-4)) / 12), MUSIC_NOTES A-indexed */
+  private getRootFrequency(): number {
+    return 440 * Math.pow(2, (this.keyIndex + 12 * (3 - 4)) / 12);
+  }
+
+  private startDrone(): void {
+    this.stopDrone();
+    try {
+      const ctx = volumeManager.getAudioContext();
+      const now = ctx.currentTime;
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.value = this.getRootFrequency();
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      const vol = 0.15 * volumeManager.getVolume();
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(vol, now + 0.3);
+      osc.start(now);
+      this._droneOsc  = osc;
+      this._droneGain = gain;
+      this._droneVolumeUnsubscribe = volumeManager.onChange(v => {
+        if (this._droneGain) {
+          this._droneGain.gain.setTargetAtTime(0.15 * v, ctx.currentTime, 0.05);
+        }
+      });
+    } catch (e) {
+      console.warn('CagedFeature: could not start drone', e);
+    }
+  }
+
+  private stopDrone(): void {
+    if (this._droneVolumeUnsubscribe) {
+      this._droneVolumeUnsubscribe();
+      this._droneVolumeUnsubscribe = null;
+    }
+    if (this._droneOsc && this._droneGain) {
+      try {
+        const ctx = volumeManager.getAudioContext();
+        const now = ctx.currentTime;
+        this._droneGain.gain.cancelScheduledValues(now);
+        this._droneGain.gain.setValueAtTime(this._droneGain.gain.value, now);
+        this._droneGain.gain.linearRampToValueAtTime(0, now + 0.3);
+        this._droneOsc.stop(now + 0.35);
+      } catch (_) { /* ignore */ }
+      this._droneOsc  = null;
+      this._droneGain = null;
+    }
   }
 }

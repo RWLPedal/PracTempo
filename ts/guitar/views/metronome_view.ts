@@ -254,6 +254,7 @@ export class MetronomeView implements View {
       this.startInterval();
     }
     this.updateMuteButtonState();
+    this.updatePlayPauseButtonState();
   }
 
   stop(): void {
@@ -262,6 +263,18 @@ export class MetronomeView implements View {
       this.stopInterval();
     }
     this.updateMuteButtonState();
+    this.updatePlayPauseButtonState();
+  }
+
+  private updatePlayPauseButtonState(): void {
+    if (!this.playPauseButton) return;
+    if (this.isRunning) {
+      this.playPauseButton.innerHTML = `<span class="material-icons">pause</span>`;
+      this.playPauseButton.title = "Pause Metronome";
+    } else {
+      this.playPauseButton.innerHTML = `<span class="material-icons">play_arrow</span>`;
+      this.playPauseButton.title = "Play Metronome";
+    }
   }
 
   private startInterval(): void {

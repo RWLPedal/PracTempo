@@ -1,7 +1,11 @@
 const path = require('path');
 
 module.exports = {
-  entry: './main.ts',
+  context: __dirname,
+  entry: {
+    bundle: './main.ts',
+    reference_bundle: './reference_page/reference_main.ts',
+  },
   module: {
     rules: [
       {
@@ -15,7 +19,7 @@ module.exports = {
     extensions: ['.ts', '.js'],
   },
   output: {
-    filename: 'bundle.js', // The output bundle file
+    filename: '[name].js', // The output bundle file
     path: path.resolve(__dirname, '../js'), // Output directory (same as your tsconfig)
     publicPath: '/js/',
   },

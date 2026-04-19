@@ -53,9 +53,13 @@ export class DragDropManager {
 
     // Check if the drag started on the handle
     if (!dragHandle) {
-        // Prevent the row drag operation if not started on handle
+        // If the drag originated inside a nested draggable container (e.g. layer list rows),
+        // let the event proceed without interference — don't preventDefault.
+        if (originalTarget.closest('.layer-list-container')) {
+            return;
+        }
         e.preventDefault();
-        console.log("DragStart prevented: Not initiated on drag handle."); // This is the log you're seeing
+        console.log("DragStart prevented: Not initiated on drag handle.");
         return;
     }
 

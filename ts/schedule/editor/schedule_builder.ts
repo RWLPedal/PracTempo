@@ -166,7 +166,7 @@ export class ScheduleBuilder {
           // 4. Create Interval and add to Schedule
           const interval = new Interval(
             durationSeconds,
-            settings.warmupPeriod, // Use global warmup setting
+            settings.practice.warmupPeriod, // Use global warmup setting
             intervalData.task ||
               intervalData.featureTypeName ||
               `Interval ${index + 1}`, // Task name fallback

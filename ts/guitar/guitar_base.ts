@@ -80,11 +80,13 @@ export abstract class GuitarFeature implements Feature {
     this.fretboardConfig = new FretboardConfig(
       tuning,
       guitarGlobalSettings.handedness,
+      guitarGlobalSettings.orientation,
       guitarGlobalSettings.colorScheme,
       undefined, // markerDots
       undefined, // sideNumbers
       undefined, // stringWidths
-      this.maxCanvasHeight
+      this.maxCanvasHeight,
+      guitarGlobalSettings.zoomMultiplier ?? 1.0
     );
 
     // --- Metronome Handling ---

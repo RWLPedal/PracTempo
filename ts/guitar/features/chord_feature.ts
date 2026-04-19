@@ -144,6 +144,7 @@ export class ChordFeature extends GuitarFeature {
     } else if (uniqueChordNames.length > 1) {
       headerText = uniqueChordNames.slice(0, 3).join(" / ") + " Chords";
     }
-    addHeader(container, headerText);
+    const header = addHeader(container, headerText);
+    header.classList.add('feature-main-title');
   }
 }

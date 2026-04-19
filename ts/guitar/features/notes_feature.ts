@@ -177,6 +177,7 @@ export class NotesFeature extends GuitarFeature {
     const headerText = this.rootNoteName
       ? `Notes (Interval Colors Relative to ${this.rootNoteName})`
       : "Notes (Note Name Colors)";
-    addHeader(container, headerText);
+    const header = addHeader(container, headerText);
+    header.classList.add('feature-main-title');
   }
 }

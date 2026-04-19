@@ -7,6 +7,7 @@ import {
   NoteRenderData,
   LineData,
   NoteIcon,
+  BarreData,
 } from "../fretboard";
 import {
   START_PX,
@@ -82,28 +83,10 @@ export class ChordDiagramView implements View {
     this.prepareAndSetChordData();
   }
 
-  /** Calculates the required canvas dimensions. */
+  /** Calculates the required canvas dimensions, accounting for orientation. */
   private calculateDimensions(): void {
-    const config = this.fretboardConfig;
-    const scaleFactor = config.scaleFactor;
-    const scaledNoteRadius = config.noteRadiusPx;
-    const scaledStartPx = START_PX * scaleFactor;
-    // Clearance needed above the nut line for potential open notes/muted markers
-    const openNoteClearance = scaledNoteRadius * 1.5 + 5 * scaleFactor;
-    // Height of the fretted area
-    const fretboardLinesHeight = this.fretCount * config.fretLengthPx;
-    // Clearance needed below the last fret line
-    const bottomClearance = scaledNoteRadius + 5 * scaleFactor;
-
-    this.requiredWidth =
-      scaledStartPx + config.stringSpacingPx * 5 + scaledStartPx; // LeftPad + Strings + RightPad
-    // Height includes space *within the canvas* for grid, clearances, and padding
-    this.requiredHeight =
-      scaledStartPx +
-      openNoteClearance +
-      fretboardLinesHeight +
-      bottomClearance +
-      scaledStartPx;
+    this.requiredWidth = this.fretboardConfig.getRequiredWidth(this.fretCount);
+    this.requiredHeight = this.fretboardConfig.getRequiredHeight(this.fretCount);
   }
 
   /** Calculates NoteRenderData for the chord and passes it to the Fretboard instance. */
@@ -184,8 +167,28 @@ export class ChordDiagramView implements View {
       }
     }
 
-    // Set notes (and clear lines for single chord diagram)
-    this.fretboard.setNotes(notesData);
+    // Build barre data and filter out notes covered by a barre
+    const barreData: BarreData[] = [];
+    if (this.chord.barre) {
+      for (const spec of this.chord.barre) {
+        barreData.push({ fret: spec.fret, stringStart: spec.stringStart, stringEnd: spec.stringEnd });
+      }
+      // Remove individual note circles that lie on a barre (the bar itself shows them)
+      const filteredNotes = notesData.filter((note) => {
+        if (note.fret <= 0) return true; // open/muted always shown
+        return !this.chord.barre!.some(
+          (spec) =>
+            note.fret === spec.fret &&
+            note.stringIndex >= spec.stringStart &&
+            note.stringIndex <= spec.stringEnd
+        );
+      });
+      this.fretboard.setNotes(filteredNotes);
+    } else {
+      this.fretboard.setNotes(notesData);
+    }
+
+    this.fretboard.setBarres(barreData);
     this.fretboard.setLines([]); // Explicitly clear lines
   }
 
@@ -220,21 +223,24 @@ export class ChordDiagramView implements View {
     this.wrapperDiv.style.padding = "5px";
     this.wrapperDiv.style.minWidth = `${this.requiredWidth}px`; // Use calculated width
 
-    // --- Add Title (External to Canvas) ---
-    const titleEl = addHeader(this.wrapperDiv, this.title);
-    titleEl.classList.replace("is-6", "is-6"); // Adjusted size (e.g., is-6 instead of is-7)
-    titleEl.style.marginBottom = `4px`; // Adjust spacing if needed
+    // --- Add Chord Title ---
+    if (this.title) {
+      const titleEl = document.createElement("div");
+      titleEl.classList.add("chord-diagram-title");
+      titleEl.textContent = this.title;
+      this.wrapperDiv.appendChild(titleEl);
+    }
 
     // --- Add Notes List ---
-    const notesList = getChordNotes(this.chord, this.fretboardConfig); // Call helper
+    const notesList = getChordNotes(this.chord, this.fretboardConfig);
     const notesEl = document.createElement("div");
-    notesEl.classList.add("chord-notes-list"); // Add class for styling
+    notesEl.classList.add("chord-notes-list");
     notesEl.textContent = notesList.join(", ");
-    notesEl.style.fontSize = "0.75rem"; // Smaller font size for notes
+    notesEl.style.fontSize = "0.75rem";
     notesEl.style.textAlign = "center";
-    notesEl.style.color = "var(--clr-text-subtle)"; // Use a subtle color
-    notesEl.style.marginBottom = "8px"; // Space below notes, before canvas
-    this.wrapperDiv.appendChild(notesEl); // Append notes below title
+    notesEl.style.color = "var(--clr-text-subtle)";
+    notesEl.style.marginBottom = "3px";
+    this.wrapperDiv.appendChild(notesEl);
 
     // --- Create Canvas ---
     const canvasIdSuffix = `chord-${this.title.replace(/[^a-zA-Z0-9-]/g, "_")}`;

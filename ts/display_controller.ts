@@ -1,5 +1,7 @@
 import { Feature } from "./feature";
 import { Interval } from "./schedule/schedule";
+import { TimerView } from "./views/timer_view";
+import { SchedulePlaybackView } from "./views/schedule_playback_view";
 
 export enum Status {
   Play = "Play",
@@ -8,48 +10,42 @@ export enum Status {
 }
 
 export class DisplayController {
-  timerEl: HTMLElement;
-  totalTimerEl: HTMLElement;
-  taskWrapperEl: HTMLElement;
-  taskDisplayEl: HTMLElement;
-  diagramEl: HTMLElement; // Target for feature rendering
-  statusEl: HTMLElement;
-  upcomingEl: HTMLElement;
+  diagramEl: HTMLElement;
   controlButtonEl: HTMLElement;
 
+  private playbackView: SchedulePlaybackView | null = null;
+  private timerView: TimerView | null = null;
+
   constructor(
-    timerEl: HTMLElement,
-    totalTimerEl: HTMLElement,
-    taskWrapperEl: HTMLElement,
-    taskDisplayEl: HTMLElement,
     diagramEl: HTMLElement,
-    statusEl: HTMLElement,
-    upcomingEl: HTMLElement,
-    controlButtonEl: HTMLElement
+    controlButtonEl: HTMLElement,
   ) {
-    this.timerEl = timerEl;
-    this.totalTimerEl = totalTimerEl;
-    this.taskWrapperEl = taskWrapperEl;
-    this.taskDisplayEl = taskDisplayEl;
     this.diagramEl = diagramEl;
-    this.statusEl = statusEl;
-    this.upcomingEl = upcomingEl;
     this.controlButtonEl = controlButtonEl;
   }
 
-  setTask(taskName: string, color: string): void {
-    this.taskDisplayEl.innerText = taskName;
+  setPlaybackView(view: SchedulePlaybackView): void {
+    this.playbackView = view;
+  }
+
+  setTimerView(view: TimerView): void {
+    this.timerView = view;
+  }
+
+  setTask(taskName: string, _color: string): void {
+    this.timerView?.setTitle(taskName || null);
   }
 
   setTime(seconds: number): void {
-    this.timerEl.innerText = this.formattedTime(seconds);
+    this.timerView?.setDisplayTime(seconds);
+  }
+
+  setTimerDuration(seconds: number): void {
+    this.timerView?.setDuration(seconds);
   }
 
   setStatus(status: Status): void {
-    let text = "||";
-    if (status === Status.Play) text = "▶";
-    else if (status === Status.Stop) text = "■";
-    this.statusEl.textContent = text;
+    this.timerView?.setRunning(status === Status.Play);
   }
 
   flashOverlay() {
@@ -60,67 +56,27 @@ export class DisplayController {
     setTimeout(() => {
       overlay.classList.remove("visible");
       overlay.classList.add("hidden");
-    }, 500); // Duration of flash
+    }, 500);
   }
 
-  setTotalTime(seconds: number, totalDuration: number): void {
-    this.totalTimerEl.innerText = `${this.formattedTime(
-      seconds
-    )} / ${this.formattedTime(totalDuration)}`;
+  setTotalTime(elapsed: number, totalDuration: number): void {
+    this.playbackView?.setTotalTime(elapsed, totalDuration);
   }
 
-  /**
-   * Updates the upcoming tasks list.
-   * @param upcomingIntervals Array of the next intervals to display.
-   * @param isEndVisible True if the end of the schedule falls within this list's scope.
-   */
   setUpcoming(upcomingIntervals: Array<Interval>, isEndVisible: boolean): void {
-    this.clearAllChildren(this.upcomingEl);
-
-    // Only show placeholder if there are no intervals AND the end isn't visible yet
-    if (upcomingIntervals.length === 0 && !isEndVisible) {
-      this.upcomingEl.innerHTML = "<li>(No upcoming tasks)</li>"; // Adjusted placeholder
-    } else {
-      // Display the upcoming intervals
-      upcomingIntervals.forEach((interval) => {
-        const intervalEl = document.createElement("li");
-        const introSuffix = interval.isIntroActive() ? " (Warmup)" : "";
-        // Keep duration display concise
-        const text = `${
-          interval.task || "(Untitled)"
-        }${introSuffix} [${this.formattedTime(interval.duration)}]`;
-        intervalEl.innerText = text;
-        this.upcomingEl.appendChild(intervalEl);
-      });
-
-      // Add "END" marker if the end of the schedule is reached within this view
-      if (isEndVisible) {
-        const endLi = document.createElement("li");
-        endLi.textContent = "END";
-        endLi.style.fontWeight = "bold"; // Make it stand out
-        endLi.style.color = "#888"; // Dim color slightly
-        endLi.style.marginTop = "5px"; // Add a little space before END
-        this.upcomingEl.appendChild(endLi);
-      }
-    }
+    this.playbackView?.setUpcoming(upcomingIntervals, isEndVisible);
   }
 
-  /**
-   * Renders the feature and its views into the diagram container.
-   * Relies on the feature providing views in the desired render order.
-   * @param feature The feature instance to render.
-   * @param handedness The current handedness setting ('left' or 'right').
-   */
   renderFeature(
     feature: Feature,
-    handedness: "left" | "right" = "right" // Handedness is likely handled by config now
+    handedness: "left" | "right" = "right"
   ): void {
     console.log(
       `[DisplayController.renderFeature] Attempting to render feature: ${
         feature?.typeName || "UNKNOWN"
       }`
     );
-    this.clearFeature(); // Clear the main container first
+    this.clearFeature();
 
     if (!feature) {
       console.error(
@@ -130,18 +86,16 @@ export class DisplayController {
     }
 
     try {
-      // Feature's render method might add headers or other base content
       feature.render(this.diagramEl);
       console.log(
         `[DisplayController.renderFeature] Successfully called feature.render() for ${feature.typeName}`
       );
 
-      // Render associated views (like Metronome) IN THE ORDER PROVIDED by the feature
       feature.views?.forEach((view) => {
         console.log(
           `[DisplayController.renderFeature]   Rendering view: ${view.constructor.name}`
         );
-        view.render(this.diagramEl); // Append each view's content
+        view.render(this.diagramEl);
       });
     } catch (error) {
       console.error(
@@ -161,7 +115,6 @@ export class DisplayController {
     const tsf = Math.floor(totalSeconds);
     const s = (tsf % 60).toString().padStart(2, "0");
     const tm = Math.floor(tsf / 60);
-    // No hours display needed based on previous format
     return `${tm}:${s}`;
   }
 

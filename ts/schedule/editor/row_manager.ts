@@ -9,7 +9,7 @@ import {
 import { buildGroupRowElement } from "./interval/group_row_ui";
 import { buildIntervalRowElement } from "./interval/interval_row_ui";
 import { SelectionManager } from "./selection_manager";
-import { applyIndentation } from "./interval/common_ui_elements";
+import { applyIndentation, extractLayerListValues } from "./interval/common_ui_elements";
 import {
   getIntervalSettingsFactory,
   getFeatureTypeDescriptor,
@@ -246,7 +246,12 @@ export class RowManager {
               const uiType = inputsContainer.dataset.uiComponentType;
               const isVariadic = currentSchemaArg.isVariadic; // Check schema, not just dataset
 
-              if (uiType === "toggle_button_selector") {
+              if (uiType === "layer_list") {
+                // **** Layer List Logic ****
+                const layerValues = extractLayerListValues(inputsContainer);
+                featureArgsList.push(...layerValues);
+                schemaArgIndex = schemaArgs.length; // consumes all remaining schema args
+              } else if (uiType === "toggle_button_selector") {
                 // **** START: Toggle Button Logic ****
                 const activeButtons =
                   inputsContainer.querySelectorAll<HTMLButtonElement>(
@@ -259,6 +264,9 @@ export class RowManager {
                 // Toggle button consumes all remaining args if variadic
                 if (isVariadic) schemaArgIndex = schemaArgs.length;
                 // **** END: Toggle Button Logic ****
+              } else if (uiType === "checkbox") {
+                // UI-only control — never serialized into featureArgsList
+                schemaArgIndex++;
               } else if (uiType === "ellipsis") {
                 // Settings handled by intervalSettingsJSON, consume schema arg
                 schemaArgIndex++;

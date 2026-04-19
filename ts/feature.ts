@@ -94,14 +94,35 @@ export interface ConfigurationSchemaArg {
     | "number"
     | "enum"
     | "toggle_button_selector"
-    | "ellipsis";
-  uiComponentData?: { buttonLabels?: string[] };
+    | "ellipsis"
+    | "checkbox"
+    | "layer_list";
+  uiComponentData?: {
+    buttonLabels?: string[];
+    /** Advanced (7th chord) labels — hidden until the Advanced checkbox is checked. */
+    advancedButtonLabels?: string[];
+    /** Basic labels used when Key type is Minor. */
+    minorButtonLabels?: string[];
+    /** Advanced labels used when Key type is Minor. */
+    minorAdvancedButtonLabels?: string[];
+    /** Layer list data for MultiSelectFretboard feature. */
+    scaleNames?: string[];
+    rootNoteOptions?: string[];
+    chordEntries?: { key: string; label: string }[];
+    noteNames?: string[];
+  };
   required?: boolean;
   enum?: string[];
   description?: string;
   example?: string;
   isVariadic?: boolean;
   nestedSchema?: ConfigurationSchemaArg[];
+  /**
+   * Name of another arg in the same schema that this arg controls.
+   * Used to wire up dynamic UI updates (e.g. a Key dropdown rebuilding
+   * a toggle-button selector, or an Advanced checkbox showing hidden buttons).
+   */
+  controlsArgName?: string;
 }
 
 export type ConfigurationSchema =

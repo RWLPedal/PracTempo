@@ -2,7 +2,7 @@ package.json
 package-lock.json
 node_modules
 ts/node_modules
-js/
+js/*
 !js/bundle.js
 main.js
 main.js.map

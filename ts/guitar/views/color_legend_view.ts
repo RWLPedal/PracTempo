@@ -55,12 +55,6 @@ export class ColorLegendView implements View {
       title = "Simplified Color Legend";
     }
 
-    // Add a title inside the view content
-    const titleEl = document.createElement("div");
-    titleEl.classList.add("legend-title");
-    titleEl.textContent = title;
-    this.container.appendChild(titleEl);
-
     // Create legend items
     for (const key in colorMap) {
       if (key === "DEFAULT") continue; // Skip default entry

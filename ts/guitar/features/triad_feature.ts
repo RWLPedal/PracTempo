@@ -80,8 +80,9 @@ class TriadQualityRowView implements View {
       this.rowContainer.style.marginBottom = "10px";
 
       const header = addHeader(this.rowContainer, `${this.quality} Triads`);
+      header.classList.add('feature-subtitle');
       header.style.textAlign = "left";
-      header.style.fontSize = "1.1rem";
+      header.style.fontSize = "0.95rem";
 
       this.diagramsContainer = document.createElement("div");
       this.diagramsContainer.style.display = "flex";
@@ -144,6 +145,7 @@ export class TriadFeature extends GuitarFeature {
     const baseFretboardConfig = new FretboardConfig(
       AVAILABLE_TUNINGS[guitarGlobalSettings.tuning] ?? STANDARD_TUNING,
       guitarGlobalSettings.handedness,
+      guitarGlobalSettings.orientation,
       guitarGlobalSettings.colorScheme,
       undefined,
       undefined,
@@ -153,12 +155,13 @@ export class TriadFeature extends GuitarFeature {
     const featureFretboardConfig = new FretboardConfig(
       baseFretboardConfig.tuning,
       baseFretboardConfig.handedness,
+      baseFretboardConfig.orientation,
       baseFretboardConfig.colorScheme,
       baseFretboardConfig.markerDots,
       baseFretboardConfig.sideNumbers,
       baseFretboardConfig.stringWidths,
       maxCanvasHeight,
-      qualities.length === 1 ? 0.65 : .5
+      qualities.length === 1 ? 0.65 : 0.5
     );
 
     super(config, settings, intervalSettings, audioController, maxCanvasHeight);
@@ -250,7 +253,8 @@ export class TriadFeature extends GuitarFeature {
 
   render(container: HTMLElement): void {
     clearAllChildren(container);
-    addHeader(container, this.mainHeaderText);
+    const mainHeader = addHeader(container, this.mainHeaderText);
+    mainHeader.classList.add('feature-main-title');
 
     // Explicitly render our internal row views.
     this.rowViews.forEach((view) => {

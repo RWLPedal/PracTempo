@@ -6,6 +6,9 @@ import { Chord, chord_library } from "./chords"; // Import chord library
  */
 export type ChordQuality = "Major" | "Minor" | "Diminished" | "Augmented" | "Dominant7th" | "Major7th" | "Minor7th" | "Unknown"; // Expand as needed
 
+/** Whether to interpret Roman numerals as a major or natural minor key. */
+export type KeyType = "Major" | "Minor";
+
 /**
  * Represents the mapping from a Roman numeral in a major key context
  * to its scale degree (0-11) and default chord quality.
@@ -31,6 +34,30 @@ const MAJOR_KEY_ROMAN_MAP: { [numeral: string]: { degree: number; quality: Chord
     // Aliases or variations can be added here (e.g., "V/V")
 
     // TODO: Add support for secondary dominants, borrowed chords, etc.
+};
+
+/**
+ * Roman numeral map for natural minor key context.
+ * Scale degrees relative to the minor root: 0,2,3,5,7,8,10.
+ */
+const MINOR_KEY_ROMAN_MAP: { [numeral: string]: { degree: number; quality: ChordQuality } } = {
+    // Diatonic Triads (Natural Minor)
+    "i":    { degree: 0,  quality: "Minor" },       // Tonic Minor
+    "ii°":  { degree: 2,  quality: "Diminished" },  // Supertonic Diminished
+    "III":  { degree: 3,  quality: "Major" },        // Mediant Major
+    "iv":   { degree: 5,  quality: "Minor" },        // Subdominant Minor
+    "v":    { degree: 7,  quality: "Minor" },        // Dominant Minor
+    "VI":   { degree: 8,  quality: "Major" },        // Submediant Major
+    "VII":  { degree: 10, quality: "Major" },        // Subtonic Major
+
+    // Common Diatonic 7ths (Natural Minor)
+    "im7":     { degree: 0,  quality: "Minor7th" },
+    "iiø7":    { degree: 2,  quality: "Minor7th" },    // Half-diminished
+    "IIImaj7": { degree: 3,  quality: "Major7th" },
+    "iv7":     { degree: 5,  quality: "Minor7th" },
+    "v7":      { degree: 7,  quality: "Minor7th" },
+    "VImaj7":  { degree: 8,  quality: "Major7th" },
+    "VII7":    { degree: 10, quality: "Dominant7th" },
 };
 
 /**
@@ -60,9 +87,11 @@ function qualityToChordKeySuffix(quality: ChordQuality): string {
  */
 export function getChordInKey(
     rootNoteIndex: number,
-    romanNumeral: string
+    romanNumeral: string,
+    keyType: KeyType = "Major"
 ): { chordName: string; chordKey: string | null; quality: ChordQuality } {
-    const mapEntry = MAJOR_KEY_ROMAN_MAP[romanNumeral];
+    const map = keyType === "Minor" ? MINOR_KEY_ROMAN_MAP : MAJOR_KEY_ROMAN_MAP;
+    const mapEntry = map[romanNumeral];
     if (!mapEntry) {
         console.warn(`Roman numeral "${romanNumeral}" not found in map.`);
         return { chordName: `${romanNumeral}?`, chordKey: null, quality: "Unknown" };

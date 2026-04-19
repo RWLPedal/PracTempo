@@ -9,57 +9,36 @@ export class Scale {
   }
 }
 
-// Aliases map to internal keys (e.g., MAJOR, NATURAL_MINOR)
-export const scale_names = {
-  Blues: "MINOR_BLUES",
+// Display names map to internal scale keys
+export const scale_names: Record<string, string> = {
+  // Diatonic modes
+  "Major": "MAJOR",
+  "Dorian": "DORIAN",
+  "Phrygian": "PHRYGIAN",
+  "Lydian": "LYDIAN",
+  "Mixolydian": "MIXOLYDIAN",
+  "Minor": "NATURAL_MINOR",
+  "Locrian": "LOCRIAN",
+
+  // Pentatonic
+  "Major Pentatonic": "MAJOR_PENTATONIC",
+  "Minor Pentatonic": "MINOR_PENTATONIC",
+
+  // Blues
   "Minor Blues": "MINOR_BLUES",
   "Major Blues": "MAJOR_BLUES",
-  "Natural Minor": "NATURAL_MINOR",
-  "Pure Minor": "NATURAL_MINOR",
-  Minor: "NATURAL_MINOR",
-  Major: "MAJOR",
-  "Spanish Minor": "PHRYGIAN",
-  "Dominant 7th": "MIXOLYDIAN",
-  "Half-Diminished": "LOCRIAN",
-  "Lydian Major": "LYDIAN",
-  "Pentatonic Minor": "MINOR_PENTATONIC",
-  "Pentatonic Major": "MAJOR_PENTATONIC",
-  "Country & Western": "MAJOR_PENTATONIC",
+
+  // Other scales
   "Harmonic Minor": "HARMONIC_MINOR",
   "Melodic Minor": "MELODIC_MINOR",
-  "Jazz Minor": "MELODIC_MINOR",
   "Phrygian Dominant": "PHRYGIAN_DOMINANT",
-  "Spanish Gypsy": "PHRYGIAN_DOMINANT",
-  "Jewish Scale": "PHRYGIAN_DOMINANT",
   "Whole Tone": "WHOLE_TONE",
-  "Diminished WH": "DIMINISHED_WH",
-  "Diminished HW": "DIMINISHED_HW",
+  "Diminished (W-H)": "DIMINISHED_WH",
+  "Diminished (H-W)": "DIMINISHED_HW",
   "Lydian Dominant": "LYDIAN_DOMINANT",
-  "Lydian b7": "LYDIAN_DOMINANT",
-  "Altered Scale": "ALTERED",
-  "Super Locrian": "ALTERED",
-  "Diminished Whole Tone": "ALTERED",
+  "Altered": "ALTERED",
   "Bebop Dominant": "BEBOP_DOMINANT",
   "Hungarian Minor": "HUNGARIAN_MINOR",
-  "Gypsy Minor": "HUNGARIAN_MINOR",
-
-  // Modes
-  Ionian: "MAJOR", // Shorter alias
-  Dorian: "DORIAN",
-  Phrygian: "PHRYGIAN",
-  Lydian: "LYDIAN",
-  Mixolydian: "MIXOLYDIAN",
-  Aeolian: "NATURAL_MINOR",
-  Locrian: "LOCRIAN",
-  // Keep longer mode names as aliases if desired
-  "Ionian Mode": "MAJOR",
-  "Dorian Mode": "DORIAN",
-  "Dorian Minor": "DORIAN",
-  "Phrygian Mode": "PHRYGIAN",
-  "Lydian Mode": "LYDIAN",
-  "Mixolydian Mode": "MIXOLYDIAN",
-  "Aeolian Mode": "NATURAL_MINOR",
-  "Locrian Mode": "LOCRIAN",
 };
 
 /**
@@ -81,7 +60,7 @@ export const scale_names = {
 // Internal scale definitions using clearer names
 export const scales = {
   MAJOR: new Scale("Major", [0, 2, 4, 5, 7, 9, 11]), // Ionian
-  NATURAL_MINOR: new Scale("Minor", [0, 2, 3, 5, 7, 8, 10]), // Aeolian
+  NATURAL_MINOR: new Scale("Minor", [0, 2, 3, 5, 7, 8, 10]),
   DORIAN: new Scale("Dorian", [0, 2, 3, 5, 7, 9, 10]),
   PHRYGIAN: new Scale("Phrygian", [0, 1, 3, 5, 7, 8, 10]),
   LYDIAN: new Scale("Lydian", [0, 2, 4, 6, 7, 9, 11]),

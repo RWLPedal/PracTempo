@@ -21,9 +21,11 @@ import {
   createNumberInput,
   createDropdownInput,
   createToggleButtonInput,
+  rebuildToggleButtons,
   createEllipsisDropdown,
   populateEllipsisDropdownContent,
   createVariadicInputElement,
+  createLayerListInput,
   createDragHandleCell,
   createCopyButtonCell,
   createRemoveButtonElement,
@@ -267,7 +269,10 @@ function populateArgsFromSchema(
   argsInnerContainer.classList.add("feature-args-inner-container");
   argsInnerContainer.style.display = "flex";
   argsInnerContainer.style.flexWrap = "wrap";
-  argsInnerContainer.style.gap = "10px"; // Gap between arg groups
+  argsInnerContainer.style.gap = "4px 8px"; // Gap between arg groups
+
+  // Track enum-controller values so key-aware toggle buttons know the initial key type.
+  const controllerValues = new Map<string, string>();
 
   schemaArgs.forEach((arg) => {
     const argWrapper = document.createElement("div");
@@ -281,7 +286,6 @@ function populateArgsFromSchema(
       .replace(/([A-Z])/g, " $1")
       .replace(/^./, (str) => str.toUpperCase())
       .trim();
-    label.textContent = labelText;
     label.title = (arg.description || "") + (arg.required ? " (Required)" : "");
     argWrapper.appendChild(label);
 
@@ -291,27 +295,54 @@ function populateArgsFromSchema(
     inputsContainer.dataset.argType = arg.type;
     if (arg.uiComponentType)
       inputsContainer.dataset.uiComponentType = arg.uiComponentType;
-    // We rely on the schema's isVariadic flag, not dataset for initial build
     argWrapper.appendChild(inputsContainer);
 
     const uiType = arg.uiComponentType;
     const isVariadic = arg.isVariadic; // Check schema flag directly
 
     // --- Determine which type of input to create and consume values ---
-    if (
+    if (uiType === "checkbox") {
+      // --- Checkbox: UI-only, does NOT consume a value from currentValues ---
+      label.textContent = labelText;
+      const cbLabel = document.createElement("label");
+      cbLabel.classList.add("checkbox", "is-small");
+      const cb = document.createElement("input");
+      cb.type = "checkbox";
+      cb.name = arg.name;
+      cb.classList.add("config-feature-checkbox");
+      if (arg.controlsArgName) cb.dataset.controlsArgName = arg.controlsArgName;
+      cbLabel.appendChild(cb);
+      inputsContainer.appendChild(cbLabel);
+      // valueIndex intentionally NOT incremented
+    } else if (uiType === "layer_list") {
+      // --- Layer List (MultiSelectFretboard) ---
+      label.textContent = labelText;
+      const variadicValues = currentValues.slice(valueIndex);
+      createLayerListInput(inputsContainer, arg, variadicValues);
+      valueIndex = currentValues.length; // consumes all remaining values
+    } else if (
       uiType === "toggle_button_selector" ||
       (isVariadic && uiType !== "ellipsis")
     ) {
       // --- Handle Variadic Types (Toggle Buttons or Generic Variadic) ---
+      label.textContent = labelText;
       const variadicValues = currentValues.slice(valueIndex); // Consume remaining values
       if (uiType === "toggle_button_selector") {
-        createToggleButtonInput(inputsContainer, arg, variadicValues);
+        // Determine initial key type from any enum controller for this arg
+        const keyControllerName = schemaArgs.find(
+          a => a.controlsArgName === arg.name && a.type === "enum"
+        )?.name;
+        const initKeyType = keyControllerName
+          ? (controllerValues.get(keyControllerName) ?? "Major")
+          : "Major";
+        createToggleButtonInput(inputsContainer, arg, variadicValues, initKeyType, false);
       } else {
         createVariadicInputElement(arg, inputsContainer, variadicValues);
       }
       valueIndex = currentValues.length; // Mark all remaining values as consumed
     } else if (uiType === "ellipsis") {
       // --- Handle Ellipsis (Nested Settings) ---
+      label.textContent = labelText;
       if (arg.nestedSchema) {
         inputsContainer.appendChild(
           createEllipsisDropdown(arg, currentSettingsInstance)
@@ -328,6 +359,7 @@ function populateArgsFromSchema(
       // Ellipsis does NOT consume values from currentValues array
     } else {
       // --- Handle Standard Single-Value Input ---
+      label.textContent = labelText;
       const currentValue =
         valueIndex < currentValues.length ? currentValues[valueIndex] : "";
       switch (arg.type) {
@@ -335,6 +367,10 @@ function populateArgsFromSchema(
           inputsContainer.appendChild(
             createDropdownInput(arg.name, arg.enum || [], currentValue)
           );
+          // Record for key-aware wiring
+          if (arg.controlsArgName) {
+            controllerValues.set(arg.name, currentValue || arg.enum?.[0] || "");
+          }
           break;
         case "number":
           inputsContainer.appendChild(
@@ -363,4 +399,61 @@ function populateArgsFromSchema(
     argsInnerContainer.appendChild(argWrapper);
   });
   container.appendChild(argsInnerContainer);
+
+  // --- Post-build: wire controlsArgName relationships ---
+  wireControllerArgs(argsInnerContainer, schemaArgs);
+}
+
+/**
+ * Wires dynamic UI interactions declared via `controlsArgName` in the schema.
+ * - Checkbox → toggles `.is-advanced-btn` visibility in the controlled arg.
+ * - Enum dropdown → rebuilds the controlled toggle-button selector with the right key type.
+ */
+function wireControllerArgs(
+  argsInnerContainer: HTMLElement,
+  schemaArgs: ConfigurationSchemaArg[]
+): void {
+  const getInputsContainer = (argName: string) =>
+    argsInnerContainer.querySelector<HTMLElement>(
+      `[data-arg-name="${argName}"] .feature-arg-inputs-container`
+    );
+
+  schemaArgs.forEach(arg => {
+    if (!arg.controlsArgName) return;
+
+    const controllerInputs = getInputsContainer(arg.name);
+    const controlledInputs = getInputsContainer(arg.controlsArgName);
+    const controlledArg = schemaArgs.find(a => a.name === arg.controlsArgName);
+    if (!controllerInputs || !controlledInputs || !controlledArg) return;
+
+    if (arg.uiComponentType === "checkbox") {
+      // Checkbox shows/hides advanced buttons and deactivates hidden ones on hide
+      const cb = controllerInputs.querySelector<HTMLInputElement>("input[type='checkbox']");
+      if (!cb) return;
+      cb.addEventListener("change", () => {
+        const advBtns = controlledInputs.querySelectorAll<HTMLElement>(".is-advanced-btn");
+        advBtns.forEach(btn => {
+          btn.style.display = cb.checked ? "" : "none";
+          if (!cb.checked) btn.classList.remove("is-active", "is-info");
+        });
+      });
+    } else if (arg.type === "enum") {
+      // Key dropdown rebuilds the toggle buttons preserving selection, respecting advanced state
+      const select = controllerInputs.querySelector<HTMLSelectElement>("select");
+      if (!select) return;
+      select.addEventListener("change", () => {
+        const currentSelection = Array.from(
+          controlledInputs.querySelectorAll<HTMLButtonElement>(".numeral-toggle-btn.is-active")
+        ).map(btn => btn.dataset.value ?? "").filter(v => v);
+
+        // Find the advanced checkbox that also controls the same arg
+        const advCb = argsInnerContainer.querySelector<HTMLInputElement>(
+          `input.config-feature-checkbox[data-controls-arg-name="${arg.controlsArgName}"]`
+        );
+        const showAdvanced = advCb?.checked ?? false;
+
+        rebuildToggleButtons(controlledInputs, controlledArg, currentSelection, select.value, showAdvanced);
+      });
+    }
+  });
 }
