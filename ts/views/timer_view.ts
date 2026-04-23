@@ -85,6 +85,12 @@ export class TimerView implements View {
     container.appendChild(wrapper);
 
     this.updateButtonState();
+
+    // Persist initial duration so the wrapper can restore it on reload.
+    container.dispatchEvent(new CustomEvent('feature-state-changed', {
+      bubbles: true,
+      detail: { duration: this.duration },
+    }));
   }
 
   start(): void {
@@ -223,6 +229,10 @@ export class TimerView implements View {
       this.duration = clamped;
       this.currentSeconds = clamped;
       this.onDurationEditCallback?.(clamped);
+      this.containerEl?.dispatchEvent(new CustomEvent('feature-state-changed', {
+        bubbles: true,
+        detail: { duration: clamped },
+      }));
     } catch {
       // Invalid input – restore previous value
     }

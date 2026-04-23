@@ -187,6 +187,15 @@ export class FloatingViewWrapper {
       }
     });
 
+    // Persist view state whenever any child view signals a change.
+    this.contentElement.addEventListener('feature-state-changed', (e: Event) => {
+      const detail = (e as CustomEvent<Record<string, unknown>>).detail;
+      if (detail) {
+        this.state.viewState = { ...this.state.viewState, ...detail };
+        this.onSaveCallback();
+      }
+    });
+
     // --- Render the actual View ---
     try {
       this.viewInstance.render(this.contentElement);

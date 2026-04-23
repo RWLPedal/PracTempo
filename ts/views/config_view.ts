@@ -26,6 +26,45 @@ export class ConfigView {
         return this.buildFlatConfig();
     }
 
+    /**
+     * Applies a saved flat config array to the current UI state and fires the change callback.
+     * Must be called after render(). Variadic args consume all remaining config values.
+     */
+    public setConfig(config: string[]): void {
+        if (typeof this.schema === 'string' || config.length === 0) return;
+
+        let configIndex = 0;
+        this.schema.args.forEach((arg, argIndex) => {
+            if (arg.uiComponentType === 'checkbox' || arg.uiComponentType === 'ellipsis') return;
+            if (arg.uiComponentType === 'layer_list') return;
+            if (configIndex >= config.length) return;
+
+            if (arg.isVariadic && arg.uiComponentType === 'toggle_button_selector') {
+                // Toggle-button variadic: consume all remaining values
+                const values = config.slice(configIndex);
+                configIndex = config.length;
+                this.argValues.set(argIndex, values);
+                const control = this.container.querySelector<HTMLElement>(
+                    `[data-arg-index="${argIndex}"] .control`
+                );
+                control?.querySelectorAll<HTMLButtonElement>('button[data-value]').forEach(btn => {
+                    btn.classList.toggle('is-info', values.includes(btn.dataset.value ?? ''));
+                });
+            } else {
+                // Non-variadic enum, or variadic enum rendered as a single <select>:
+                // consume exactly one value and update the select element.
+                const val = config[configIndex++];
+                this.argValues.set(argIndex, val);
+                const select = this.container.querySelector<HTMLSelectElement>(
+                    `select[data-arg-name="${arg.name}"]`
+                );
+                if (select && val !== undefined) select.value = val;
+            }
+        });
+
+        this.notifyChange();
+    }
+
     private buildFlatConfig(): (string | null)[] {
         if (typeof this.schema === 'string') return [];
         const result: (string | null)[] = [];

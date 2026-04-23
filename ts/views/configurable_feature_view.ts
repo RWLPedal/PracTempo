@@ -9,6 +9,7 @@ import { GuitarIntervalSettings } from "../guitar/guitar_interval_settings";
 export class ConfigurableFeatureView implements View {
     private appSettings: AppSettings;
     private featureTypeName: string;
+    private initialConfig: string[] | undefined;
     private feature: Feature | null = null;
 
     private container: HTMLElement | null = null;
@@ -21,6 +22,7 @@ export class ConfigurableFeatureView implements View {
     constructor(initialState: any, appSettings: AppSettings) {
         this.appSettings = appSettings;
         this.featureTypeName = initialState?.featureTypeName;
+        this.initialConfig = Array.isArray(initialState?.config) ? initialState.config : undefined;
 
         // A better solution for audio would be needed in a real app
         this.audioController = new AudioController(null, null, null, null);
@@ -63,8 +65,12 @@ export class ConfigurableFeatureView implements View {
 
         configView.render();
 
-        // Initial render with default config from ConfigView
-        this.createAndRenderFeature(configView['currentConfig']);
+        if (this.initialConfig?.length) {
+            // Restore saved config — setConfig fires the callback which creates the feature.
+            configView.setConfig(this.initialConfig);
+        } else {
+            this.createAndRenderFeature(configView['currentConfig']);
+        }
     }
 
     private createAndRenderFeature(config: (string | null)[]) {
@@ -111,6 +117,12 @@ export class ConfigurableFeatureView implements View {
                     detail: { title: mainTitleEl.textContent },
                 }));
             }
+
+            // Persist current config into the wrapper's saved state
+            this.featureContainer.dispatchEvent(new CustomEvent('feature-state-changed', {
+                bubbles: true,
+                detail: { featureTypeName: this.featureTypeName, config: finalConfig },
+            }));
         } catch (error) {
             this.featureContainer.innerHTML = `<p>Error creating feature: ${error.message}</p>`;
             console.error(error);
