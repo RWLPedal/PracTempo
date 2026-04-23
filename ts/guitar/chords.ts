@@ -14,9 +14,9 @@ export class Chord {
   barre?: BarreSpec[];
 
   constructor(name: string, strings: Array<number>, fingers: Array<number>, barre?: BarreSpec[]) {
-    if (strings.length !== 6 || fingers.length !== 6) {
+    if (strings.length !== fingers.length) {
       throw new Error(
-        `Chord ${name} must have 6 values for strings and fingers.`
+        `Chord ${name}: strings (${strings.length}) and fingers (${fingers.length}) arrays must have the same length.`
       );
     }
     this.name = name;
@@ -103,6 +103,74 @@ export const chord_library = {
   Fsharp_MINOR: new Chord("F# Minor", [2, 4, 4, 2, 2, 2], [1, 3, 4, 1, 1, 1]),
   Csharp_MINOR: new Chord("C# Minor", [-1, 4, 6, 6, 5, 4], [-1, 1, 3, 4, 2, 1]),
 };
+
+// ---------------------------------------------------------------------------
+// Ukulele chord library (standard GCEA tuning, 4 strings: G=0, C=1, E=2, A=3)
+// ---------------------------------------------------------------------------
+export const ukulele_chord_library: Record<string, Chord> = {
+  // --- Major ---
+  C_MAJOR: new Chord("C Major",  [0, 0, 0, 3], [0, 0, 0, 3]),
+  F_MAJOR: new Chord("F Major",  [2, 0, 1, 0], [2, 0, 1, 0]),
+  G_MAJOR: new Chord("G Major",  [0, 2, 3, 2], [0, 1, 3, 2]),
+  E_MAJOR: new Chord("E Major",  [4, 4, 4, 2], [4, 3, 2, 1]),
+  A_MAJOR: new Chord("A Major",  [2, 1, 0, 0], [2, 1, 0, 0]),
+  B_MAJOR: new Chord("B Major",  [4, 3, 2, 2], [3, 2, 1, 1],
+    [{ fret: 2, stringStart: 2, stringEnd: 3 }]),
+  D_MAJOR: new Chord("D Major",  [2, 2, 2, 0], [1, 2, 3, 0]),
+
+  // --- Minor ---
+  C_MINOR: new Chord("C Minor",  [0, 3, 3, 3], [0, 1, 1, 1],
+    [{ fret: 3, stringStart: 1, stringEnd: 3 }]),
+  F_MINOR: new Chord("F Minor",  [1, 0, 1, 3], [1, 0, 2, 4]),
+  G_MINOR: new Chord("G Minor",  [0, 2, 3, 1], [0, 2, 3, 1]),
+  E_MINOR: new Chord("E Minor",  [0, 4, 3, 2], [0, 3, 2, 1]),
+  A_MINOR: new Chord("A Minor",  [2, 0, 0, 0], [2, 0, 0, 0]),
+  B_MINOR: new Chord("B Minor",  [4, 2, 2, 2], [3, 1, 1, 1],
+    [{ fret: 2, stringStart: 1, stringEnd: 3 }]),
+  D_MINOR: new Chord("D Minor",  [2, 2, 1, 0], [2, 3, 1, 0]),
+
+  // --- Dominant 7th ---
+  C7: new Chord("C7", [0, 0, 0, 1], [0, 0, 0, 1]),
+  F7: new Chord("F7", [2, 3, 1, 3], [2, 4, 1, 3]),
+  G7: new Chord("G7", [0, 2, 1, 2], [0, 2, 1, 3]),
+  E7: new Chord("E7", [1, 2, 0, 2], [1, 2, 0, 3]),
+  A7: new Chord("A7", [0, 1, 0, 0], [0, 1, 0, 0]),
+  B7: new Chord("B7", [2, 3, 2, 2], [1, 2, 1, 1],
+    [{ fret: 2, stringStart: 0, stringEnd: 3 }]),
+  D7: new Chord("D7", [2, 2, 2, 3], [1, 1, 1, 2],
+    [{ fret: 2, stringStart: 0, stringEnd: 2 }]),
+};
+
+// ---------------------------------------------------------------------------
+// Mandolin chord library (standard GDAE tuning, 4 strings: G=0, D=1, A=2, E=3)
+// ---------------------------------------------------------------------------
+export const mandolin_chord_library: Record<string, Chord> = {
+  // --- Major ---
+  G_MAJOR: new Chord("G Major", [0, 0, 2, 3], [0, 0, 1, 3]),
+  D_MAJOR: new Chord("D Major", [0, 0, 0, 2], [0, 0, 0, 1]),
+  A_MAJOR: new Chord("A Major", [2, 2, 4, 0], [1, 1, 3, 0]),
+  E_MAJOR: new Chord("E Major", [1, 2, 2, 0], [1, 3, 2, 0]),
+  C_MAJOR: new Chord("C Major", [0, 2, 3, 3], [0, 1, 2, 3]),
+
+  // --- Minor ---
+  G_MINOR: new Chord("G Minor", [0, 0, 1, 3], [0, 0, 1, 3]),
+  D_MINOR: new Chord("D Minor", [-1, 0, 0, 1], [-1, 0, 0, 1]),
+  A_MINOR: new Chord("A Minor", [2, 2, 3, 0], [1, 2, 3, 0]),
+  E_MINOR: new Chord("E Minor", [0, 2, 2, 0], [0, 1, 2, 0]),
+
+  // --- Dominant 7th ---
+  G7: new Chord("G7", [0, 0, 2, 1], [0, 0, 2, 1]),
+  D7: new Chord("D7", [2, 0, 3, 2], [2, 0, 3, 1]),
+  A7: new Chord("A7", [2, 2, 4, 3], [1, 1, 3, 2]),
+  E7: new Chord("E7", [1, 0, 2, 0], [1, 0, 2, 0]),
+};
+
+/** Returns the chord library appropriate for the given instrument. */
+export function getChordLibraryForInstrument(instrument: string): Record<string, Chord> {
+  if (instrument === "Ukulele") return ukulele_chord_library;
+  if (instrument === "Mandolin") return mandolin_chord_library;
+  return chord_library;
+}
 
 // ---------------------------------------------------------------------------
 // Comprehensive chord tones library (dynamically generated)

@@ -138,7 +138,8 @@ export class Main {
       this.scheduleEditor = new ScheduleEditor(
         editorContainer as HTMLElement,
         () => this.reset(),
-        this.audioController
+        this.audioController,
+        this.settings
       );
     } else {
       console.error("CRITICAL: Schedule editor container not found!");

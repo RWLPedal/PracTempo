@@ -121,6 +121,7 @@ class TriadQualityRowView implements View {
 export class TriadFeature extends GuitarFeature {
   static readonly typeName = "Triad Shapes";
   static readonly displayName = "Triad Shapes (3-String Sets)";
+  static readonly requiredInstruments = ["Guitar"] as const;
   static readonly description =
     "Displays triad shapes for selected qualities (Major, Minor, etc.) across all positions for each 3-string set.";
 

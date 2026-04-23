@@ -74,6 +74,19 @@ export interface BarreData {
   color?: string;
 }
 
+// --- String width presets by string count ---
+const STRING_WIDTH_PRESETS: Record<number, number[]> = {
+  4: [3, 2, 2, 1],
+  5: [3, 2, 2, 1, 1],
+  6: [3, 3, 2, 2, 1, 1],
+  7: [3, 3, 2, 2, 1, 1, 1],
+  8: [3, 3, 2, 2, 1, 1, 1, 1],
+};
+
+function defaultStringWidths(stringCount: number): number[] {
+  return STRING_WIDTH_PRESETS[stringCount] ?? Array(stringCount).fill(1);
+}
+
 // --- FretboardConfig Class ---
 export class FretboardConfig {
   public readonly baseStringSpacingPx = 32;
@@ -86,6 +99,7 @@ export class FretboardConfig {
   public readonly markerDotRadiusPx: number;
   public readonly noteRadiusPx: number;
   public readonly scaleFactor: number;
+  public readonly stringWidths: number[];
 
   constructor(
     public readonly tuning: Tuning,
@@ -93,16 +107,18 @@ export class FretboardConfig {
     public readonly orientation: "vertical" | "horizontal" = "vertical",
     public readonly colorScheme: FretboardColorScheme = "interval",
     public readonly markerDots = [
-      0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 2, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, // Added 0 for 22nd fret
+      0, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0, 0, 2, 0, 0, 1, 0, 1, 0, 1, 0, 1, 0,
     ],
     public readonly sideNumbers = [
       "", "", "", "III", "", "V", "", "VII", "", "IX", "", "",
-      "XII", "", "", "XV", "", "XVII", "", "XIX", "", "XXI", "", // Added "" for 22nd fret
+      "XII", "", "", "XV", "", "XVII", "", "XIX", "", "XXI", "",
     ],
-    public readonly stringWidths = [3, 3, 2, 2, 1, 1],
+    stringWidths?: number[],
     maxCanvasHeight?: number,
     globalScaleMultiplier: number = 1.0
   ) {
+    this.stringWidths = stringWidths ?? defaultStringWidths(tuning.tuning.length);
+
     const DEFAULT_FRETBOARD_DRAW_HEIGHT = 650;
     const ESTIMATED_FRETS_FOR_SCALING = 18;
     const actualMaxHeight = maxCanvasHeight ?? DEFAULT_FRETBOARD_DRAW_HEIGHT;
@@ -118,6 +134,10 @@ export class FretboardConfig {
     this.noteRadiusPx = this.baseNoteRadiusPx * this.scaleFactor;
   }
 
+  get stringCount(): number {
+    return this.tuning.tuning.length;
+  }
+
   getStringWidths(): Array<number> {
     return this.handedness === "left"
       ? [...this.stringWidths].reverse()
@@ -131,6 +151,7 @@ export class FretboardConfig {
    */
   getRequiredWidth(fretCount: number): number {
     const scaledStartPx = START_PX * this.scaleFactor;
+    const stringSpan = (this.stringCount - 1) * this.stringSpacingPx;
     if (this.orientation === "horizontal") {
       // Width is along the fret direction
       const openNoteClearance = this.noteRadiusPx * 1.5 + 5 * this.scaleFactor;
@@ -139,7 +160,7 @@ export class FretboardConfig {
       return scaledStartPx + openNoteClearance + fretboardLength + bottomClearance + scaledStartPx;
     }
     // Vertical: width is along the string direction
-    return scaledStartPx + this.stringSpacingPx * 5 + scaledStartPx;
+    return scaledStartPx + stringSpan + scaledStartPx;
   }
 
   /**
@@ -148,9 +169,10 @@ export class FretboardConfig {
    */
   getRequiredHeight(fretCount: number): number {
     const scaledStartPx = START_PX * this.scaleFactor;
+    const stringSpan = (this.stringCount - 1) * this.stringSpacingPx;
     if (this.orientation === "horizontal") {
       // Height is along the string direction
-      return scaledStartPx + this.stringSpacingPx * 5 + scaledStartPx;
+      return scaledStartPx + stringSpan + scaledStartPx;
     }
     // Vertical: height is along the fret direction
     const openNoteClearance = this.noteRadiusPx * 1.5 + 5 * this.scaleFactor;
@@ -164,12 +186,69 @@ export class FretboardConfig {
 export class Tuning {
   constructor(public readonly tuning: Array<number>) {}
 }
-export const STANDARD_TUNING = new Tuning([7, 0, 5, 10, 2, 7]);
-export const DROP_D_TUNING = new Tuning([5, 0, 5, 10, 2, 7]);
-export const AVAILABLE_TUNINGS = {
-  Standard: STANDARD_TUNING,
-  "Drop D": DROP_D_TUNING,
+
+// Guitar tunings (6-string, semitones with A=0)
+export const STANDARD_TUNING              = new Tuning([7, 0, 5, 10, 2, 7]);     // E-A-D-G-B-E
+export const DROP_D_TUNING                = new Tuning([5, 0, 5, 10, 2, 7]);     // D-A-D-G-B-E
+export const BARITONE_B_STANDARD_TUNING   = new Tuning([2, 7, 0, 5, 9, 2]);      // B-E-A-D-F#-B
+export const BARITONE_A_STANDARD_TUNING   = new Tuning([0, 5, 10, 3, 7, 0]);     // A-D-G-C-E-A
+
+// Bass tunings (4-string)
+export const BASS_STANDARD_TUNING         = new Tuning([7, 0, 5, 10]);           // E-A-D-G
+
+// Ukulele tunings (4-string)
+export const UKULELE_GCEA_TUNING          = new Tuning([10, 3, 7, 0]);           // G-C-E-A
+
+// Mandolin-family tunings (4-string, tuned in 5ths)
+export const MANDOLA_TUNING               = new Tuning([3, 10, 5, 0]);           // C-G-D-A
+export const MANDOLIN_TUNING              = new Tuning([10, 5, 0, 7]);           // G-D-A-E
+
+// Extended-range guitar tunings
+export const GUITAR_7_STANDARD_TUNING     = new Tuning([2, 7, 0, 5, 10, 2, 7]); // B-E-A-D-G-B-E
+export const GUITAR_8_STANDARD_TUNING     = new Tuning([9, 2, 7, 0, 5, 10, 2, 7]); // F#-B-E-A-D-G-B-E
+
+// --- Instrument / Tuning Organization ---
+export type InstrumentName =
+  | "Guitar"
+  | "Bass"
+  | "Ukulele"
+  | "Mandola"
+  | "Mandolin"
+  | "7-String Guitar"
+  | "8-String Guitar";
+
+export const INSTRUMENT_TUNINGS: Record<InstrumentName, Record<string, Tuning>> = {
+  "Guitar": {
+    "Standard":            STANDARD_TUNING,
+    "Drop D":              DROP_D_TUNING,
+    "Baritone B Standard": BARITONE_B_STANDARD_TUNING,
+    "Baritone A Standard": BARITONE_A_STANDARD_TUNING,
+  },
+  "Bass": {
+    "EADG (Standard)": BASS_STANDARD_TUNING,
+  },
+  "Ukulele": {
+    "GCEA (Standard)": UKULELE_GCEA_TUNING,
+  },
+  "Mandola": {
+    "CGDA (Standard)": MANDOLA_TUNING,
+  },
+  "Mandolin": {
+    "GDAE (Standard)": MANDOLIN_TUNING,
+  },
+  "7-String Guitar": {
+    "Standard (BEADGBE)": GUITAR_7_STANDARD_TUNING,
+  },
+  "8-String Guitar": {
+    "Standard (F#BEADGBE)": GUITAR_8_STANDARD_TUNING,
+  },
 };
+
+// Flat alias for backward compatibility — saved schedules with tuning:"Standard" etc. still resolve.
+export const AVAILABLE_TUNINGS: Record<string, Tuning> = Object.assign(
+  {},
+  ...Object.values(INSTRUMENT_TUNINGS)
+);
 export type TuningName = keyof typeof AVAILABLE_TUNINGS;
 
 // --- Fretboard Class ---
@@ -206,8 +285,9 @@ export class Fretboard {
     this.absoluteTopPx = this.topPx;
     const openNoteClearance = scaledNoteRadius * 1.5 + 5 * scaleFactor;
     this.nutLineY = this.absoluteTopPx + openNoteClearance;
-    // Vertical canvas width = left padding + 5 string spacings + right padding
-    this.verticalCanvasWidth = 2 * this.leftPx + 5 * this.config.stringSpacingPx;
+    // Vertical canvas width = left padding + (stringCount-1) spacings + right padding
+    const stringSpan = (this.config.stringCount - 1) * this.config.stringSpacingPx;
+    this.verticalCanvasWidth = 2 * this.leftPx + stringSpan;
     this.horizontalCanvasWidth = config.getRequiredWidth(fretCount);
   }
 
@@ -251,9 +331,9 @@ export class Fretboard {
   private _toCanvas(vx: number, vy: number): { x: number; y: number } {
     if (this.config.orientation === "horizontal") {
       if (this.config.handedness === "left") {
-        // Nut on the right; frets extend leftward. String reversal (5 - stringIndex)
+        // Nut on the right; frets extend leftward. String reversal (stringCount-1 - stringIndex)
         // is already applied to vx, so canvasY = vx keeps strings in the correct
-        // top-to-bottom order (high-e at top, low-E at bottom).
+        // top-to-bottom order (high string at top, low string at bottom).
         return { x: this.horizontalCanvasWidth - vy, y: vx };
       }
       return { x: vy, y: this.verticalCanvasWidth - vx };
@@ -275,8 +355,9 @@ export class Fretboard {
     stringIndex: number,
     fret: number // actual fret number (0 for open, >0 for fretted)
   ): { x: number; y: number } {
+    const maxStringIndex = this.config.stringCount - 1;
     const visualStringIndex =
-      this.config.handedness === "left" ? 5 - stringIndex : stringIndex;
+      this.config.handedness === "left" ? maxStringIndex - stringIndex : stringIndex;
     const vx = this.getStringX(visualStringIndex);
 
     const displayFret = fret - this.startFret;
@@ -311,17 +392,18 @@ export class Fretboard {
     const textHeight = 12 * scaleFactor;
     const stringWidths = config.getStringWidths();
     const isHorizontal = config.orientation === "horizontal";
+    const stringCount = config.stringCount;
 
     ctx.fillStyle = "#aaa";
 
     // --- Strings ---
-    for (let visualIndex = 0; visualIndex < 6; visualIndex++) {
+    for (let visualIndex = 0; visualIndex < stringCount; visualIndex++) {
       const vx = this.getStringX(visualIndex);
       const p1 = this._toCanvas(vx, this.nutLineY);
       const p2 = this._toCanvas(vx, this.nutLineY + this.fretCount * config.fretLengthPx);
 
       ctx.beginPath();
-      ctx.lineWidth = stringWidths[visualIndex] * scaleFactor;
+      ctx.lineWidth = (stringWidths[visualIndex] ?? 1) * scaleFactor;
       ctx.moveTo(p1.x, p1.y);
       ctx.lineTo(p2.x, p2.y);
       ctx.strokeStyle = "#aaa";
@@ -333,10 +415,9 @@ export class Fretboard {
     ctx.strokeStyle = "#555";
     ctx.fillStyle = "#aaa";
 
-    const totalBoardSpan = 5 * config.stringSpacingPx;
+    const totalBoardSpan = (stringCount - 1) * config.stringSpacingPx;
     const leftEdge_v = this.absoluteLeftPx;
     const rightEdge_v = this.absoluteLeftPx + totalBoardSpan;
-    const boardCenter_v = this.absoluteLeftPx + totalBoardSpan / 2;
     const defaultFretLineWidth = 1 * scaleFactor;
     const boldFretLineWidth = 2 * scaleFactor;
     const sideNumberOffset = 18 * scaleFactor;
@@ -370,10 +451,6 @@ export class Fretboard {
       const fretMidVY = this.nutLineY + (i - 0.5) * config.fretLengthPx;
       if (hasSideNumber && actualFretNumber > 0) {
         if (isHorizontal) {
-          // Draw numbers centred on the fret column, below the bottom string.
-          // For right-handed horizontal, "left of board" in vertical-space maps below.
-          // For left-handed horizontal, use "right of board" so the same below-board
-          // position is preserved (canvasY = vx, so vx must exceed rightEdge_v).
           const numVX = config.handedness === "left"
             ? rightEdge_v + sideNumberOffset
             : leftEdge_v - sideNumberOffset;
@@ -400,13 +477,14 @@ export class Fretboard {
       const scaledMarkerRadius = config.markerDotRadiusPx;
 
       if (markerDotType === 1) {
-        const dotPos = this._toCanvas(boardCenter_v, fretMidVY);
+        const dotPos = this._toCanvas(leftEdge_v + totalBoardSpan / 2, fretMidVY);
         ctx.beginPath();
         ctx.arc(dotPos.x, dotPos.y, scaledMarkerRadius, 0, 2 * Math.PI);
         ctx.fill();
       } else if (markerDotType === 2) {
-        const m1vx = this.absoluteLeftPx + 1.5 * config.stringSpacingPx;
-        const m2vx = this.absoluteLeftPx + 3.5 * config.stringSpacingPx;
+        // Double dots at 25% and 75% of board span
+        const m1vx = leftEdge_v + totalBoardSpan * 0.25;
+        const m2vx = leftEdge_v + totalBoardSpan * 0.75;
         const m1 = this._toCanvas(m1vx, fretMidVY);
         const m2 = this._toCanvas(m2vx, fretMidVY);
         ctx.beginPath();
@@ -470,10 +548,6 @@ export class Fretboard {
    * Each resulting segment's fret range is shifted by the cumulative interval
    * deviation from the starting segment, so the split halves visually track
    * the actual note positions on the fretboard.
-   *
-   * Example (standard tuning): a rect spanning strings 0–5 is split at the
-   * G–B boundary (strings 3→4, interval = 4). The segment covering strings 4–5
-   * has its fret range decreased by 1 (4 − 5 = −1).
    */
   private _computeRectSegments(rect: RoundedRectData): RoundedRectData[] {
     const tuning = this.config.tuning.tuning;
@@ -587,6 +661,7 @@ export class Fretboard {
     const scaleFactor = this.config.scaleFactor;
     const baseFontSize = 16 * scaleFactor;
     const baseNoteRadius = this.config.noteRadiusPx;
+    const maxStringIndex = this.config.stringCount - 1;
 
     this.notesToRender.forEach((noteData) => {
       const displayFret = noteData.fret - this.startFret;
@@ -596,7 +671,7 @@ export class Fretboard {
           // Handle muted string — compute canvas-space position via _toCanvas
           const visualStringIndex =
             this.config.handedness === "left"
-              ? 5 - noteData.stringIndex
+              ? maxStringIndex - noteData.stringIndex
               : noteData.stringIndex;
           const vx = this.getStringX(visualStringIndex);
           const vy = this.nutLineY - baseNoteRadius * 1.5;

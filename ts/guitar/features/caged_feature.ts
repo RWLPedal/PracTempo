@@ -11,7 +11,7 @@ import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
 import { IntervalSettings } from "../../schedule/editor/interval/types";
 import { GuitarIntervalSettings } from "../guitar_interval_settings";
-import { NoteRenderData, FretboardConfig } from "../fretboard";
+import { NoteRenderData, FretboardConfig, Tuning } from "../fretboard";
 import {
   getKeyIndex,
   MUSIC_NOTES,
@@ -174,22 +174,40 @@ export const CAGED_REFERENCE_PATTERNS: CagedReferencePattern[] = [
 ];
 
 /**
+ * Returns the number of frets to add to standard-tuning CAGED reference positions
+ * to account for a tuning that is uniformly shifted from standard E tuning.
+ * Returns 0 for non-uniform tunings like Drop D (which only detunes one string),
+ * because the uniform-shift model doesn't apply there.
+ */
+export function getCagedTuningOffset(tuning: Tuning): number {
+  const STANDARD_INTERVALS = [5, 5, 5, 4, 5]; // P4-P4-P4-M3-P4
+  for (let i = 0; i < 5; i++) {
+    const interval = ((tuning.tuning[i + 1] - tuning.tuning[i]) + 12) % 12;
+    if (interval !== STANDARD_INTERVALS[i]) return 0;
+  }
+  // All intervals match standard guitar structure; compute offset from low E (index 7)
+  return (7 - tuning.tuning[0] + 12) % 12;
+}
+
+/**
  * Builds a lookup map from "string:fret" to the CAGED shapes (up to 2) that
  * contain that position, transposed from the A-major reference to the given
- * relative-major key index.
+ * relative-major key index and tuning offset.
+ * Pass tuningOffset from getCagedTuningOffset() for non-standard (e.g. baritone) tunings.
  */
 export function buildCagedLookup(
   relativeMajorKeyIndex: number,
-  fretCount: number
+  fretCount: number,
+  tuningOffset: number = 0
 ): Map<string, { shape: CagedShapeName; position: number }[]> {
   const lookup = new Map<string, { shape: CagedShapeName; position: number }[]>();
-  // Reference patterns are in A major (index 0 in our offset system)
+  // Reference patterns are in A major (index 0 in our offset system) on standard tuning
   const slideOffset = (relativeMajorKeyIndex + 12) % 12;
 
   for (const pattern of CAGED_REFERENCE_PATTERNS) {
     for (const refNote of pattern.notes) {
       for (let octave = -2; octave <= 2; octave++) {
-        const expectedFret = refNote.fret + slideOffset + octave * 12;
+        const expectedFret = refNote.fret + slideOffset + tuningOffset + octave * 12;
         if (expectedFret < 0 || expectedFret > fretCount) continue;
 
         const key = `${refNote.string}:${expectedFret}`;
@@ -208,6 +226,7 @@ export function buildCagedLookup(
 export class CagedFeature extends GuitarFeature {
   static readonly typeName = "CAGED";
   static readonly displayName = "CAGED Scale Shapes";
+  static readonly requiredInstruments = ["Guitar"] as const;
   static readonly description =
     "Displays notes for a selected scale (Major, Minor, Pentatonics) in a given key. Highlights notes based on the standard Major scale CAGED patterns using stroke colors.";
 
@@ -382,10 +401,10 @@ export class CagedFeature extends GuitarFeature {
       ? (this.keyIndex + 3) % 12
       : this.keyIndex;
 
-    const cagedLookup = buildCagedLookup(relativeMajorKeyIndex, fretCount);
+    const tuningOffset = getCagedTuningOffset(config.tuning);
+    const cagedLookup = buildCagedLookup(relativeMajorKeyIndex, fretCount, tuningOffset);
 
-    for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
-      if (stringIndex >= tuning.length) continue;
+    for (let stringIndex = 0; stringIndex < tuning.length; stringIndex++) {
       const stringTuning = tuning[stringIndex];
 
       for (let fretIndex = 0; fretIndex <= fretCount; fretIndex++) {

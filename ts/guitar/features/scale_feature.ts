@@ -185,8 +185,7 @@ export class ScaleFeature extends GuitarFeature {
     const fretCount = this.fretCount;
     const highlightingActive = this.highlightNotes.size > 0;
 
-    for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
-      if (stringIndex >= tuning.length) continue;
+    for (let stringIndex = 0; stringIndex < tuning.length; stringIndex++) {
       const stringTuning = tuning[stringIndex];
 
       for (let fretIndex = 0; fretIndex <= fretCount; fretIndex++) {

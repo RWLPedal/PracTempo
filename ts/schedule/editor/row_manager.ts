@@ -19,13 +19,16 @@ import {
 export class RowManager {
   private configEntriesContainerEl: HTMLElement;
   private selectionManager: SelectionManager;
+  private getInstrument: () => string;
 
   constructor(
     configEntriesContainerEl: HTMLElement,
-    selectionManager: SelectionManager
+    selectionManager: SelectionManager,
+    getInstrument?: () => string
   ) {
     this.configEntriesContainerEl = configEntriesContainerEl;
     this.selectionManager = selectionManager;
+    this.getInstrument = getInstrument ?? (() => "Guitar");
     this._addRowCopyHandler();
   }
 
@@ -72,7 +75,7 @@ export class RowManager {
     }
 
     // Pass the category name string and data to the builder function
-    const newRowElement = buildIntervalRowElement(newRowUIData, categoryName);
+    const newRowElement = buildIntervalRowElement(newRowUIData, categoryName, this.getInstrument());
     this.insertRowElement(newRowElement, insertAfterElement); // Insert into DOM
     return newRowElement;
   }

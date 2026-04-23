@@ -1,33 +1,66 @@
 import { FloatingViewManager } from '../floating_views/floating_view_manager';
 import { VolumeControl } from '../views/volume_control';
+import { AppSettings, getCategorySettings } from '../settings';
+import { GuitarSettings } from '../guitar/guitar_settings';
+
+interface FeatureButton {
+    id: string;
+    icon: string;
+    label: string;
+    viewId: string;
+    featureTypeName?: string;
+    /** If set, button is only shown when the active instrument is in this list. */
+    requiredInstruments?: string[];
+}
+
+const FEATURE_BUTTONS: FeatureButton[] = [
+    { id: 'notes-feature',             icon: 'piano',      label: 'Notes',       viewId: 'configurable_guitar_feature', featureTypeName: 'Notes' },
+    { id: 'scales-feature',            icon: 'music_note', label: 'Scales',      viewId: 'configurable_guitar_feature', featureTypeName: 'Scale' },
+    { id: 'chords-feature',            icon: 'grid_on',    label: 'Chords',      viewId: 'configurable_guitar_feature', featureTypeName: 'Chord',            requiredInstruments: ['Guitar', 'Ukulele'] },
+    { id: 'triads-feature',            icon: 'looks_3',    label: 'Triads',      viewId: 'configurable_guitar_feature', featureTypeName: 'Triad Shapes',     requiredInstruments: ['Guitar'] },
+    { id: 'chord-progression-feature', icon: '123',        label: 'Progression', viewId: 'guitar_chord_progression',                                         requiredInstruments: ['Guitar'] },
+    { id: 'caged-feature',             icon: 'grid_view',  label: 'CAGED',       viewId: 'configurable_guitar_feature', featureTypeName: 'CAGED',            requiredInstruments: ['Guitar'] },
+    { id: 'multifret-feature',         icon: 'layers',     label: 'MultiFret',   viewId: 'configurable_guitar_feature', featureTypeName: 'MultiSelectFretboard' },
+    { id: 'metronome-feature',         icon: 'timer',      label: 'Metronome',   viewId: 'guitar_floating_metronome' },
+    { id: 'legend-feature',            icon: 'palette',    label: 'Legend',      viewId: 'guitar_color_legend' },
+    { id: 'timer-feature',             icon: 'alarm',      label: 'Timer',       viewId: 'floating_timer' },
+    { id: 'drum-machine-feature',      icon: 'music_note', label: 'Drums',       viewId: 'drum_machine' },
+];
 
 export class SidebarView {
+    private container: HTMLElement;
+
     constructor(
         container: HTMLElement,
         private onFeatureClick: (viewId: string, featureTypeName?: string) => void,
-        private floatingViewManager?: FloatingViewManager
+        private floatingViewManager?: FloatingViewManager,
+        private appSettings?: AppSettings
     ) {
-        this.render(container);
+        this.container = container;
+        this.render();
         this.addBottomBarListeners();
     }
 
-    private render(container: HTMLElement): void {
-        const featureButtons = [
-            { id: 'notes-feature', icon: 'piano', label: 'Notes', viewId: 'configurable_guitar_feature', featureTypeName: 'Notes' },
-            { id: 'scales-feature', icon: 'music_note', label: 'Scales', viewId: 'configurable_guitar_feature', featureTypeName: 'Scale' },
-            { id: 'chords-feature', icon: 'grid_on', label: 'Chords', viewId: 'configurable_guitar_feature', featureTypeName: 'Chord' },
-            { id: 'triads-feature', icon: 'looks_3', label: 'Triads', viewId: 'configurable_guitar_feature', featureTypeName: 'Triad Shapes' },
-            { id: 'chord-progression-feature', icon: '123', label: 'Progression', viewId: 'guitar_chord_progression' },
-            { id: 'caged-feature', icon: 'grid_view', label: 'CAGED', viewId: 'configurable_guitar_feature', featureTypeName: 'CAGED' },
-            { id: 'multifret-feature', icon: 'layers', label: 'MultiFret', viewId: 'configurable_guitar_feature', featureTypeName: 'MultiSelectFretboard' },
-            { id: 'metronome-feature', icon: 'timer', label: 'Metronome', viewId: 'guitar_floating_metronome' },
-            { id: 'legend-feature', icon: 'palette', label: 'Legend', viewId: 'guitar_color_legend' },
-            { id: 'timer-feature', icon: 'alarm', label: 'Timer', viewId: 'floating_timer' },
-            { id: 'drum-machine-feature', icon: 'music_note', label: 'Drums', viewId: 'drum_machine' },
-        ];
+    /** Re-render the sidebar with updated settings (e.g. after instrument change). */
+    public refresh(newSettings: AppSettings): void {
+        this.appSettings = newSettings;
+        this.render();
+        this.addBottomBarListeners();
+    }
+
+    private getActiveInstrument(): string {
+        if (!this.appSettings) return 'Guitar';
+        return getCategorySettings<GuitarSettings>(this.appSettings, 'Guitar')?.instrument ?? 'Guitar';
+    }
+
+    private render(): void {
+        const instrument = this.getActiveInstrument();
+        const visibleButtons = FEATURE_BUTTONS.filter(
+            (b) => !b.requiredInstruments || b.requiredInstruments.includes(instrument)
+        );
 
         let buttonsHtml = '<div class="sidebar-content"><div class="buttons is-vertical">';
-        for (const button of featureButtons) {
+        for (const button of visibleButtons) {
             buttonsHtml += `
                 <button id="${button.id}" class="button is-link is-light is-fullwidth" title="${button.label}" data-view-id="${button.viewId}" data-feature-type-name="${button.featureTypeName || ''}">
                     <span class="icon">
@@ -52,9 +85,9 @@ export class SidebarView {
             </div>
         </div>`;
 
-        container.innerHTML = buttonsHtml;
+        this.container.innerHTML = buttonsHtml;
 
-        for (const button of featureButtons) {
+        for (const button of visibleButtons) {
             const buttonEl = document.getElementById(button.id);
             if (buttonEl) {
                 buttonEl.addEventListener('click', (e) => {
@@ -62,7 +95,7 @@ export class SidebarView {
                     const viewId = target.dataset.viewId;
                     const featureTypeName = target.dataset.featureTypeName;
                     if (viewId) {
-                        this.onFeatureClick(viewId, featureTypeName);
+                        this.onFeatureClick(viewId, featureTypeName || undefined);
                     }
                 });
             }

@@ -22,6 +22,7 @@ import { NOTE_COLORS } from "../colors";
 import {
   buildCagedLookup,
   compareCagedPositions,
+  getCagedTuningOffset,
 } from "./caged_feature";
 
 // --- Layer Spec Types ---
@@ -226,8 +227,7 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
     const tuning = this.fretboardConfig.tuning.tuning;
     const notes: NoteRenderData[] = [];
 
-    for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
-      if (stringIndex >= tuning.length) continue;
+    for (let stringIndex = 0; stringIndex < tuning.length; stringIndex++) {
       for (let fretIndex = 0; fretIndex <= this.fretCount; fretIndex++) {
         const noteOffset = (tuning[stringIndex] + fretIndex) % 12;
         const relativeOffset = (noteOffset - keyIndex + 12) % 12;
@@ -270,8 +270,7 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
     const tuning = this.fretboardConfig.tuning.tuning;
     const notes: NoteRenderData[] = [];
 
-    for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
-      if (stringIndex >= tuning.length) continue;
+    for (let stringIndex = 0; stringIndex < tuning.length; stringIndex++) {
       for (let fretIndex = 0; fretIndex <= this.fretCount; fretIndex++) {
         const noteOffset = (tuning[stringIndex] + fretIndex) % 12;
         const noteGroup = MUSIC_NOTES[noteOffset] ?? [];
@@ -298,6 +297,9 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
   }
 
   private getCagedLayerNotes(layer: CagedLayer): NoteRenderData[] {
+    // CAGED patterns are only defined for 6-string guitar.
+    if (this.fretboardConfig.tuning.tuning.length !== 6) return [];
+
     const scaleKey =
       scale_names[layer.scaleName as keyof typeof scale_names] ??
       layer.scaleName.toUpperCase().replace(/ /g, "_");
@@ -309,13 +311,13 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
 
     const isMinor = layer.scaleName.toLowerCase().includes("minor");
     const relativeMajorKeyIndex = isMinor ? (keyIndex + 3) % 12 : keyIndex;
-    const cagedLookup = buildCagedLookup(relativeMajorKeyIndex, this.fretCount);
+    const tuningOffset = getCagedTuningOffset(this.fretboardConfig.tuning);
+    const cagedLookup = buildCagedLookup(relativeMajorKeyIndex, this.fretCount, tuningOffset);
 
     const tuning = this.fretboardConfig.tuning.tuning;
     const notes: NoteRenderData[] = [];
 
-    for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
-      if (stringIndex >= tuning.length) continue;
+    for (let stringIndex = 0; stringIndex < tuning.length; stringIndex++) {
       for (let fretIndex = 0; fretIndex <= this.fretCount; fretIndex++) {
         const noteOffset = (tuning[stringIndex] + fretIndex) % 12;
         const relativeOffset = (noteOffset - keyIndex + 12) % 12;

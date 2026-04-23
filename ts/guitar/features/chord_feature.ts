@@ -6,16 +6,12 @@ import {
   ConfigurationSchemaArg,
 } from "../../feature";
 import { GuitarFeature } from "../guitar_base";
-import { Chord, chord_library } from "../chords";
+import { Chord, chord_library, ukulele_chord_library, getChordLibraryForInstrument } from "../chords";
 import { AudioController } from "../../audio_controller";
-import { AppSettings } from "../../settings";
+import { AppSettings, getCategorySettings } from "../../settings";
 import { ChordDiagramView } from "../views/chord_diagram_view";
-import {
-  addHeader,
-  clearAllChildren,
-  MUSIC_NOTES,
-  getKeyIndex,
-} from "../guitar_utils";
+import { addHeader, clearAllChildren } from "../guitar_utils";
+import { GuitarSettings, GUITAR_SETTINGS_KEY, DEFAULT_GUITAR_SETTINGS } from "../guitar_settings";
 // Import generic and specific interval settings types
 import { IntervalSettings } from "../../schedule/editor/interval/types";
 import { GuitarIntervalSettings } from "../guitar_interval_settings";
@@ -26,6 +22,7 @@ export class ChordFeature extends GuitarFeature {
   // static readonly category = FeatureCategoryName.Guitar; // Removed
   static readonly typeName = "Chord";
   static readonly displayName = "Chord Diagram";
+  static readonly requiredInstruments = ["Guitar", "Ukulele"] as const;
   static readonly description = "Displays one or more chord diagrams.";
   readonly typeName = ChordFeature.typeName;
 
@@ -57,14 +54,16 @@ export class ChordFeature extends GuitarFeature {
 
   // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
-    const availableChordNames = Object.keys(chord_library);
+    const allChordKeys = [
+      ...new Set([...Object.keys(chord_library), ...Object.keys(ukulele_chord_library)]),
+    ];
     const specificArgs: ConfigurationSchemaArg[] = [
       {
-        name: "Chord", // Changed from "ChordNames"
+        name: "Chord",
         type: "enum",
         required: true,
-        enum: availableChordNames,
-        description: "Select one or more chords.",
+        enum: allChordKeys,
+        description: "Select one or more chords. Available chords depend on the selected instrument.",
         isVariadic: true,
       },
     ];
@@ -93,14 +92,16 @@ export class ChordFeature extends GuitarFeature {
         `Invalid config for ${this.typeName}. Expected at least one ChordName.`
       );
     }
+    const guitarSettings = getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ?? DEFAULT_GUITAR_SETTINGS;
+    const library = getChordLibraryForInstrument(guitarSettings.instrument);
     const chords: Chord[] = [];
     chordKeys.forEach((chordKey) => {
-      const chord = chord_library[chordKey];
+      const chord = library[chordKey];
       if (chord) {
         chords.push(chord);
       } else {
         console.warn(
-          `[${this.typeName}] Unknown chord key: "${chordKey}". Skipping.`
+          `[${this.typeName}] Unknown chord key for ${guitarSettings.instrument}: "${chordKey}". Skipping.`
         );
       }
     });

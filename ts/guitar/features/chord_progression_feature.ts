@@ -27,6 +27,7 @@ export class ChordProgressionFeature extends GuitarFeature {
   // static readonly category = FeatureCategoryName.Guitar; // Removed
   static readonly typeName = "Chord Progression";
   static readonly displayName = "Chord Progression";
+  static readonly requiredInstruments = ["Guitar"] as const;
   static readonly description =
     "Displays chord diagrams for a Roman numeral progression (e.g., I-IV-V) in a specified key.";
 

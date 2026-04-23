@@ -178,6 +178,20 @@ export function getAvailableFeatureTypes(
   return category ? Array.from(category.getFeatureTypes().values()) : [];
 }
 
+/**
+ * Retrieves feature type descriptors for a given category, filtered to those
+ * compatible with the specified instrument. Features without `requiredInstruments`
+ * are always included.
+ */
+export function getAvailableFeatureTypesForInstrument(
+  categoryName: string,
+  instrument: string
+): FeatureTypeDescriptor[] {
+  return getAvailableFeatureTypes(categoryName).filter(
+    (ft) => !ft.requiredInstruments || ft.requiredInstruments.includes(instrument)
+  );
+}
+
 /** Retrieves the default *global* settings *data* for a specific category name. */
 export function getDefaultGlobalSettingsForCategory<T>(
   categoryName: string

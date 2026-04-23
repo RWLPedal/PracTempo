@@ -138,8 +138,7 @@ export class NotesFeature extends GuitarFeature {
       ? "interval"
       : "note";
     const config = this.fretboardConfig;
-    for (let stringIndex = 0; stringIndex < 6; stringIndex++) {
-      if (stringIndex >= config.tuning.tuning.length) continue;
+    for (let stringIndex = 0; stringIndex < config.tuning.tuning.length; stringIndex++) {
       const stringTuning = config.tuning.tuning[stringIndex];
       for (let fretIndex = 0; fretIndex <= fretCount; fretIndex++) {
         const noteOffsetFromA = (stringTuning + fretIndex) % 12;

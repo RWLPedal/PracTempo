@@ -1,7 +1,8 @@
 import { AudioController } from "../../audio_controller";
 import { DisplayController } from "../../display_controller";
 import { Schedule } from "../schedule";
-import { AppSettings, LAST_RUN_SCHEDULE_JSON_KEY } from "../../settings";
+import { AppSettings, LAST_RUN_SCHEDULE_JSON_KEY, getCategorySettings } from "../../settings";
+import { GuitarSettings } from "../../guitar/guitar_settings";
 // Use JSON serializer functions
 import {
   parseScheduleJSON,
@@ -43,6 +44,7 @@ export class ScheduleEditor {
   public containerEl: HTMLElement;
   private updateAction: () => void;
   private audioController: AudioController;
+  private appSettings: AppSettings | null = null;
   private uiManager: EditorUIManager;
   public errorDisplay: ErrorDisplay;
   private selectionManager: SelectionManager;
@@ -55,18 +57,20 @@ export class ScheduleEditor {
   private editScheduleNameBtnEl!: HTMLElement | null;
   private currentMode: EditorMode = EditorMode.Config;
   private scheduleName: string = DEFAULT_SCHEDULE_NAME;
-  private defaultCategoryName: string | null = null; // Store the determined default category
+  private defaultCategoryName: string | null = null;
 
   constructor(
     containerEl: HTMLElement,
     updateAction: () => void,
-    audioController: AudioController
+    audioController: AudioController,
+    appSettings?: AppSettings
   ) {
     if (!containerEl)
       throw new Error("ScheduleEditor: Container element is required.");
     this.containerEl = containerEl;
     this.updateAction = updateAction;
     this.audioController = audioController;
+    this.appSettings = appSettings ?? null;
 
     // --- Determine Default Category ---
     const availableCategories = getAvailableCategories();
@@ -93,7 +97,8 @@ export class ScheduleEditor {
     );
     this.rowManager = new RowManager(
       this.uiManager.configEntriesContainerEl,
-      this.selectionManager
+      this.selectionManager,
+      () => getCategorySettings<GuitarSettings>(this.appSettings, 'Guitar')?.instrument ?? 'Guitar'
     );
     this.clipboardManager = new ClipboardManager(
       this.selectionManager,
@@ -340,7 +345,8 @@ export class ScheduleEditor {
         errorDiv.classList.add("schedule-row");
         return errorDiv;
       }
-      return buildIntervalRowElement(intervalData, categoryName);
+      const instrument = getCategorySettings<GuitarSettings>(this.appSettings, 'Guitar')?.instrument ?? 'Guitar';
+      return buildIntervalRowElement(intervalData, categoryName, instrument);
     }
     console.warn("Trying to build unknown row type:", rowData);
     return null;

@@ -116,63 +116,92 @@ export class SettingsManager {
             console.error("Cannot find category settings container in modal!");
             return;
         }
-        container.innerHTML = ""; // Clear previous dynamic content
+        container.innerHTML = "";
 
         const categories = getAvailableCategories();
-        console.log(`Found ${categories.length} registered categories.`);
-
         categories.forEach((categoryInstance) => {
-        if (typeof categoryInstance.getGlobalSettingsUISchema === "function") {
+            if (typeof categoryInstance.getGlobalSettingsUISchema !== "function") return;
             const schemaItems = categoryInstance.getGlobalSettingsUISchema();
             const categoryName = categoryInstance.getName();
-            console.log(`Processing category: ${categoryName}, Schema items: ${schemaItems?.length ?? 0}`);
+            if (!schemaItems || schemaItems.length === 0) return;
 
-            if (schemaItems && schemaItems.length > 0) {
-            const currentCategorySettings = this.getCategorySettings(categoryName);
+            const initialDraft = this.getCategorySettings(categoryName);
 
             const categoryHeader = document.createElement("h5");
             categoryHeader.textContent = `${categoryInstance.getDisplayName()} Settings`;
             categoryHeader.classList.add("title", "is-6", "category-settings-header", "mt-4");
             container.appendChild(categoryHeader);
 
-            schemaItems.forEach((item) => {
-                const fieldDiv = document.createElement("div");
-                fieldDiv.classList.add("field", "is-horizontal");
-                const fieldLabel = document.createElement("div");
-                fieldLabel.classList.add("field-label", "is-normal");
-                const label = document.createElement("label");
-                label.classList.add("label");
-                label.textContent = item.label;
-                if (item.description) label.title = item.description;
-                fieldLabel.appendChild(label);
-                const fieldBody = document.createElement("div");
-                fieldBody.classList.add("field-body");
-                const fieldInner = document.createElement("div");
-                fieldInner.classList.add("field");
-                const control = document.createElement("div");
-                control.classList.add("control", "is-expanded");
-                let inputElement: HTMLInputElement | HTMLSelectElement | null = null;
-                const inputId = `setting-${categoryName}-${item.key}`;
-                const currentValue = currentCategorySettings?.[item.key];
+            // Wrapper for this category's fields so we can re-render it in place.
+            const sectionEl = document.createElement("div");
+            sectionEl.dataset.categorySectionName = categoryName;
+            container.appendChild(sectionEl);
 
-                if (item.type === "select" && item.options) {
+            this._renderCategorySection(sectionEl, schemaItems, categoryName, initialDraft);
+        });
+    }
+
+    /**
+     * Renders (or re-renders) one category's settings fields into `sectionEl`.
+     * `draft` is the current in-memory values to show; fields with `triggersRebuild`
+     * will re-render the section when their value changes.
+     */
+    private _renderCategorySection(
+        sectionEl: HTMLElement,
+        schemaItems: import("./feature").SettingsUISchemaItem[],
+        categoryName: string,
+        draft: Record<string, any>
+    ): void {
+        sectionEl.innerHTML = "";
+
+        schemaItems.forEach((item) => {
+            const fieldDiv = document.createElement("div");
+            fieldDiv.classList.add("field", "is-horizontal");
+            const fieldLabel = document.createElement("div");
+            fieldLabel.classList.add("field-label", "is-normal");
+            const label = document.createElement("label");
+            label.classList.add("label");
+            label.textContent = item.label;
+            if (item.description) label.title = item.description;
+            fieldLabel.appendChild(label);
+            const fieldBody = document.createElement("div");
+            fieldBody.classList.add("field-body");
+            const fieldInner = document.createElement("div");
+            fieldInner.classList.add("field");
+            const control = document.createElement("div");
+            control.classList.add("control", "is-expanded");
+            let inputElement: HTMLInputElement | HTMLSelectElement | null = null;
+            const inputId = `setting-${categoryName}-${item.key}`;
+            const currentValue = draft[item.key];
+
+            if (item.type === "select") {
+                const options = item.getDynamicOptions
+                    ? item.getDynamicOptions(draft)
+                    : (item.options ?? []);
                 const selectElement = document.createElement("select");
                 selectElement.id = inputId;
                 const selectWrapper = document.createElement("div");
                 selectWrapper.classList.add("select", "is-fullwidth");
-                item.options.forEach((opt) => {
+                options.forEach((opt) => {
                     const option = document.createElement("option");
                     option.value = opt.value;
                     option.textContent = opt.text;
                     if (currentValue !== undefined && String(currentValue) === opt.value) {
-                    option.selected = true;
+                        option.selected = true;
                     }
                     selectElement.appendChild(option);
                 });
                 selectWrapper.appendChild(selectElement);
                 control.appendChild(selectWrapper);
                 inputElement = selectElement;
-                } else if (item.type === "checkbox") {
+
+                if (item.triggersRebuild) {
+                    selectElement.addEventListener("change", () => {
+                        const newDraft = this._readSectionDraft(sectionEl, draft);
+                        this._renderCategorySection(sectionEl, schemaItems, categoryName, newDraft);
+                    });
+                }
+            } else if (item.type === "checkbox") {
                 const checkboxElement = document.createElement("input");
                 checkboxElement.id = inputId;
                 checkboxElement.type = "checkbox";
@@ -184,7 +213,13 @@ export class SettingsManager {
                 checkboxLabel.appendChild(checkboxElement);
                 control.appendChild(checkboxLabel);
                 inputElement = checkboxElement;
-                } else {
+                if (item.triggersRebuild) {
+                    checkboxElement.addEventListener("change", () => {
+                        const newDraft = this._readSectionDraft(sectionEl, draft);
+                        this._renderCategorySection(sectionEl, schemaItems, categoryName, newDraft);
+                    });
+                }
+            } else {
                 const textInputElement = document.createElement("input");
                 textInputElement.id = inputId;
                 textInputElement.type = item.type === "number" ? "number" : "text";
@@ -196,27 +231,36 @@ export class SettingsManager {
                 if (item.step !== undefined) textInputElement.step = String(item.step);
                 control.appendChild(textInputElement);
                 inputElement = textInputElement;
-                }
+            }
 
-                if (inputElement) {
+            if (inputElement) {
                 inputElement.dataset.category = categoryName;
                 inputElement.dataset.setting = item.key;
                 label.htmlFor = inputId;
-                } else {
+            } else {
                 console.warn(`Could not create input element for setting: ${categoryName}.${item.key}`);
-                }
-
-                fieldInner.appendChild(control);
-                fieldBody.appendChild(fieldInner);
-                fieldDiv.appendChild(fieldLabel);
-                fieldDiv.appendChild(fieldBody);
-                container.appendChild(fieldDiv);
-            });
             }
-        } else {
-            console.log(`Category ${categoryInstance.getName()} does not provide a global settings UI schema.`);
-        }
+
+            fieldInner.appendChild(control);
+            fieldBody.appendChild(fieldInner);
+            fieldDiv.appendChild(fieldLabel);
+            fieldDiv.appendChild(fieldBody);
+            sectionEl.appendChild(fieldDiv);
         });
+    }
+
+    /** Reads current form values within a category section into a draft object. */
+    private _readSectionDraft(sectionEl: HTMLElement, baseDraft: Record<string, any>): Record<string, any> {
+        const draft = { ...baseDraft };
+        sectionEl.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input[data-setting], select[data-setting]")
+            .forEach((el) => {
+                const key = el.dataset.setting;
+                if (!key) return;
+                if (el.type === "checkbox") draft[key] = (el as HTMLInputElement).checked;
+                else if (el.type === "number") draft[key] = parseFloat(el.value) || 0;
+                else draft[key] = el.value;
+            });
+        return draft;
     }
 
     private getCategorySettings(categoryName: string): any {

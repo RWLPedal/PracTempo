@@ -3,9 +3,8 @@ import { View } from "../view";
 import { MetronomeView } from "./views/metronome_view";
 import {
   FretboardConfig,
-  AVAILABLE_TUNINGS,
-  STANDARD_TUNING,
-  TuningName,
+  INSTRUMENT_TUNINGS,
+  InstrumentName,
 } from "./fretboard";
 import { AppSettings, getCategorySettings } from "../settings";
 import {
@@ -72,10 +71,15 @@ export abstract class GuitarFeature implements Feature {
       getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ??
       DEFAULT_GUITAR_SETTINGS;
 
-    const tuningName = AVAILABLE_TUNINGS[guitarGlobalSettings.tuning]
+    const instrument: InstrumentName = guitarGlobalSettings.instrument ?? "Guitar";
+    const tuningsForInstrument = INSTRUMENT_TUNINGS[instrument] ?? INSTRUMENT_TUNINGS["Guitar"];
+    const tuningName = tuningsForInstrument[guitarGlobalSettings.tuning]
       ? guitarGlobalSettings.tuning
-      : "Standard";
-    const tuning = AVAILABLE_TUNINGS[tuningName];
+      : Object.keys(tuningsForInstrument)[0];
+    const tuning = tuningsForInstrument[tuningName];
+
+    // Pass explicit widths for 6-string guitar to preserve existing appearance.
+    const stringWidths = instrument === "Guitar" ? [3, 3, 2, 2, 1, 1] : undefined;
 
     this.fretboardConfig = new FretboardConfig(
       tuning,
@@ -84,7 +88,7 @@ export abstract class GuitarFeature implements Feature {
       guitarGlobalSettings.colorScheme,
       undefined, // markerDots
       undefined, // sideNumbers
-      undefined, // stringWidths
+      stringWidths,
       this.maxCanvasHeight,
       guitarGlobalSettings.zoomMultiplier ?? 1.0
     );

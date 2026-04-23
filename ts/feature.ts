@@ -65,6 +65,11 @@ export interface FeatureTypeDescriptor {
   readonly typeName: string; // Unique name within the category (e.g., "Scale", "Chord")
   readonly displayName: string; // User-friendly name (e.g., "Scale Diagram")
   readonly description: string;
+  /**
+   * If set, this feature is only available when the active instrument is one of
+   * the listed instrument names. Omit for features that work on all instruments.
+   */
+  readonly requiredInstruments?: ReadonlyArray<string>;
   getConfigurationSchema(): ConfigurationSchema; // How to configure this feature type
   /**
    * Factory method to create an instance of the feature.
@@ -135,6 +140,17 @@ export interface SettingsUISchemaItem {
   label: string;
   type: "select" | "number" | "text" | "checkbox";
   options?: { value: string; text: string }[];
+  /**
+   * When present, options are computed from the current draft settings for this
+   * category. Takes precedence over `options`. Used for fields whose choices
+   * depend on other fields (e.g. tuning depends on instrument).
+   */
+  getDynamicOptions?: (draft: Record<string, any>) => { value: string; text: string }[];
+  /**
+   * When true, changing this field triggers a re-render of the category settings
+   * section so dependent fields (those with `getDynamicOptions`) can update.
+   */
+  triggersRebuild?: boolean;
   placeholder?: string;
   min?: number;
   max?: number;

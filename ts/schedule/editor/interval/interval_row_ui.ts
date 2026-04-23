@@ -6,6 +6,7 @@ import {
 } from "../../../feature";
 import {
   getAvailableFeatureTypes,
+  getAvailableFeatureTypesForInstrument,
   getFeatureTypeDescriptor,
   getIntervalSettingsFactory,
   getCategory, // Import category getter
@@ -39,7 +40,8 @@ import {
  */
 export function buildIntervalRowElement(
   initialData: IntervalRowData,
-  categoryName: string // **** CHANGED: Expect string name ****
+  categoryName: string,
+  instrument?: string
 ): HTMLElement {
   const entryDiv = document.createElement("div");
   entryDiv.classList.add("config-entry-row", "schedule-row");
@@ -102,7 +104,8 @@ export function buildIntervalRowElement(
   // Pass category name string to dropdown builder
   const featureTypeDiv = createFeatureTypeDropdownCell(
     initialData.featureTypeName,
-    categoryName
+    categoryName,
+    instrument
   );
   const featureArgsDiv = createCell(
     "feature-args-cell",
@@ -157,7 +160,8 @@ export function buildIntervalRowElement(
 /** Creates the specific feature type dropdown cell for a given category name */
 function createFeatureTypeDropdownCell(
   selectedTypeName: string,
-  categoryName: string // **** CHANGED: Expect string name ****
+  categoryName: string,
+  instrument?: string
 ): HTMLDivElement {
   const cellDiv = createCell("feature-type-cell");
   const selectWrapper = document.createElement("div");
@@ -167,9 +171,10 @@ function createFeatureTypeDropdownCell(
 
   select.appendChild(new Option("None", ""));
 
-  // Populate with available feature types for the SPECIFIED category name
-  const availableTypes: FeatureTypeDescriptor[] =
-    getAvailableFeatureTypes(categoryName); // Use name string
+  // Filter feature types by instrument if provided
+  const availableTypes: FeatureTypeDescriptor[] = instrument
+    ? getAvailableFeatureTypesForInstrument(categoryName, instrument)
+    : getAvailableFeatureTypes(categoryName);
   const category = getCategory(categoryName); // Get category for display name fallback
 
   if (availableTypes.length === 0) {

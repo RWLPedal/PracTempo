@@ -30,17 +30,22 @@ import {
 } from "./guitar_interval_settings";
 
 // Helper function imports (for settings UI schema)
-import { AVAILABLE_TUNINGS } from "./fretboard";
+import { INSTRUMENT_TUNINGS, InstrumentName } from "./fretboard";
 import { FretboardColorScheme } from "./colors";
 import { CagedFeature } from "./features/caged_feature";
 import { MultiSelectFretboardFeature } from "./features/multi_select_fretboard_feature";
 
-// Helper function to generate UI Schema (can be kept here or imported)
+// Helper function to generate UI Schema
 function getGuitarGlobalSettingsUISchema(): SettingsUISchemaItem[] {
-  const tuningOptions = Object.keys(AVAILABLE_TUNINGS).map((key) => ({
-    value: key,
-    text: key,
-  }));
+  const instrumentOptions: { value: InstrumentName; text: string }[] = [
+    { value: "Guitar",          text: "Guitar" },
+    { value: "Bass",            text: "Bass (4-string, EADG)" },
+    { value: "Ukulele",         text: "Ukulele (4-string, GCEA)" },
+    { value: "Mandola",         text: "Mandola (4-string, CGDA)" },
+    { value: "Mandolin",        text: "Mandolin (4-string, GDAE)" },
+    { value: "7-String Guitar", text: "7-String Guitar (BEADGBE)" },
+    { value: "8-String Guitar", text: "8-String Guitar (F#BEADGBE)" },
+  ];
   const handednessOptions = [
     { value: "right", text: "Right-Handed" },
     { value: "left", text: "Left-Handed" },
@@ -49,13 +54,20 @@ function getGuitarGlobalSettingsUISchema(): SettingsUISchemaItem[] {
     { value: "vertical", text: "Vertical (Default)" },
     { value: "horizontal", text: "Horizontal" },
   ];
-  // Updated color scheme options
   const colorSchemeOptions: { value: FretboardColorScheme; text: string }[] = [
-    { value: "interval", text: "Interval Colors (Default)" }, // Interval is default
+    { value: "interval", text: "Interval Colors (Default)" },
     { value: "note", text: "Note Name Colors" },
-    { value: "simplified", text: "Simplified (Root Only)" }, // Renamed from "Default"
+    { value: "simplified", text: "Simplified (Root Only)" },
   ];
   return [
+    {
+      key: "instrument",
+      label: "Instrument",
+      type: "select",
+      options: instrumentOptions,
+      triggersRebuild: true,
+      description: "Select the instrument type. Changes the available tunings and features.",
+    },
     {
       key: "handedness",
       label: "Diagram Handedness",
@@ -74,8 +86,12 @@ function getGuitarGlobalSettingsUISchema(): SettingsUISchemaItem[] {
       key: "tuning",
       label: "Tuning",
       type: "select",
-      options: tuningOptions,
-      description: "Select the guitar tuning.",
+      getDynamicOptions: (draft) => {
+        const instrument = (draft.instrument as InstrumentName) ?? "Guitar";
+        const tunings = INSTRUMENT_TUNINGS[instrument] ?? INSTRUMENT_TUNINGS["Guitar"];
+        return Object.keys(tunings).map((key) => ({ value: key, text: key }));
+      },
+      description: "Select the tuning (options depend on the selected instrument).",
     },
     {
       key: "colorScheme",
