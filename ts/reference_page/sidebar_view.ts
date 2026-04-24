@@ -24,7 +24,7 @@ const FEATURE_BUTTONS: FeatureButton[] = [
     { id: 'metronome-feature',         icon: 'timer',      label: 'Metronome',   viewId: 'guitar_floating_metronome' },
     { id: 'legend-feature',            icon: 'palette',    label: 'Legend',      viewId: 'guitar_color_legend' },
     { id: 'timer-feature',             icon: 'alarm',      label: 'Timer',       viewId: 'floating_timer' },
-    { id: 'drum-machine-feature',      icon: 'music_note', label: 'Drums',       viewId: 'drum_machine' },
+    { id: 'drum-machine-feature',      icon: 'music_note', label: 'Backing Track', viewId: 'drum_machine' },
 ];
 
 export class SidebarView {

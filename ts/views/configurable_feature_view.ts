@@ -144,4 +144,5 @@ export class ConfigurableFeatureView implements View {
     stop(): void {
         this.feature?.stop?.();
     }
+    
 }

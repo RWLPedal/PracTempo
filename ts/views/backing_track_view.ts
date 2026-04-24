@@ -1,4 +1,4 @@
-// ts/views/drum_machine_view.ts
+// ts/views/backing_track_view.ts
 import { View } from '../view';
 import {
   DrumSoundId,
@@ -12,12 +12,16 @@ import { volumeManager } from '../sounds/volume_manager';
 // ─── Data types ────────────────────────────────────────────────────────────────
 
 type TrackData = (DrumSoundId | null)[];
+type BassStep  = number | null; // 1–7 scale degree, null = rest
 
 interface DrumPreset {
   name: string;
   bpm: number;
   steps: number;
   tracks: TrackData[];
+  bassTrack: BassStep[];
+  numMeasures?: 4 | 8 | 12;
+  measureChords?: (string | null)[];
 }
 
 // ─── Chord progression helpers ─────────────────────────────────────────────────
@@ -65,10 +69,25 @@ function chordToneFreq(toneName: string, octave: number): number {
   return 440 * Math.pow(2, (idx + 12 * (octave - 4)) / 12);
 }
 
+// ─── Bass helpers ──────────────────────────────────────────────────────────────
+
+// Semitone offsets for each scale degree (1–7) in major and natural minor
+const MAJOR_SCALE_SEMITONES = [0, 2, 4, 5, 7, 9, 11];
+const MINOR_SCALE_SEMITONES = [0, 2, 3, 5, 7, 8, 10];
+
+const BASS_DEGREE_COLORS: Record<number, string> = {
+  1: '#2D5A27',
+  2: '#3A7032',
+  3: '#47863D',
+  4: '#3A7055',
+  5: '#2D5A44',
+  6: '#3A7065',
+  7: '#2A4A3A',
+};
+
 // ─── Constants ─────────────────────────────────────────────────────────────────
 
 const NUM_TRACKS = 4;
-const NUM_CHORD_MEASURES = 4;
 
 const SOUND_COLORS: Record<DrumSoundId, string> = {
   kick:       '#2C4A7C',
@@ -76,6 +95,8 @@ const SOUND_COLORS: Record<DrumSoundId, string> = {
   hihat:      '#7A96A8',
   open_hihat: '#5B9AB0',
   crash:      '#7B6EA8',
+  tom:        '#5C7A3A',
+  shaker:     '#8B7355',
 };
 
 // ─── Preset library ────────────────────────────────────────────────────────────
@@ -83,76 +104,147 @@ const SOUND_COLORS: Record<DrumSoundId, string> = {
 function emptyTracks(steps: number): TrackData[] {
   return Array.from({ length: NUM_TRACKS }, () => new Array(steps).fill(null));
 }
+function emptyBass(steps: number): BassStep[] {
+  return new Array(steps).fill(null);
+}
 
 const PRESETS: DrumPreset[] = [
-  { name: '— Empty —',   bpm: 120, steps: 16, tracks: emptyTracks(16) },
   {
-    name: 'Rock Beat', bpm: 120, steps: 16,
+    name: '— Empty —', bpm: 120, steps: 16, numMeasures: 4,
+    tracks: emptyTracks(16), bassTrack: emptyBass(16),
+    measureChords: [null, null, null, null],
+  },
+  {
+    name: 'Rock Beat', bpm: 120, steps: 16, numMeasures: 4,
     tracks: [
       ['kick', null, null, null, null, null, null, null, 'kick', null, null, 'kick', null, null, null, null],
       [null, null, null, null, 'snare', null, null, null, null, null, null, null, 'snare', null, null, null],
       ['hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null],
       ['crash', null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
     ],
+    bassTrack: [1, null, null, null, null, null, null, null, 5, null, null, null, null, null, null, null],
+    measureChords: ['I', 'IV', 'V', 'I'],
   },
   {
-    name: 'Funk', bpm: 100, steps: 16,
+    name: 'Funk', bpm: 100, steps: 16, numMeasures: 4,
     tracks: [
       ['kick', null, null, 'kick', null, null, 'kick', null, null, null, 'kick', null, null, 'kick', null, null],
       [null, null, null, null, 'snare', null, null, null, null, null, null, null, 'snare', null, 'snare', null],
       ['hihat','hihat','hihat','hihat','hihat','hihat','hihat','hihat','hihat','hihat','hihat','hihat','hihat','hihat','hihat','hihat'],
       [null, null, null, null, null, null, 'open_hihat', null, null, null, null, null, null, null, 'open_hihat', null],
     ],
+    bassTrack: [1, null, null, 1, null, null, null, 3, 5, null, null, 1, null, null, null, null],
+    measureChords: ['I', 'IV', 'I', 'V'],
   },
   {
-    name: 'Electronic', bpm: 128, steps: 16,
+    name: 'Electronic', bpm: 128, steps: 16, numMeasures: 4,
     tracks: [
       ['kick', null, null, null, 'kick', null, null, null, 'kick', null, null, null, 'kick', null, null, null],
       [null, null, null, null, 'snare', null, null, null, null, null, null, null, 'snare', null, null, null],
       [null, null, 'open_hihat', null, null, null, 'open_hihat', null, null, null, 'open_hihat', null, null, null, 'open_hihat', null],
       ['crash', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null],
     ],
+    bassTrack: [1, null, null, null, 1, null, null, null, 5, null, null, null, 5, null, null, null],
+    measureChords: ['I', 'V', 'vi', 'IV'],
+  },
+  {
+    name: 'Blues Shuffle', bpm: 90, steps: 16, numMeasures: 12,
+    tracks: [
+      // Kick on 1, Tom on 3 for variety
+      ['kick', null, null, null, null, null, null, null, 'tom', null, null, null, null, null, null, null],
+      [null, null, null, null, 'snare', null, null, null, null, null, null, null, 'snare', null, null, null],
+      ['hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null],
+      [null, null, null, null, null, null, null, null, null, null, null, null, null, null, 'open_hihat', null],
+    ],
+    // Walking quarter notes: 1 → 3 → 5 → 7
+    bassTrack: [1, null, null, null, 3, null, null, null, 5, null, null, null, 7, null, null, null],
+    // Standard 12-bar blues: I I I I | IV IV I I | V IV I V
+    measureChords: ['I','I','I','I','IV','IV','I','I','V','IV','I','V'],
+  },
+  {
+    name: 'Indie Rock', bpm: 118, steps: 16, numMeasures: 4,
+    tracks: [
+      // Kick pushes on beat 2½ for a stumble-forward feel
+      ['kick', null, null, null, null, null, 'kick', null, 'kick', null, null, null, null, null, null, null],
+      [null, null, null, null, 'snare', null, null, null, null, null, null, null, 'snare', null, null, null],
+      ['hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null, 'hihat', null],
+      // Crash on 1, shaker driving 8th notes after
+      ['crash', null, 'shaker', null, 'shaker', null, 'shaker', null, 'shaker', null, 'shaker', null, 'shaker', null, 'shaker', null],
+    ],
+    bassTrack: [1, null, null, null, null, null, null, null, 5, null, null, null, null, null, 7, null],
+    measureChords: ['I', 'V', 'vi', 'IV'],
+  },
+  {
+    name: 'Jazz Swing', bpm: 160, steps: 16, numMeasures: 8,
+    tracks: [
+      // Kick on beat 4 ("dropping the bomb"), otherwise sparse
+      [null, null, null, null, null, null, null, null, null, null, null, null, 'kick', null, null, null],
+      [null, null, null, null, 'snare', null, null, null, null, null, null, null, 'snare', null, null, null],
+      // Ride cymbal: quarter notes with "and of 2" subdivision (swing approximation)
+      ['hihat', null, null, null, 'hihat', null, 'hihat', null, 'hihat', null, null, null, 'hihat', null, 'hihat', null],
+      [null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null],
+    ],
+    // Walking quarter notes: 1 → 2 → 5 → 4
+    bassTrack: [1, null, null, null, 2, null, null, null, 5, null, null, null, 4, null, null, null],
+    // I-vi7-ii7-V turnaround × 2
+    measureChords: ['Imaj7', 'vi7', 'ii7', 'V', 'Imaj7', 'vi7', 'ii7', 'V'],
   },
 ];
 
 // ─── View ──────────────────────────────────────────────────────────────────────
 
-export class DrumMachineView implements View {
+export class BackingTrackView implements View {
   // Drum playback state
   private bpm: number = 120;
   private steps: number = 16;
   private tracks: TrackData[] = [];
+  private bassTrack: BassStep[] = [];
   private selectedSound: DrumSoundId | null = 'kick';
+  private selectedBassDegree: number | null = null;
   private isPlaying: boolean = false;
   private currentStep: number = -1;
   private intervalId: number | null = null;
 
   // Chord progression state
+  private numMeasures: 4 | 8 | 12 = 4;
   private progRootNote: string = 'C';
   private progKeyType: 'Major' | 'Minor' = 'Major';
-  private selectedChord: string | null = null;           // Active Roman numeral "tool"
-  private measureChords: (string | null)[] = new Array(NUM_CHORD_MEASURES).fill(null);
+  private selectedChord: string | null = null;
+  private measureChords: (string | null)[] = [];
   private currentMeasure: number = -1;
 
   // DOM refs
   private container: HTMLElement | null = null;
   private gridEl: HTMLElement | null = null;
   private cellEls: HTMLElement[][] = [];
+  private bassCellEls: HTMLElement[] = [];
   private stepNumEls: HTMLElement[] = [];
   private playBtn: HTMLButtonElement | null = null;
   private bpmSliderEl: HTMLInputElement | null = null;
   private bpmDisplayEl: HTMLElement | null = null;
-  private stepsSelectEl: HTMLSelectElement | null = null;
   private soundPaletteBtns: Map<DrumSoundId, HTMLButtonElement> = new Map();
+  private barsBtns: Map<number, HTMLButtonElement> = new Map();
+  private bassToolSelectEl: HTMLSelectElement | null = null;
   private chordToolSelectEl: HTMLSelectElement | null = null;
   private progRootSelectEl: HTMLSelectElement | null = null;
   private progKeyTypeBtn: HTMLButtonElement | null = null;
   private chordMeasureCellEls: HTMLElement[] = [];
 
   constructor(initialState?: any) {
-    this.bpm   = initialState?.bpm   ?? 120;
-    this.steps = initialState?.steps ?? 16;
+    this.bpm          = initialState?.bpm          ?? 120;
+    this.steps        = initialState?.steps        ?? 16;
+    this.progRootNote = initialState?.progRootNote ?? 'C';
+    this.progKeyType  = initialState?.progKeyType  ?? 'Major';
+    const nm = initialState?.numMeasures;
+    this.numMeasures  = (nm === 4 || nm === 8 || nm === 12) ? nm : 4;
+    if (Array.isArray(initialState?.measureChords)) {
+      this.measureChords = initialState.measureChords.slice(0, this.numMeasures);
+      while (this.measureChords.length < this.numMeasures) this.measureChords.push(null);
+    } else {
+      this.measureChords = new Array(this.numMeasures).fill(null);
+    }
     this.initTracks(initialState?.tracks);
+    this.initBassTrack(initialState?.bassTrack);
   }
 
   // ─── View interface ──────────────────────────────────────────────────────────
@@ -173,6 +265,7 @@ export class DrumMachineView implements View {
     this.rebuildGrid();
 
     container.appendChild(wrapper);
+    this.dispatchStateChange();
   }
 
   start(): void { /* no-op */ }
@@ -180,22 +273,24 @@ export class DrumMachineView implements View {
 
   destroy(): void {
     this.stopPlayback();
-    this.container        = null;
-    this.gridEl           = null;
-    this.cellEls          = [];
-    this.stepNumEls       = [];
-    this.playBtn          = null;
-    this.bpmSliderEl      = null;
-    this.bpmDisplayEl     = null;
-    this.stepsSelectEl    = null;
+    this.container           = null;
+    this.gridEl              = null;
+    this.cellEls             = [];
+    this.bassCellEls         = [];
+    this.stepNumEls          = [];
+    this.playBtn             = null;
+    this.bpmSliderEl         = null;
+    this.bpmDisplayEl        = null;
     this.soundPaletteBtns.clear();
-    this.chordToolSelectEl = null;
-    this.progRootSelectEl  = null;
-    this.progKeyTypeBtn    = null;
+    this.barsBtns.clear();
+    this.bassToolSelectEl    = null;
+    this.chordToolSelectEl   = null;
+    this.progRootSelectEl    = null;
+    this.progKeyTypeBtn      = null;
     this.chordMeasureCellEls = [];
   }
 
-  // ─── Controls row (Preset / BPM / Steps / Play) ──────────────────────────────
+  // ─── Controls row ────────────────────────────────────────────────────────────
 
   private buildControls(): HTMLElement {
     const row = document.createElement('div');
@@ -230,6 +325,7 @@ export class DrumMachineView implements View {
         this.bpm = parseInt(this.bpmSliderEl!.value, 10);
         if (this.bpmDisplayEl) this.bpmDisplayEl.textContent = String(this.bpm);
         if (this.isPlaying) { this.stopInterval(); this.startInterval(); }
+        this.dispatchStateChange();
       });
 
       this.bpmDisplayEl = document.createElement('span');
@@ -241,23 +337,47 @@ export class DrumMachineView implements View {
       return group;
     }));
 
-    // Steps
-    row.appendChild(this.buildLabeledControl('Steps', () => {
-      const wrap = document.createElement('div');
-      wrap.classList.add('select', 'is-small');
-      this.stepsSelectEl = document.createElement('select');
-      [8, 16].forEach(n => {
-        const opt = new Option(String(n), String(n));
-        if (n === this.steps) opt.selected = true;
-        this.stepsSelectEl!.appendChild(opt);
-      });
-      this.stepsSelectEl.addEventListener('change', () => {
-        const n = parseInt(this.stepsSelectEl!.value, 10);
-        if (!isNaN(n) && n !== this.steps) this.changeSteps(n);
-      });
-      wrap.appendChild(this.stepsSelectEl);
-      return wrap;
+    // Bars pill toggle
+    row.appendChild(this.buildLabeledControl('Bars', () => {
+      const toggle = document.createElement('div');
+      toggle.classList.add('dm-bars-toggle');
+      this.barsBtns.clear();
+      for (const n of [4, 8, 12] as const) {
+        const btn = document.createElement('button');
+        btn.classList.add('dm-bars-btn');
+        btn.textContent = String(n);
+        if (n === this.numMeasures) btn.classList.add('is-active');
+        btn.addEventListener('click', () => this.setNumMeasures(n));
+        this.barsBtns.set(n, btn);
+        toggle.appendChild(btn);
+      }
+      return toggle;
     }));
+
+    // Save
+    const saveBtn = document.createElement('button');
+    saveBtn.classList.add('button', 'is-small', 'dm-icon-btn');
+    saveBtn.title = 'Save to JSON';
+    saveBtn.innerHTML = '<span class="material-icons">save</span>';
+    saveBtn.addEventListener('click', () => this.exportToJSON());
+    row.appendChild(saveBtn);
+
+    // Load
+    const loadBtn = document.createElement('button');
+    loadBtn.classList.add('button', 'is-small', 'dm-icon-btn');
+    loadBtn.title = 'Load from JSON';
+    loadBtn.innerHTML = '<span class="material-icons">folder_open</span>';
+    loadBtn.addEventListener('click', () => {
+      const input = document.createElement('input');
+      input.type = 'file';
+      input.accept = '.json,application/json';
+      input.addEventListener('change', () => {
+        const file = input.files?.[0];
+        if (file) this.importFromFile(file);
+      });
+      input.click();
+    });
+    row.appendChild(loadBtn);
 
     // Play/Stop
     this.playBtn = document.createElement('button');
@@ -284,17 +404,20 @@ export class DrumMachineView implements View {
     return group;
   }
 
-  // ─── Palette row (sounds + key + chord tool) ─────────────────────────────────
+  // ─── Palette (two rows) ──────────────────────────────────────────────────────
 
   private buildPalette(): HTMLElement {
     const palette = document.createElement('div');
     palette.classList.add('dm-palette');
 
-    // Sound buttons
-    const soundLbl = document.createElement('span');
-    soundLbl.classList.add('dm-label');
-    soundLbl.textContent = 'Sound:';
-    palette.appendChild(soundLbl);
+    // ── Row 1: drum sound selector ───────────────────────────────────────────
+    const soundRow = document.createElement('div');
+    soundRow.classList.add('dm-palette-row');
+
+    const drumLbl = document.createElement('span');
+    drumLbl.classList.add('dm-label');
+    drumLbl.textContent = 'Drum:';
+    soundRow.appendChild(drumLbl);
 
     this.soundPaletteBtns.clear();
     for (const id of ALL_DRUM_SOUND_IDS) {
@@ -305,29 +428,31 @@ export class DrumMachineView implements View {
       btn.dataset.soundId = id;
       if (id === this.selectedSound) btn.classList.add('is-active');
       btn.addEventListener('click', () => {
-        // Selecting a drum sound deselects any active chord tool
         this.selectedSound = (this.selectedSound === id) ? null : id;
         if (this.selectedSound) {
           this.selectedChord = null;
+          this.selectedBassDegree = null;
           this.updateChordToolSelect();
+          this.updateBassToolSelect();
         }
         this.updatePaletteSelection();
         if (this.selectedSound === id) playDrumSound(id);
       });
       this.soundPaletteBtns.set(id, btn);
-      palette.appendChild(btn);
+      soundRow.appendChild(btn);
     }
 
-    // Separator
-    const sep = document.createElement('span');
-    sep.classList.add('dm-palette-sep');
-    palette.appendChild(sep);
+    palette.appendChild(soundRow);
+
+    // ── Row 2: key / chord / bass ────────────────────────────────────────────
+    const keyRow = document.createElement('div');
+    keyRow.classList.add('dm-palette-row');
 
     // Key root dropdown
     const keyLbl = document.createElement('span');
     keyLbl.classList.add('dm-label');
     keyLbl.textContent = 'Key:';
-    palette.appendChild(keyLbl);
+    keyRow.appendChild(keyLbl);
 
     const rootWrap = document.createElement('div');
     rootWrap.classList.add('select', 'is-small');
@@ -341,9 +466,10 @@ export class DrumMachineView implements View {
       this.progRootNote = this.progRootSelectEl!.value;
       this.selectedChord = null;
       this.rebuildChordToolOptions();
+      this.dispatchStateChange();
     });
     rootWrap.appendChild(this.progRootSelectEl);
-    palette.appendChild(rootWrap);
+    keyRow.appendChild(rootWrap);
 
     // Major / Minor toggle
     this.progKeyTypeBtn = document.createElement('button');
@@ -354,14 +480,15 @@ export class DrumMachineView implements View {
       this.progKeyTypeBtn!.textContent = this.progKeyType;
       this.selectedChord = null;
       this.rebuildChordToolOptions();
+      this.dispatchStateChange();
     });
-    palette.appendChild(this.progKeyTypeBtn);
+    keyRow.appendChild(this.progKeyTypeBtn);
 
     // Chord tool dropdown
     const chordLbl = document.createElement('span');
     chordLbl.classList.add('dm-label');
     chordLbl.textContent = 'Chord:';
-    palette.appendChild(chordLbl);
+    keyRow.appendChild(chordLbl);
 
     const chordWrap = document.createElement('div');
     chordWrap.classList.add('select', 'is-small');
@@ -370,15 +497,43 @@ export class DrumMachineView implements View {
     this.rebuildChordToolOptions();
     this.chordToolSelectEl.addEventListener('change', () => {
       this.selectedChord = this.chordToolSelectEl!.value || null;
-      // Selecting a chord tool deselects any active drum sound
       if (this.selectedChord) {
         this.selectedSound = null;
+        this.selectedBassDegree = null;
         this.updatePaletteSelection();
+        this.updateBassToolSelect();
       }
       this.updateChordToolSelect();
     });
     chordWrap.appendChild(this.chordToolSelectEl);
-    palette.appendChild(chordWrap);
+    keyRow.appendChild(chordWrap);
+
+    // Bass degree dropdown
+    const bassLbl = document.createElement('span');
+    bassLbl.classList.add('dm-label');
+    bassLbl.textContent = 'Bass:';
+    keyRow.appendChild(bassLbl);
+
+    const bassWrap = document.createElement('div');
+    bassWrap.classList.add('select', 'is-small');
+    this.bassToolSelectEl = document.createElement('select');
+    this.bassToolSelectEl.classList.add('dm-bass-tool-select');
+    this.rebuildBassToolOptions();
+    this.bassToolSelectEl.addEventListener('change', () => {
+      const val = this.bassToolSelectEl!.value;
+      this.selectedBassDegree = val ? parseInt(val, 10) : null;
+      if (this.selectedBassDegree !== null) {
+        this.selectedSound = null;
+        this.selectedChord = null;
+        this.updatePaletteSelection();
+        this.updateChordToolSelect();
+      }
+      this.updateBassToolSelect();
+    });
+    bassWrap.appendChild(this.bassToolSelectEl);
+    keyRow.appendChild(bassWrap);
+
+    palette.appendChild(keyRow);
 
     return palette;
   }
@@ -396,7 +551,6 @@ export class DrumMachineView implements View {
       if (entry.roman === this.selectedChord) opt.selected = true;
       this.chordToolSelectEl.appendChild(opt);
     }
-    // Also refresh measure cell labels in case chord names changed
     this.refreshAllMeasureCells();
   }
 
@@ -406,13 +560,32 @@ export class DrumMachineView implements View {
     this.chordToolSelectEl.classList.toggle('dm-chord-tool-active', this.selectedChord !== null);
   }
 
+  private rebuildBassToolOptions(): void {
+    if (!this.bassToolSelectEl) return;
+    this.bassToolSelectEl.innerHTML = '';
+    this.bassToolSelectEl.appendChild(new Option('— none —', ''));
+    const labels: Record<number, string> = { 1: '1 — Root', 3: '3 — Third', 5: '5 — Fifth', 7: '7 — Seventh' };
+    for (let d = 1; d <= 7; d++) {
+      const opt = new Option(labels[d] ?? String(d), String(d));
+      if (d === this.selectedBassDegree) opt.selected = true;
+      this.bassToolSelectEl.appendChild(opt);
+    }
+  }
+
+  private updateBassToolSelect(): void {
+    if (!this.bassToolSelectEl) return;
+    this.bassToolSelectEl.value = this.selectedBassDegree !== null ? String(this.selectedBassDegree) : '';
+    this.bassToolSelectEl.classList.toggle('dm-bass-tool-active', this.selectedBassDegree !== null);
+  }
+
   // ─── Grid ────────────────────────────────────────────────────────────────────
 
   private rebuildGrid(): void {
     if (!this.gridEl) return;
     this.gridEl.innerHTML = '';
-    this.cellEls          = [];
-    this.stepNumEls       = [];
+    this.cellEls             = [];
+    this.bassCellEls         = [];
+    this.stepNumEls          = [];
     this.chordMeasureCellEls = [];
 
     // Header row — beat numbers
@@ -448,37 +621,67 @@ export class DrumMachineView implements View {
       this.gridEl.appendChild(row);
     }
 
-    // 5th section — one full-width chord row per measure, stacked vertically
-    this.buildProgRows();
+    // Bass row (separated by a thin rule)
+    this.buildBassRow();
+
+    // Chord progression: single inline row
+    this.buildProgRow();
   }
 
-  /** Appends NUM_CHORD_MEASURES rows to the grid, each as wide as one drum loop. */
-  private buildProgRows(): void {
+  private buildBassRow(): void {
     if (!this.gridEl) return;
-    this.chordMeasureCellEls = [];
 
-    // Thin separator before the chord section
     const sep = document.createElement('div');
     sep.classList.add('dm-prog-separator');
     this.gridEl.appendChild(sep);
 
-    for (let m = 0; m < NUM_CHORD_MEASURES; m++) {
-      const row = document.createElement('div');
-      row.classList.add('dm-row', 'dm-prog-measure-row');
+    const row = document.createElement('div');
+    row.classList.add('dm-row');
+    row.appendChild(this.makeTrackLabel('Bass'));
 
-      // Label: measure number
-      row.appendChild(this.makeTrackLabel(`M${m + 1}`));
+    for (let s = 0; s < this.steps; s++) {
+      const cell = document.createElement('div');
+      cell.classList.add('dm-cell', 'dm-bass-cell');
+      if (s > 0 && s % 4 === 0) cell.classList.add('dm-beat-start');
+      this.updateBassCellAppearance(cell, this.bassTrack[s]);
+      cell.addEventListener('click', () => this.handleBassCellClick(s));
+      this.bassCellEls.push(cell);
+      row.appendChild(cell);
+    }
 
-      // Single full-width chord cell (flex:1, matches the step-cell content area)
+    this.gridEl.appendChild(row);
+  }
+
+  /** Single row with numMeasures cells that align to the beat grid. */
+  private buildProgRow(): void {
+    if (!this.gridEl) return;
+    this.chordMeasureCellEls = [];
+
+    const sep = document.createElement('div');
+    sep.classList.add('dm-prog-separator');
+    this.gridEl.appendChild(sep);
+
+    const row = document.createElement('div');
+    row.classList.add('dm-row', 'dm-prog-row');
+    row.appendChild(this.makeTrackLabel('Chords'));
+
+    const cellW    = this.measureCellWidth();
+    const fontSize = this.numMeasures <= 4 ? '0.75rem' : this.numMeasures === 8 ? '0.68rem' : '0.58rem';
+
+    for (let m = 0; m < this.numMeasures; m++) {
       const cell = document.createElement('div');
       cell.classList.add('dm-measure-cell');
+      cell.style.width    = `${cellW}px`;
+      cell.style.minWidth = `${cellW}px`;
+      cell.style.fontSize = fontSize;
+      if (this.measureBeatStart(m)) cell.classList.add('dm-beat-start');
       this.updateMeasureCellAppearance(cell, this.measureChords[m]);
       cell.addEventListener('click', () => this.handleMeasureCellClick(m));
       this.chordMeasureCellEls.push(cell);
       row.appendChild(cell);
-
-      this.gridEl.appendChild(row);
     }
+
+    this.gridEl.appendChild(row);
   }
 
   private makeTrackLabel(text: string): HTMLElement {
@@ -486,6 +689,30 @@ export class DrumMachineView implements View {
     el.classList.add('dm-track-label');
     el.textContent = text;
     return el;
+  }
+
+  // ─── Cell width / beat-alignment helpers ─────────────────────────────────────
+
+  /**
+   * Width in px for a measure cell so that N cells always fill the same total
+   * row width as the 16-step drum grid (490 px content, excluding the label).
+   * Formula derivation: N×w + (N−1)×2 + 3×4 = 490  →  w = 480/N − 2
+   */
+  private measureCellWidth(): number {
+    return 480 / this.numMeasures - 2;
+  }
+
+  /**
+   * Returns true when cell m should carry a dm-beat-start margin so that
+   * visual beat boundaries (groups of 4 drum steps) are mirrored in the
+   * chord row regardless of how many measures are shown.
+   *   4 bars  → beat-start every 1 cell (i.e. cells 1, 2, 3)
+   *   8 bars  → beat-start every 2 cells (i.e. cells 2, 4, 6)
+   *  12 bars  → beat-start every 3 cells (i.e. cells 3, 6, 9)
+   */
+  private measureBeatStart(m: number): boolean {
+    if (m === 0) return false;
+    return m % (this.numMeasures / 4) === 0;
   }
 
   // ─── Cell appearance ─────────────────────────────────────────────────────────
@@ -496,6 +723,20 @@ export class DrumMachineView implements View {
       cell.textContent      = DRUM_SOUND_LABELS[sound].slice(0, 1);
       cell.classList.add('dm-cell-filled');
       cell.title = DRUM_SOUND_LABELS[sound];
+    } else {
+      cell.style.background = '';
+      cell.textContent      = '';
+      cell.classList.remove('dm-cell-filled');
+      cell.title = '';
+    }
+  }
+
+  private updateBassCellAppearance(cell: HTMLElement, degree: BassStep): void {
+    if (degree !== null) {
+      cell.style.background = BASS_DEGREE_COLORS[degree] ?? '#2D5A27';
+      cell.textContent      = String(degree);
+      cell.classList.add('dm-cell-filled');
+      cell.title = `Scale degree ${degree}`;
     } else {
       cell.style.background = '';
       cell.textContent      = '';
@@ -548,6 +789,23 @@ export class DrumMachineView implements View {
       this.updateCellAppearance(cell, this.tracks[track][step]);
       if (isCurrent) cell.classList.add('dm-cell-current');
     }
+    this.dispatchStateChange();
+  }
+
+  private handleBassCellClick(step: number): void {
+    const current = this.bassTrack[step];
+    if (this.selectedBassDegree !== null) {
+      this.bassTrack[step] = (current === this.selectedBassDegree) ? null : this.selectedBassDegree;
+    } else {
+      this.bassTrack[step] = null;
+    }
+    const cell = this.bassCellEls[step];
+    if (cell) {
+      const isCurrent = this.currentStep === step;
+      this.updateBassCellAppearance(cell, this.bassTrack[step]);
+      if (isCurrent) cell.classList.add('dm-cell-current');
+    }
+    this.dispatchStateChange();
   }
 
   private handleMeasureCellClick(measureIndex: number): void {
@@ -563,6 +821,7 @@ export class DrumMachineView implements View {
       this.updateMeasureCellAppearance(cell, this.measureChords[measureIndex]);
       if (isCurrent) cell.classList.add('dm-measure-current');
     }
+    this.dispatchStateChange();
   }
 
   private updatePaletteSelection(): void {
@@ -571,34 +830,81 @@ export class DrumMachineView implements View {
     });
   }
 
-  // ─── Steps / preset changes ──────────────────────────────────────────────────
+  // ─── Bars count ───────────────────────────────────────────────────────────────
 
-  private changeSteps(newSteps: number): void {
-    const wasPlaying = this.isPlaying;
-    if (wasPlaying) this.stopPlayback();
-    for (let t = 0; t < NUM_TRACKS; t++) {
-      const newTrack: TrackData = new Array(newSteps).fill(null);
-      for (let s = 0; s < Math.min(this.steps, newSteps); s++) newTrack[s] = this.tracks[t][s];
-      this.tracks[t] = newTrack;
-    }
-    this.steps = newSteps;
-    this.currentStep = -1;
+  private setNumMeasures(n: 4 | 8 | 12): void {
+    if (this.numMeasures === n) return;
+    const old = this.measureChords.slice();
+    this.numMeasures = n;
+    this.measureChords = new Array(n).fill(null);
+    for (let i = 0; i < Math.min(old.length, n); i++) this.measureChords[i] = old[i];
+    if (this.currentMeasure >= n) this.currentMeasure = -1;
+    this.barsBtns.forEach((btn, bars) => btn.classList.toggle('is-active', bars === n));
     this.rebuildGrid();
-    if (wasPlaying) this.startPlayback();
+    this.dispatchStateChange();
   }
+
+  // ─── Steps / preset / state changes ──────────────────────────────────────────
 
   private applyPreset(preset: DrumPreset): void {
     const wasPlaying = this.isPlaying;
     if (wasPlaying) this.stopPlayback();
     this.bpm   = preset.bpm;
     this.steps = preset.steps;
+    if (preset.numMeasures) {
+      this.numMeasures = preset.numMeasures;
+      this.barsBtns.forEach((btn, bars) => btn.classList.toggle('is-active', bars === this.numMeasures));
+    }
+    if (Array.isArray(preset.measureChords)) {
+      this.measureChords = preset.measureChords.slice(0, this.numMeasures);
+      while (this.measureChords.length < this.numMeasures) this.measureChords.push(null);
+    } else {
+      this.measureChords = new Array(this.numMeasures).fill(null);
+    }
     this.initTracks(preset.tracks);
-    this.currentStep = -1;
-    if (this.bpmSliderEl)   this.bpmSliderEl.value = String(this.bpm);
-    if (this.bpmDisplayEl)  this.bpmDisplayEl.textContent = String(this.bpm);
-    if (this.stepsSelectEl) this.stepsSelectEl.value = String(this.steps);
+    this.initBassTrack(preset.bassTrack);
+    this.currentStep    = -1;
+    this.currentMeasure = -1;
+    if (this.bpmSliderEl)  this.bpmSliderEl.value = String(this.bpm);
+    if (this.bpmDisplayEl) this.bpmDisplayEl.textContent = String(this.bpm);
     this.rebuildGrid();
     if (wasPlaying) this.startPlayback();
+    this.dispatchStateChange();
+  }
+
+  private applyState(state: any): void {
+    const wasPlaying = this.isPlaying;
+    if (wasPlaying) this.stopPlayback();
+
+    this.bpm          = state.bpm          ?? this.bpm;
+    this.steps        = state.steps        ?? this.steps;
+    this.progRootNote = state.progRootNote ?? this.progRootNote;
+    this.progKeyType  = state.progKeyType  ?? this.progKeyType;
+    const nm = state.numMeasures;
+    if (nm === 4 || nm === 8 || nm === 12) this.numMeasures = nm;
+    if (Array.isArray(state.measureChords)) {
+      this.measureChords = state.measureChords.slice(0, this.numMeasures);
+      while (this.measureChords.length < this.numMeasures) this.measureChords.push(null);
+    }
+    this.initTracks(state.tracks);
+    this.initBassTrack(state.bassTrack);
+    this.currentStep    = -1;
+    this.currentMeasure = -1;
+
+    if (this.bpmSliderEl)      this.bpmSliderEl.value = String(this.bpm);
+    if (this.bpmDisplayEl)     this.bpmDisplayEl.textContent = String(this.bpm);
+    if (this.progRootSelectEl) this.progRootSelectEl.value = this.progRootNote;
+    if (this.progKeyTypeBtn)   this.progKeyTypeBtn.textContent = this.progKeyType;
+    this.barsBtns.forEach((btn, bars) => btn.classList.toggle('is-active', bars === this.numMeasures));
+
+    this.rebuildGrid();
+    this.rebuildChordToolOptions();
+    this.updateChordToolSelect();
+    this.rebuildBassToolOptions();
+    this.updateBassToolSelect();
+
+    if (wasPlaying) this.startPlayback();
+    this.dispatchStateChange();
   }
 
   private initTracks(saved?: TrackData[]): void {
@@ -609,6 +915,13 @@ export class DrumMachineView implements View {
         for (let s = 0; s < Math.min(saved[t].length, this.steps); s++) track[s] = saved[t][s];
       }
       this.tracks.push(track);
+    }
+  }
+
+  private initBassTrack(saved?: BassStep[]): void {
+    this.bassTrack = new Array(this.steps).fill(null);
+    if (saved) {
+      for (let s = 0; s < Math.min(saved.length, this.steps); s++) this.bassTrack[s] = saved[s];
     }
   }
 
@@ -652,10 +965,14 @@ export class DrumMachineView implements View {
       if (sound) playDrumSound(sound);
     }
 
+    // Bass hit
+    const bassDegree = this.bassTrack[this.currentStep];
+    if (bassDegree !== null) this.playBassStep(bassDegree);
+
     // Advance measure at the start of each drum loop
     if (this.currentStep === 0) {
       this.clearMeasureHighlight();
-      this.currentMeasure = (this.currentMeasure + 1) % NUM_CHORD_MEASURES;
+      this.currentMeasure = (this.currentMeasure + 1) % this.numMeasures;
       this.highlightCurrentMeasure();
       const chord = this.measureChords[this.currentMeasure];
       if (chord) this.playChordDrone(chord);
@@ -665,11 +982,13 @@ export class DrumMachineView implements View {
   private clearStepHighlight(): void {
     if (this.currentStep < 0) return;
     for (const row of this.cellEls) row[this.currentStep]?.classList.remove('dm-cell-current');
+    this.bassCellEls[this.currentStep]?.classList.remove('dm-cell-current');
     this.stepNumEls[this.currentStep]?.classList.remove('dm-step-current');
   }
 
   private highlightStep(step: number): void {
     for (const row of this.cellEls) row[step]?.classList.add('dm-cell-current');
+    this.bassCellEls[step]?.classList.add('dm-cell-current');
     this.stepNumEls[step]?.classList.add('dm-step-current');
   }
 
@@ -688,6 +1007,63 @@ export class DrumMachineView implements View {
       : '<span class="material-icons">play_arrow</span>';
     this.playBtn.classList.toggle('is-danger', this.isPlaying);
     this.playBtn.classList.toggle('is-light',  !this.isPlaying);
+  }
+
+  // ─── Bass playback ────────────────────────────────────────────────────────────
+
+  /**
+   * Plays a bass note for the given scale degree.
+   * The degree is interpreted relative to the current measure's chord root;
+   * if no chord is assigned, it falls back to the key root.
+   */
+  private playBassStep(degree: number): void {
+    let rootName     = this.progRootNote;
+    let isMajorChord = this.progKeyType === 'Major';
+
+    const chord = this.measureChords[Math.max(0, this.currentMeasure)];
+    if (chord) {
+      const romans = this.progKeyType === 'Major' ? MAJOR_ROMANS : MINOR_ROMANS;
+      const entry  = romans.find(r => r.roman === chord);
+      if (entry) {
+        const rootIdx     = CHORD_ROOTS.indexOf(this.progRootNote);
+        const chordRoot   = (rootIdx + entry.degree) % 12;
+        rootName          = CHORD_ROOTS[chordRoot];
+        isMajorChord      = entry.suffix === 'MAJ' || entry.suffix === 'MAJ7';
+      }
+    }
+
+    const intervals = isMajorChord ? MAJOR_SCALE_SEMITONES : MINOR_SCALE_SEMITONES;
+    const semitones = intervals[(degree - 1) % 7];
+    const rootIdx   = CHORD_ROOTS.indexOf(rootName);
+    if (rootIdx === -1) return;
+    const noteIdx = (rootIdx + semitones) % 12;
+    const freq    = chordToneFreq(CHORD_ROOTS[noteIdx], 2);
+    if (!freq) return;
+
+    try {
+      const ctx       = volumeManager.getAudioContext();
+      const masterVol = volumeManager.getVolume();
+      const now       = ctx.currentTime;
+      const stepMs    = (60000 * 4) / this.bpm / this.steps;
+      const noteDur   = Math.min(stepMs / 1000 * 0.75, 0.35);
+
+      const osc  = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type            = 'triangle';
+      osc.frequency.value = freq;
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.28 * masterVol, now + 0.012);
+      gain.gain.setValueAtTime(0.28 * masterVol, now + noteDur * 0.7);
+      gain.gain.linearRampToValueAtTime(0, now + noteDur);
+
+      osc.start(now);
+      osc.stop(now + noteDur);
+    } catch (e) {
+      console.warn('BackingTrackView: bass note error', e);
+    }
   }
 
   // ─── Chord drone ─────────────────────────────────────────────────────────────
@@ -709,7 +1085,6 @@ export class DrumMachineView implements View {
     const chordEntry = chord_tones_library[chordKey];
     if (!chordEntry) return;
 
-    // One full loop duration in seconds
     const stepMs      = (60000 * 4) / this.bpm / this.steps;
     const measureSec  = (stepMs * this.steps) / 1000;
     const fadeSec     = Math.min(0.12, measureSec * 0.08);
@@ -741,7 +1116,54 @@ export class DrumMachineView implements View {
         osc.stop(now + measureSec);
       });
     } catch (e) {
-      console.warn('DrumMachineView: chord drone error', e);
+      console.warn('BackingTrackView: chord drone error', e);
     }
+  }
+
+  // ─── Export / Import ──────────────────────────────────────────────────────────
+
+  private getState(): object {
+    return {
+      bpm:           this.bpm,
+      steps:         this.steps,
+      tracks:        this.tracks,
+      bassTrack:     this.bassTrack,
+      progRootNote:  this.progRootNote,
+      progKeyType:   this.progKeyType,
+      numMeasures:   this.numMeasures,
+      measureChords: this.measureChords,
+    };
+  }
+
+  private exportToJSON(): void {
+    const json = JSON.stringify(this.getState(), null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'drum-machine.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  private importFromFile(file: File): void {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const state = JSON.parse(e.target?.result as string);
+        this.applyState(state);
+      } catch {
+        console.error('BackingTrackView: invalid JSON file');
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  private dispatchStateChange(): void {
+    if (!this.container) return;
+    this.container.dispatchEvent(new CustomEvent('feature-state-changed', {
+      bubbles: true,
+      detail:  this.getState(),
+    }));
   }
 }

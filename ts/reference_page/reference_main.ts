@@ -6,7 +6,7 @@ import { GuitarCategory } from "../guitar/guitar_category";
 import { SettingsManager } from "../settings_manager";
 import { registerFloatingView } from '../floating_views/floating_view_registry';
 import { TimerView } from '../views/timer_view';
-import { DrumMachineView } from '../views/drum_machine_view';
+import { BackingTrackView } from '../views/backing_track_view';
 
 class ReferencePage {
     private floatingViewManager: FloatingViewManager;
@@ -27,14 +27,14 @@ class ReferencePage {
             createView: (initialState?: any) => new TimerView(initialState?.duration ?? 300),
         });
 
-        // Register drum machine floating view
+        // Register backing track floating view
         registerFloatingView({
             viewId: "drum_machine",
-            displayName: "Drum Machine",
+            displayName: "Backing Track",
             categoryName: "General",
-            defaultWidth: 560,
+            defaultWidth: 580,
             defaultHeight: 300,
-            createView: (initialState?: any) => new DrumMachineView(initialState),
+            createView: (initialState?: any) => new BackingTrackView(initialState),
         });
 
         this.settings = loadSettings();

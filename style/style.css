@@ -1262,7 +1262,7 @@ body.dark-theme .color-swatch { border-color: rgba(255, 255, 255, 0.20); }
   gap: 5px;
 }
 .dm-bpm-slider {
-  width: 80px;
+  width: 60px;
   cursor: pointer;
   accent-color: var(--clr-primary);
 }
@@ -1278,13 +1278,24 @@ body.dark-theme .color-swatch { border-color: rgba(255, 255, 255, 0.20); }
   margin-left: auto;
   min-width: 56px;
 }
+.dm-icon-btn {
+  padding: 0 4px !important;
+  height: auto !important;
+  line-height: 1 !important;
+}
+.dm-icon-btn .material-icons { font-size: 16px; }
 
-/* Sound palette — override dynamic --dm-color with muted navy tones */
+/* Palette: two stacked rows */
 .dm-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.dm-palette-row {
   display: flex;
   align-items: center;
   gap: 5px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
 }
 .dm-sound-btn {
   border: 2px solid transparent !important;
@@ -1316,14 +1327,16 @@ body.dark-theme .color-swatch { border-color: rgba(255, 255, 255, 0.20); }
   gap: 2px;
 }
 .dm-track-label {
-  width: 26px;
-  min-width: 26px;
+  width: 40px;
+  min-width: 40px;
   font-size: 0.68rem;
   font-weight: 700;
   text-align: right;
   padding-right: 4px;
   color: var(--clr-text-subtle);
   user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
 }
 .dm-step-num {
   width: 28px;
@@ -1511,21 +1524,61 @@ body.dark-theme .drone-icon-btn.is-active {
 .dm-chord-tool-active  { border-color: var(--clr-primary) !important; }
 body.dark-theme .dm-palette-sep { background: var(--clr-border-dark); }
 
-/* ── Drum machine — chord progression rows (stacked, full-width) ────────────── */
+/* ── Backing track — bass degree dropdown ────────────────────────────────────── */
+.dm-bass-tool-select { font-size: 0.72rem !important; }
+.dm-bass-tool-active  { border-color: #47863D !important; }
+
+/* ── Backing track — bars pill toggle ───────────────────────────────────────── */
+.dm-bars-toggle {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--clr-border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.dm-bars-btn {
+  background: none;
+  border: none;
+  border-right: 1px solid var(--clr-border);
+  padding: 2px 7px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--clr-text-subtle);
+  line-height: 1.6;
+  transition: background 0.1s, color 0.1s;
+}
+.dm-bars-btn:last-child { border-right: none; }
+.dm-bars-btn:hover {
+  background: var(--clr-tertiary);
+  color: var(--clr-text);
+}
+.dm-bars-btn.is-active {
+  background: var(--clr-navy-500);
+  color: #fff;
+}
+body.dark-theme .dm-bars-toggle { border-color: var(--clr-border-dark); }
+body.dark-theme .dm-bars-btn {
+  color: var(--clr-text-subtle-dark);
+  border-right-color: var(--clr-border-dark);
+}
+body.dark-theme .dm-bars-btn:hover {
+  background: var(--clr-tertiary-dark);
+  color: var(--clr-text-dark);
+}
+
+/* ── Drum machine — chord progression row (single inline row) ────────────────── */
 .dm-prog-separator {
   height: 1px;
   background: var(--clr-border);
   margin: 4px 0 2px;
   opacity: 0.6;
 }
-/* Each chord row looks like a drum track row */
-.dm-prog-measure-row { /* inherits dm-row layout */ }
-
-/* The single wide chord cell: stretches to fill the entire step-content area */
+/* Width and font-size are set dynamically by BackingTrackView.buildProgRow().
+   The formula w = 480/N − 2 ensures N cells always fill the same 490 px as the drum grid. */
 .dm-measure-cell {
-  flex: 1;
+  flex: none;
   height: 28px;
-  min-width: 0;
   border-radius: 4px;
   border: 1px solid var(--clr-border);
   background: var(--clr-secondary);
@@ -1533,13 +1586,12 @@ body.dark-theme .dm-palette-sep { background: var(--clr-border-dark); }
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 0.75rem;
   font-weight: 700;
   color: var(--clr-text-subtle);
   user-select: none;
   box-sizing: border-box;
+  overflow: hidden;
   transition: filter 0.1s, transform 0.07s;
-  gap: 6px;
 }
 .dm-measure-cell:hover { filter: brightness(1.08); }
 .dm-measure-cell.dm-measure-filled {
