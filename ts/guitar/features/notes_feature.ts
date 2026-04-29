@@ -65,7 +65,7 @@ export class NotesFeature extends GuitarFeature {
     const availableKeys = ["None", ...MUSIC_NOTES.flat()];
     const specificArgs: ConfigurationSchemaArg[] = [
       {
-        name: "RootNote",
+        name: "Root Note",
         type: "enum",
         required: false, // Optional argument
         enum: availableKeys,

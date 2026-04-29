@@ -54,6 +54,8 @@ function stopDrag() {
 export class FloatingViewWrapper {
   public element: HTMLElement;
   private contentElement: HTMLElement;
+
+  public get contentEl(): HTMLElement { return this.contentElement; }
   private viewInstance: View;
   private state: FloatingViewInstanceState;
   private onDestroyCallback: (instanceId: string) => void;
@@ -92,6 +94,7 @@ export class FloatingViewWrapper {
 
     this.element = document.createElement("div");
     this.element.classList.add("floating-view-wrapper");
+    this.element.dataset.instanceId = state.instanceId;
     this.element.style.position = "absolute";
     this.element.style.left = `${state.position.x}px`;
     this.element.style.top = `${state.position.y}px`;

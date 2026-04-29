@@ -8,6 +8,14 @@ import {
 } from '../sounds/drum_sounds';
 import { chord_tones_library } from '../guitar/chords';
 import { volumeManager } from '../sounds/volume_manager';
+import {
+  CHORD_ROOTS,
+  MAJOR_ROMANS,
+  MINOR_ROMANS,
+  RomanEntry,
+  resolveAbsoluteChordKey,
+  isMajorChordSuffix,
+} from '../guitar/chord_key_resolver';
 
 // ─── Data types ────────────────────────────────────────────────────────────────
 
@@ -25,36 +33,7 @@ interface DrumPreset {
 }
 
 // ─── Chord progression helpers ─────────────────────────────────────────────────
-
-/** Root names indexed A=0, matching chord_tones_library keys. */
-const CHORD_ROOTS = ['A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
-
-interface RomanEntry { roman: string; degree: number; suffix: string; }
-
-const MAJOR_ROMANS: RomanEntry[] = [
-  { roman: 'I',      degree: 0,  suffix: 'MAJ'  },
-  { roman: 'ii',     degree: 2,  suffix: 'MIN'  },
-  { roman: 'iii',    degree: 4,  suffix: 'MIN'  },
-  { roman: 'IV',     degree: 5,  suffix: 'MAJ'  },
-  { roman: 'V',      degree: 7,  suffix: 'MAJ'  },
-  { roman: 'vi',     degree: 9,  suffix: 'MIN'  },
-  { roman: 'Imaj7',  degree: 0,  suffix: 'MAJ7' },
-  { roman: 'IVmaj7', degree: 5,  suffix: 'MAJ7' },
-  { roman: 'ii7',    degree: 2,  suffix: 'MIN7' },
-  { roman: 'vi7',    degree: 9,  suffix: 'MIN7' },
-];
-
-const MINOR_ROMANS: RomanEntry[] = [
-  { roman: 'i',      degree: 0,  suffix: 'MIN'  },
-  { roman: 'III',    degree: 3,  suffix: 'MAJ'  },
-  { roman: 'iv',     degree: 5,  suffix: 'MIN'  },
-  { roman: 'v',      degree: 7,  suffix: 'MIN'  },
-  { roman: 'VI',     degree: 8,  suffix: 'MAJ'  },
-  { roman: 'VII',    degree: 10, suffix: 'MAJ'  },
-  { roman: 'im7',    degree: 0,  suffix: 'MIN7' },
-  { roman: 'iv7',    degree: 5,  suffix: 'MIN7' },
-  { roman: 'VImaj7', degree: 8,  suffix: 'MAJ7' },
-];
+// CHORD_ROOTS, MAJOR_ROMANS, MINOR_ROMANS are imported from chord_key_resolver.ts
 
 const CHORD_SUFFIX_COLOR: Record<string, string> = {
   MAJ:  '#2C4A7C',
@@ -162,7 +141,7 @@ const PRESETS: DrumPreset[] = [
     measureChords: ['I','I','I','I','IV','IV','I','I','V','IV','I','V'],
   },
   {
-    name: 'Indie Rock', bpm: 118, steps: 16, numMeasures: 4,
+    name: 'Indie Rock', bpm: 118, steps: 16, numMeasures: 8,
     tracks: [
       // Kick pushes on beat 2½ for a stumble-forward feel
       ['kick', null, null, null, null, null, 'kick', null, 'kick', null, null, null, null, null, null, null],
@@ -172,7 +151,7 @@ const PRESETS: DrumPreset[] = [
       ['crash', null, 'shaker', null, 'shaker', null, 'shaker', null, 'shaker', null, 'shaker', null, 'shaker', null, 'shaker', null],
     ],
     bassTrack: [1, null, null, null, null, null, null, null, 5, null, null, null, null, null, 7, null],
-    measureChords: ['I', 'V', 'vi', 'IV'],
+    measureChords: ['I', 'I', 'V', 'V', 'vi', 'vi', 'IV', 'IV'],
   },
   {
     name: 'Jazz Swing', bpm: 160, steps: 16, numMeasures: 8,
@@ -976,7 +955,22 @@ export class BackingTrackView implements View {
       this.highlightCurrentMeasure();
       const chord = this.measureChords[this.currentMeasure];
       if (chord) this.playChordDrone(chord);
+      this.dispatchTickEvent(chord ?? null);
     }
+  }
+
+  private dispatchTickEvent(currentChord: string | null): void {
+    if (!this.container) return;
+    console.log('[BT] dispatching backing-track-tick', { currentChord, progRootNote: this.progRootNote, progKeyType: this.progKeyType });
+    this.container.dispatchEvent(new CustomEvent('backing-track-tick', {
+      bubbles: true,
+      detail: {
+        currentMeasure:  this.currentMeasure,
+        currentChord,
+        progRootNote:    this.progRootNote,
+        progKeyType:     this.progKeyType,
+      },
+    }));
   }
 
   private clearStepHighlight(): void {
@@ -1025,10 +1019,9 @@ export class BackingTrackView implements View {
       const romans = this.progKeyType === 'Major' ? MAJOR_ROMANS : MINOR_ROMANS;
       const entry  = romans.find(r => r.roman === chord);
       if (entry) {
-        const rootIdx     = CHORD_ROOTS.indexOf(this.progRootNote);
-        const chordRoot   = (rootIdx + entry.degree) % 12;
-        rootName          = CHORD_ROOTS[chordRoot];
-        isMajorChord      = entry.suffix === 'MAJ' || entry.suffix === 'MAJ7';
+        const rootIdx = CHORD_ROOTS.indexOf(this.progRootNote);
+        rootName      = CHORD_ROOTS[(rootIdx + entry.degree) % 12];
+        isMajorChord  = isMajorChordSuffix(entry.suffix);
       }
     }
 
@@ -1069,11 +1062,8 @@ export class BackingTrackView implements View {
   // ─── Chord drone ─────────────────────────────────────────────────────────────
 
   private resolveChordKey(entry: RomanEntry): string | null {
-    const rootIdx = CHORD_ROOTS.indexOf(this.progRootNote);
-    if (rootIdx === -1) return null;
-    const chordRootIdx = (rootIdx + entry.degree) % 12;
-    const key = `${CHORD_ROOTS[chordRootIdx]}_${entry.suffix}`;
-    return chord_tones_library[key] ? key : null;
+    const key = resolveAbsoluteChordKey(entry.roman, this.progRootNote, this.progKeyType);
+    return (key && chord_tones_library[key]) ? key : null;
   }
 
   private playChordDrone(roman: string): void {

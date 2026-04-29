@@ -24,6 +24,7 @@ import {
   compareCagedPositions,
   getCagedTuningOffset,
 } from "./caged_feature";
+import { DriveSignal, SignalKind } from "../../floating_views/link_types";
 
 // --- Layer Spec Types ---
 
@@ -52,13 +53,23 @@ interface CagedLayer {
   rootNote: string;
 }
 
-type LayerSpec = ScaleLayer | ChordLayer | NotesLayer | CagedLayer;
+// A layer whose content is driven by a linked source window at runtime.
+// subType: "chord" → show chord tones of the incoming chord
+//          "scale" → show scale notes with the incoming root note (Major/Minor follows signal)
+interface DrivenLayer {
+  type: "driven";
+  subType: "chord" | "scale";
+  color: string;
+}
+
+type LayerSpec = ScaleLayer | ChordLayer | NotesLayer | CagedLayer | DrivenLayer;
 
 // --- Layer String Encoding ---
-// Scale:  "scale|{scaleName}|{rootNote}|{hexColor}"
-// Chord:  "chord|{chordKey}|{hexColor}"
-// Notes:  "notes|{note1,note2,...}|{hexColor}"
-// CAGED:  "caged|{scaleName}|{rootNote}"
+// Scale:   "scale|{scaleName}|{rootNote}|{hexColor}"
+// Chord:   "chord|{chordKey}|{hexColor}"
+// Notes:   "notes|{note1,note2,...}|{hexColor}"
+// CAGED:   "caged|{scaleName}|{rootNote}"
+// Driven:  "driven|chord|{hexColor}" or "driven|scale|{hexColor}"
 
 function parseLayerString(layerStr: string): LayerSpec | null {
   const parts = layerStr.split("|");
@@ -68,6 +79,11 @@ function parseLayerString(layerStr: string): LayerSpec | null {
 
   if (type === "caged" && parts.length >= 3) {
     return { type: "caged", scaleName: parts[1], rootNote: parts[2] };
+  }
+
+  if (type === "driven" && parts.length >= 3) {
+    const subType = parts[1] === "scale" ? "scale" : "chord";
+    return { type: "driven", subType, color: parts[2] };
   }
 
   // All other types need at least 3 parts and have color as the last part
@@ -98,8 +114,12 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
 
   readonly typeName = MultiSelectFretboardFeature.typeName;
   private readonly layers: LayerSpec[];
+  // Runtime overrides for driven layers: index into this.layers → resolved ChordSignal
+  private drivenSignals = new Map<number, DriveSignal>();
   private fretboardViewInstance: FretboardView;
   private readonly fretCount = 18;
+  private driveSignalHandler: ((e: Event) => void) | null = null;
+  private featureContainer: HTMLElement | null = null;
 
   constructor(
     config: ReadonlyArray<string>,
@@ -119,6 +139,45 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
     this._views.unshift(this.fretboardViewInstance);
 
     this.calculateAndSetNotes();
+  }
+
+  public render(container: HTMLElement): void {
+    this.featureContainer = container;
+    clearAllChildren(container);
+    const header = addHeader(container, "Multi-Layer Fretboard");
+    header.classList.add("feature-main-title");
+
+    // Listen for drive-signal events forwarded by ConfigurableFeatureView
+    this.driveSignalHandler = (e: Event) => {
+      const { signal } = (e as CustomEvent<{ signal: DriveSignal; linkId: string }>).detail;
+      let changed = false;
+      this.layers.forEach((layer, i) => {
+        if (layer.type !== 'driven') return;
+        const accepts =
+          (layer.subType === 'chord' && signal.kind === SignalKind.Chord) ||
+          (layer.subType === 'scale' && (signal.kind === SignalKind.Chord || signal.kind === SignalKind.Key));
+        if (accepts) {
+          this.drivenSignals.set(i, signal);
+          changed = true;
+        }
+      });
+      if (changed) {
+        this.calculateAndSetNotes();
+        // Relay so downstream windows (e.g. ChordDiagram, ScaleFeature) also receive the signal.
+        container.dispatchEvent(new CustomEvent('feature-signal-relay', {
+          bubbles: true,
+          detail: { featureTypeName: MultiSelectFretboardFeature.typeName, signal },
+        }));
+      }
+    };
+    container.addEventListener('drive-signal', this.driveSignalHandler);
+  }
+
+  public destroy(): void {
+    if (this.featureContainer && this.driveSignalHandler) {
+      this.featureContainer.removeEventListener('drive-signal', this.driveSignalHandler);
+    }
+    super.destroy?.();
   }
 
   // --- Static Schema & Factory ---
@@ -182,15 +241,16 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
     // Build a map keyed by "stringIndex-fret". Layers listed first win (highest precedence).
     const noteMap = new Map<string, NoteRenderData>();
 
-    for (const layer of this.layers) {
-      const layerNotes = this.getLayerNotes(layer);
+    this.layers.forEach((layer, i) => {
+      const drivenSignal = this.drivenSignals.get(i);
+      const layerNotes = this.getLayerNotes(layer, drivenSignal);
       for (const note of layerNotes) {
         const key = `${note.stringIndex}-${note.fret}`;
         if (!noteMap.has(key)) {
           noteMap.set(key, note);
         }
       }
-    }
+    });
 
     const notesData = Array.from(noteMap.values());
     requestAnimationFrame(() => {
@@ -199,7 +259,7 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
     });
   }
 
-  private getLayerNotes(layer: LayerSpec): NoteRenderData[] {
+  private getLayerNotes(layer: LayerSpec, drivenSignal?: DriveSignal): NoteRenderData[] {
     switch (layer.type) {
       case "scale":
         return this.getScaleLayerNotes(layer);
@@ -209,8 +269,23 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
         return this.getNoteSetLayerNotes(layer.noteNames, layer.color);
       case "caged":
         return this.getCagedLayerNotes(layer);
+      case "driven":
+        return this.getDrivenLayerNotes(layer, drivenSignal);
       default:
         return [];
+    }
+  }
+
+  private getDrivenLayerNotes(layer: DrivenLayer, signal?: DriveSignal): NoteRenderData[] {
+    if (!signal) return [];
+    if (layer.subType === "chord") {
+      if (signal.kind !== SignalKind.Chord || !signal.chordKey) return [];
+      return this.getChordLayerNotes({ type: "chord", chordKey: signal.chordKey, color: layer.color });
+    } else {
+      // scale subType: driven by either a KeySignal or a ChordSignal (using rootNote/keyType)
+      if (signal.kind !== SignalKind.Chord && signal.kind !== SignalKind.Key) return [];
+      const scaleName = signal.keyType === "Major" ? "Major" : "Natural Minor";
+      return this.getScaleLayerNotes({ type: "scale", scaleName, rootNote: signal.rootNote, color: layer.color });
     }
   }
 
@@ -366,9 +441,4 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
     return notes;
   }
 
-  render(container: HTMLElement): void {
-    clearAllChildren(container);
-    const header = addHeader(container, "Multi-Layer Fretboard");
-    header.classList.add("feature-main-title");
-  }
 }

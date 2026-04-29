@@ -292,7 +292,7 @@ export class CagedFeature extends GuitarFeature {
     const fillOptions: FillDisplayType[] = ["Filled", "Note", "Empty"];
     const specificArgs: ConfigurationSchemaArg[] = [
       {
-        name: "Key",
+        name: "Root Note",
         type: "enum",
         required: true,
         enum: availableKeys,

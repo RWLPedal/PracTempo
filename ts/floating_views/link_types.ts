@@ -1,0 +1,41 @@
+// ts/floating_views/link_types.ts
+
+export type HandleSide = 'top' | 'bottom' | 'left' | 'right';
+
+export interface LinkRecord {
+  id: string;
+  sourceInstanceId: string;
+  sourceHandle: HandleSide;
+  targetInstanceId: string;
+  targetHandle: HandleSide;
+}
+
+// ─── Signal kinds ─────────────────────────────────────────────────────────────
+// Extend this enum to add new signal categories.
+export enum SignalKind {
+  Chord = 'Chord',
+  Key   = 'Key',
+}
+
+// A generic chord signal — different targets interpret it differently:
+//   MultiSelectFretboard: drives a "Driven" layer's chord tones or scale root note
+//   ChordFeature:         drives the displayed chord diagram
+// The signal carries enough context for any consumer to use whatever it needs.
+export interface ChordSignal {
+  kind: SignalKind.Chord;
+  chordKey: string | null;       // absolute chord_tones_library key e.g. "C_MAJ"
+  rootNote: string;              // resolved chord root note e.g. "F"
+  keyType: 'Major' | 'Minor';   // whether this chord is major or minor
+  roman: string | null;          // roman numeral in source's key e.g. "IV", or null for rest
+}
+
+// A key signal — carries the progression key (root + modality).
+//   ScaleFeature:         drives ScaleName and Root Note
+//   MultiSelectFretboard: drives a "driven|scale" layer
+export interface KeySignal {
+  kind: SignalKind.Key;
+  rootNote: string;              // e.g. "C"
+  keyType: 'Major' | 'Minor';   // e.g. "Major"
+}
+
+export type DriveSignal = ChordSignal | KeySignal;

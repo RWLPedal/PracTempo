@@ -98,14 +98,14 @@ export class ChordProgressionFeature extends GuitarFeature {
 
     const specificArgs: ConfigurationSchemaArg[] = [
       {
-        name: "Root",
+        name: "Root Note",
         type: "enum",
         required: true,
         enum: availableKeys,
         description: "Root note (key) of the progression.",
       },
       {
-        name: "Key",
+        name: "Key Type",
         type: "enum",
         required: true,
         enum: ["Major", "Minor"],

@@ -93,6 +93,88 @@ export class ConfigView {
         this.callback(this.buildFlatConfig());
     }
 
+    /**
+     * Shows or hides the "⟳ Driven" sentinel option in the named arg's select element.
+     * Call with visible=true when an incoming link exists on this window.
+     */
+    public setDrivenVisible(argName: string, visible: boolean): void {
+        const select = this.container.querySelector<HTMLSelectElement>(`select[data-arg-name="${argName}"]`);
+        if (!select) return;
+        const existing = select.querySelector<HTMLOptionElement>('option[value="__driven__"]');
+        if (visible && !existing) {
+            const opt = document.createElement('option');
+            opt.value = '__driven__';
+            opt.text = '⟳ Driven';
+            opt.style.fontStyle = 'italic';
+            select.insertBefore(opt, select.firstChild);
+        } else if (!visible && existing) {
+            if (select.value === '__driven__') {
+                // Reset to first non-driven option before removing
+                const first = select.querySelector<HTMLOptionElement>('option:not([value="__driven__"])');
+                if (first) select.value = first.value;
+            }
+            existing.remove();
+        }
+    }
+
+    /**
+     * Switches the named arg's select to the "⟳ Driven" sentinel and triggers a feature rebuild.
+     * No-ops if the arg is not a select element or is already in driven mode.
+     * Called automatically when an incoming link arrives on a simple (non-layer-list) arg.
+     */
+    public selectDriven(argName: string): void {
+        if (typeof this.schema === 'string') return;
+        const select = this.container.querySelector<HTMLSelectElement>(`select[data-arg-name="${argName}"]`);
+        if (!select || select.value === '__driven__') return;
+
+        let argIndex = -1;
+        this.schema.args.forEach((arg, i) => { if (arg.name === argName) argIndex = i; });
+        if (argIndex === -1) return;
+
+        this.setDrivenVisible(argName, true); // ensure the option is present
+        select.value = '__driven__';
+        this.argValues.set(argIndex, '__driven__');
+        this.notifyChange();
+    }
+
+    /**
+     * Directly sets the selection for a variadic toggle-button arg and syncs the UI.
+     * Returns true if the selection actually changed. Used by transparent drive slots
+     * (e.g. Qualities on TriadFeature) that update silently without a "Driven" sentinel.
+     */
+    public setTransparentValue(argName: string, values: string[]): boolean {
+        if (typeof this.schema === 'string') return false;
+        const argIndex = this.schema.args.findIndex(a => a.name === argName);
+        if (argIndex === -1) return false;
+
+        const current = this.argValues.get(argIndex);
+        const currentArr = Array.isArray(current) ? current : [];
+        if (currentArr.length === values.length && currentArr.every((v, i) => v === values[i])) return false;
+
+        this.argValues.set(argIndex, [...values]);
+
+        const field = this.container.querySelector<HTMLElement>(`[data-arg-index="${argIndex}"] .control`);
+        field?.querySelectorAll<HTMLButtonElement>('button[data-value]').forEach(btn => {
+            btn.classList.toggle('is-info', values.includes(btn.dataset.value ?? ''));
+        });
+
+        return true;
+    }
+
+    /**
+     * Updates the select element's displayed value without triggering the save callback.
+     * Used to reflect a driven value in real-time during playback.
+     */
+    public applyDrivenValue(argName: string, value: string): void {
+        const select = this.container.querySelector<HTMLSelectElement>(`select[data-arg-name="${argName}"]`);
+        if (!select) return;
+        // Only apply if the select is currently in driven mode
+        if (select.value !== '__driven__') return;
+        // Temporarily update a data attribute to carry the driven value without
+        // changing select.value (which would trigger the 'change' handler)
+        select.dataset.drivenValue = value;
+    }
+
     public render(): void {
         if (typeof this.schema === 'string') {
             this.container.innerHTML = `<p>${this.schema}</p>`;

@@ -8,6 +8,7 @@ import {
 } from "./floating_view_types";
 import { getFloatingViewDescriptor } from "./floating_view_registry";
 import { AppSettings } from "../settings"; // Needed for createView
+import { LinkManager } from "./link_manager";
 
 const FLOATING_VIEW_STATE_KEY = "floatingViewStates";
 const FLOATING_VIEW_AREA_ID = "floating-view-area";
@@ -19,6 +20,7 @@ export class FloatingViewManager {
   private currentMaxZIndex = 100;
   public appSettings: AppSettings;
   private storageKey: string;
+  private linkManager: LinkManager | null = null;
 
   constructor(appSettings: AppSettings, storageKey: string = FLOATING_VIEW_STATE_KEY) {
     this.appSettings = appSettings;
@@ -32,6 +34,22 @@ export class FloatingViewManager {
   }
 
   // --- Public API ---
+
+  public setLinkManager(lm: LinkManager): void {
+    this.linkManager = lm;
+  }
+
+  public getWrapperElement(instanceId: string): HTMLElement | null {
+    return this.activeViews.get(instanceId)?.element ?? null;
+  }
+
+  public getContentElement(instanceId: string): HTMLElement | null {
+    return this.activeViews.get(instanceId)?.contentEl ?? null;
+  }
+
+  public getViewId(instanceId: string): string | null {
+    return (this.activeViews.get(instanceId)?.['state'] as FloatingViewInstanceState | undefined)?.viewId ?? null;
+  }
 
   public spawnView(
     viewId: string,
@@ -86,6 +104,7 @@ export class FloatingViewManager {
 
       this.activeViews.set(instanceId, wrapper);
       this.viewAreaElement.appendChild(wrapper.element);
+      this.linkManager?.onWindowSpawned(instanceId, wrapper.element);
       this.saveState();
       console.log(`Spawned floating view instance: ${instanceId} (type: ${viewId})`);
     } catch (e) {
@@ -97,6 +116,7 @@ export class FloatingViewManager {
     const wrapper = this.activeViews.get(instanceId);
     if (wrapper) {
       const viewId = wrapper["state"].viewId;
+      this.linkManager?.onWindowDestroyed(instanceId);
       this.activeViews.delete(instanceId);
       this.saveState();
       console.log(`Destroyed floating view instance: ${instanceId} (type: ${viewId})`);
@@ -168,13 +188,16 @@ export class FloatingViewManager {
           );
           this.activeViews.set(state.instanceId, wrapper);
           this.viewAreaElement.appendChild(wrapper.element);
+          this.linkManager?.onWindowSpawned(state.instanceId, wrapper.element);
         } catch (e) {
           console.error(`Error recreating view instance ${state.instanceId} (${state.viewId}):`, e);
         }
       });
       console.log(`Restored ${this.activeViews.size} floating views.`);
+      this.linkManager?.initialize(savedState.links ?? []);
     } else {
       console.log("No saved floating view state found.");
+      this.linkManager?.initialize([]);
     }
   }
 
@@ -361,6 +384,7 @@ export class FloatingViewManager {
     const stateToExport: FloatingViewManagerSaveState = {
       openViews: {},
       nextZIndex: this.currentMaxZIndex,
+      links: this.linkManager?.getLinks() ?? [],
     };
     this.activeViews.forEach((wrapper, instanceId) => {
       stateToExport.openViews[instanceId] = wrapper["state"];
@@ -394,6 +418,7 @@ export class FloatingViewManager {
     const stateToSave: FloatingViewManagerSaveState = {
       openViews: {},
       nextZIndex: this.currentMaxZIndex,
+      links: this.linkManager?.getLinks() ?? [],
     };
 
     this.activeViews.forEach((wrapper, instanceId) => {

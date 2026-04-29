@@ -443,18 +443,20 @@ interface LayerListComponentData {
   noteNames?: string[];
 }
 
-type LayerType = "scale" | "chord" | "notes";
+type LayerType = "scale" | "chord" | "notes" | "driven";
 
 const LAYER_TYPE_LABELS: Record<LayerType, string> = {
   scale: "Scale",
   chord: "Chord Tones",
   notes: "Notes",
+  driven: "Driven (linked)",
 };
 
 const DEFAULT_LAYER_COLORS: Record<LayerType, string> = {
   scale: "#4a90d9",
   chord: "#e67e22",
   notes: "#27ae60",
+  driven: "#9b59b6",
 };
 
 /** Parses a layer encoded string back into its parts for pre-populating the UI */
@@ -462,9 +464,14 @@ function parseLayerStringForUI(
   layerStr: string
 ): { type: LayerType; fields: string[]; color: string } | null {
   const parts = layerStr.split("|");
-  if (parts.length < 3) return null;
+  if (parts.length < 2) return null;
   const type = parts[0] as LayerType;
   const color = parts[parts.length - 1];
+  if (type === "driven" && parts.length >= 3) {
+    // driven|chord|#color  or  driven|scale|#color
+    return { type, fields: [parts[1]], color };
+  }
+  if (parts.length < 3) return null;
   if (type === "scale" && parts.length >= 4) {
     return { type, fields: [parts[1], parts[2]], color };
   } else if (type === "chord" && parts.length >= 3) {
@@ -532,6 +539,25 @@ function buildLayerFields(
     chordSelect.addEventListener("change", () => onChange?.());
     chordWrapper.appendChild(chordSelect);
     fieldsContainer.appendChild(chordWrapper);
+
+  } else if (layerType === "driven") {
+    // Sub-type: chord tones or scale
+    const subWrapper = document.createElement("div");
+    subWrapper.classList.add("select", "is-small");
+    const subSelect = document.createElement("select");
+    subSelect.dataset.field = "drivenSubType";
+    const subTypes: Array<{ value: string; label: string }> = [
+      { value: "chord", label: "Chord Tones" },
+      { value: "scale", label: "Scale" },
+    ];
+    subTypes.forEach(({ value, label }) => {
+      const opt = new Option(label, value);
+      if (value === (initialFields[0] ?? "chord")) opt.selected = true;
+      subSelect.appendChild(opt);
+    });
+    subSelect.addEventListener("change", () => onChange?.());
+    subWrapper.appendChild(subSelect);
+    fieldsContainer.appendChild(subWrapper);
 
   } else if (layerType === "notes") {
     // Toggle buttons for individual note selection
@@ -777,6 +803,10 @@ export function extractLayerListValues(container: HTMLElement): string[] {
         .filter((v) => v);
       // Always emit the row (even if no notes selected) to preserve position
       encoded = `notes|${activeNotes.join(",")}|${color}`;
+    } else if (type === "driven") {
+      const subType =
+        row.querySelector<HTMLSelectElement>("[data-field='drivenSubType']")?.value ?? "chord";
+      encoded = `driven|${subType}|${color}`;
     }
     if (encoded) results.push(encoded);
   });

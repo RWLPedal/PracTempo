@@ -1,5 +1,6 @@
 import { View } from "../view";
 import { AppSettings } from "../settings";
+import { LinkRecord } from "./link_types";
 
 // Describes a registered type of floating view
 export interface FloatingViewDescriptor {
@@ -50,4 +51,5 @@ export interface FloatingViewInstanceState {
 export interface FloatingViewManagerSaveState {
   openViews: { [instanceId: string]: FloatingViewInstanceState };
   nextZIndex: number;
+  links?: LinkRecord[];
 }

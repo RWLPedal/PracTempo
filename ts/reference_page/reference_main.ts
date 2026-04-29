@@ -7,6 +7,8 @@ import { SettingsManager } from "../settings_manager";
 import { registerFloatingView } from '../floating_views/floating_view_registry';
 import { TimerView } from '../views/timer_view';
 import { BackingTrackView } from '../views/backing_track_view';
+import { LinkManager } from '../floating_views/link_manager';
+import '../floating_views/drive_slots'; // registers all drive sources/targets as a side effect
 
 class ReferencePage {
     private floatingViewManager: FloatingViewManager;
@@ -40,6 +42,19 @@ class ReferencePage {
         this.settings = loadSettings();
 
         this.floatingViewManager = new FloatingViewManager(this.settings, 'floatingViewStates_reference');
+
+        // Wire up the link/drive system
+        const viewAreaEl = document.getElementById('floating-view-area');
+        if (viewAreaEl) {
+            const linkManager = new LinkManager(
+                viewAreaEl,
+                (id) => this.floatingViewManager.getWrapperElement(id),
+                (id) => this.floatingViewManager.getViewId(id),
+                (id) => this.floatingViewManager.getContentElement(id)
+            );
+            this.floatingViewManager.setLinkManager(linkManager);
+        }
+
         this.settingsManager = new SettingsManager(this.settings, 'reference', (newSettings) => {
             this.saveSettings(newSettings);
             this.applySettings();
