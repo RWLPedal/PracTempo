@@ -165,10 +165,38 @@ export const mandolin_chord_library: Record<string, Chord> = {
   E7: new Chord("E7", [1, 0, 2, 0], [1, 0, 2, 0]),
 };
 
+// ---------------------------------------------------------------------------
+// Mandola chord library (standard CGDA tuning, 4 strings: C=0, G=1, D=2, A=3)
+// Shapes are identical to mandolin — both are tuned in 5ths — but each chord
+// sounds 7 semitones lower, so all names are transposed accordingly.
+// e.g. Mandolin G Major shape → Mandola C Major, D Major shape → G Major, etc.
+// ---------------------------------------------------------------------------
+export const mandola_chord_library: Record<string, Chord> = {
+  // --- Major ---
+  C_MAJOR: new Chord("C Major", [0, 0, 2, 3], [0, 0, 1, 3]),
+  G_MAJOR: new Chord("G Major", [0, 0, 0, 2], [0, 0, 0, 1]),
+  D_MAJOR: new Chord("D Major", [2, 2, 4, 0], [1, 1, 3, 0]),
+  A_MAJOR: new Chord("A Major", [1, 2, 2, 0], [1, 3, 2, 0]),
+  F_MAJOR: new Chord("F Major", [0, 2, 3, 3], [0, 1, 2, 3]),
+
+  // --- Minor ---
+  C_MINOR: new Chord("C Minor", [0, 0, 1, 3], [0, 0, 1, 3]),
+  G_MINOR: new Chord("G Minor", [-1, 0, 0, 1], [-1, 0, 0, 1]),
+  D_MINOR: new Chord("D Minor", [2, 2, 3, 0], [1, 2, 3, 0]),
+  A_MINOR: new Chord("A Minor", [0, 2, 2, 0], [0, 1, 2, 0]),
+
+  // --- Dominant 7th ---
+  C7: new Chord("C7", [0, 0, 2, 1], [0, 0, 2, 1]),
+  G7: new Chord("G7", [2, 0, 3, 2], [2, 0, 3, 1]),
+  D7: new Chord("D7", [2, 2, 4, 3], [1, 1, 3, 2]),
+  A7: new Chord("A7", [1, 0, 2, 0], [1, 0, 2, 0]),
+};
+
 /** Returns the chord library appropriate for the given instrument. */
 export function getChordLibraryForInstrument(instrument: string): Record<string, Chord> {
   if (instrument === "Ukulele") return ukulele_chord_library;
   if (instrument === "Mandolin") return mandolin_chord_library;
+  if (instrument === "Mandola") return mandola_chord_library;
   return chord_library;
 }
 

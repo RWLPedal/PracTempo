@@ -69,7 +69,7 @@ export class ConfigView {
         if (typeof this.schema === 'string') return [];
         const result: (string | null)[] = [];
         this.schema.args.forEach((arg, index) => {
-            // Checkbox is UI-only; ellipsis (guitar settings) is handled externally — both skipped.
+            // Checkboxes are purely UI-only; ellipsis (guitar settings) is handled externally.
             if (arg.uiComponentType === 'checkbox' || arg.uiComponentType === 'ellipsis') return;
             if (arg.uiComponentType === 'layer_list') {
                 const listContainer = this.layerListContainers.get(index);

@@ -6,9 +6,10 @@ import {
   ConfigurationSchemaArg,
 } from "../../feature";
 import { GuitarFeature } from "../guitar_base";
-import { Chord, chord_library } from "../chords";
+import { Chord, chord_library, getChordLibraryForInstrument } from "../chords";
+import { AppSettings, getCategorySettings } from "../../settings";
+import { GuitarSettings, GUITAR_SETTINGS_KEY, DEFAULT_GUITAR_SETTINGS } from "../guitar_settings";
 import { AudioController } from "../../audio_controller";
-import { AppSettings } from "../../settings";
 // Import generic and specific interval settings types
 import { IntervalSettings } from "../../schedule/editor/interval/types";
 import { GuitarIntervalSettings } from "../guitar_interval_settings";
@@ -20,6 +21,7 @@ import {
 } from "../guitar_utils";
 import { KeyType, getChordInKey } from "../progressions";
 import { ChordDiagramView } from "../views/chord_diagram_view";
+import { getEasiestMoveableGuitarShape } from "../moveable_shapes";
 
 /** Displays chord diagrams for a Roman numeral progression in a given key. */
 export class ChordProgressionFeature extends GuitarFeature {
@@ -27,7 +29,7 @@ export class ChordProgressionFeature extends GuitarFeature {
   // static readonly category = FeatureCategoryName.Guitar; // Removed
   static readonly typeName = "Chord Progression";
   static readonly displayName = "Chord Progression";
-  static readonly requiredInstruments = ["Guitar"] as const;
+  static readonly requiredInstruments = ["Guitar", "Mandolin", "Mandola"] as const;
   static readonly description =
     "Displays chord diagrams for a Roman numeral progression (e.g., I-IV-V) in a specified key.";
 
@@ -46,7 +48,8 @@ export class ChordProgressionFeature extends GuitarFeature {
     settings: AppSettings,
     intervalSettings: GuitarIntervalSettings, // Constructor expects specific type
     audioController?: AudioController,
-    maxCanvasHeight?: number
+    maxCanvasHeight?: number,
+    chordLibrary: Record<string, Chord> = chord_library
   ) {
     super(
       config, // Pass specific config
@@ -62,13 +65,25 @@ export class ChordProgressionFeature extends GuitarFeature {
 
     // Create ChordDiagramViews (metronome view is handled by base constructor)
     const rootNoteIndex = getKeyIndex(this.rootNoteName);
+    const guitarSettings = getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ?? DEFAULT_GUITAR_SETTINGS;
+    const isGuitar = guitarSettings.instrument === "Guitar";
+
     if (rootNoteIndex !== -1) {
       this.progression.forEach((numeral) => {
-        const chordDetails = getChordInKey(rootNoteIndex, numeral, this.keyType);
+        const chordDetails = getChordInKey(rootNoteIndex, numeral, this.keyType, chordLibrary);
         const chordData = chordDetails.chordKey
-          ? chord_library[chordDetails.chordKey]
+          ? chordLibrary[chordDetails.chordKey]
           : null;
         if (chordData) {
+          // For guitar, substitute the easiest moveable barre chord shape.
+          if (isGuitar) {
+            const easiest = getEasiestMoveableGuitarShape(chordData.name, this.fretboardConfig.tuning);
+            if (easiest) {
+              const title = `${chordDetails.chordName} [${easiest.shapeName}] (${numeral})`;
+              this._views.push(new ChordDiagramView(easiest.chord, title, this.fretboardConfig));
+              return;
+            }
+          }
           const title = `${chordDetails.chordName} (${numeral})`;
           // Add view to the mutable _views array from base class
           this._views.push(
@@ -172,6 +187,8 @@ export class ChordProgressionFeature extends GuitarFeature {
 
     const headerText = `${progressionNumerals.join("-")} in ${validRootName} ${keyType}`;
     const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
+    const guitarSettings = getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ?? DEFAULT_GUITAR_SETTINGS;
+    const chordLibrary = getChordLibraryForInstrument(guitarSettings.instrument);
 
     return new ChordProgressionFeature(
       progressionNumerals,
@@ -182,7 +199,8 @@ export class ChordProgressionFeature extends GuitarFeature {
       settings,
       guitarIntervalSettings,
       audioController,
-      maxCanvasHeight
+      maxCanvasHeight,
+      chordLibrary
     );
   }
 

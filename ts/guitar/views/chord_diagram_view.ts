@@ -55,16 +55,24 @@ export class ChordDiagramView implements View {
   private wrapperDiv: HTMLElement | null = null;
   private canvas: HTMLCanvasElement | null = null;
   private ctx: CanvasRenderingContext2D | null = null;
+  /** When set, draws a small red dot at this string+fret position (e.g. the barre root). */
+  private rootPosition: { stringIndex: number; fret: number } | null;
 
   // Store calculated dimensions
   private requiredWidth: number = 0;
   private requiredHeight: number = 0;
   private readonly fretCount: number = 5; // Standard for chord diagrams
 
-  constructor(chord: Chord, title: string, fretboardConfig: FretboardConfig) {
+  constructor(
+    chord: Chord,
+    title: string,
+    fretboardConfig: FretboardConfig,
+    rootPosition?: { stringIndex: number; fret: number }
+  ) {
     this.chord = chord;
     this.title = title;
     this.fretboardConfig = fretboardConfig;
+    this.rootPosition = rootPosition ?? null;
 
     // Calculate dimensions needed for canvas
     this.calculateDimensions();
@@ -104,12 +112,18 @@ export class ChordDiagramView implements View {
       }
     });
     let startFret = 0; // Fret number the diagram starts AT (0 means show nut)
-    // If the lowest fretted note is too high OR the total range exceeds the display count
-    if (minFret > this.fretCount || maxFret - minFret >= this.fretCount) {
-      startFret = minFret - 1; // Start diagram just below lowest fretted note
+    if (this.chord.barre && this.chord.barre.length > 0) {
+      // For barre chords past the 2nd fret, pin the barre at the first diagram
+      // position so there is room for the remaining fingering notes above it.
+      const barreMinFret = Math.min(...this.chord.barre.map((b) => b.fret));
+      if (barreMinFret > 2) {
+        startFret = barreMinFret - 1;
+      }
+    } else if (maxFret > this.fretCount || maxFret - minFret >= this.fretCount) {
+      // Non-barre chord: slide the window when notes exceed the visible range.
+      startFret = minFret - 1;
     }
-    // Pass startFret to Fretboard instance
-    this.fretboard.setStartFret(startFret); // Call the new method
+    this.fretboard.setStartFret(startFret);
 
     const chordRootName = this.getChordRootNote();
     const chordRootIndex = chordRootName ? getKeyIndex(chordRootName) : -1;
@@ -169,12 +183,13 @@ export class ChordDiagramView implements View {
 
     // Build barre data and filter out notes covered by a barre
     const barreData: BarreData[] = [];
+    let finalNotes: NoteRenderData[];
     if (this.chord.barre) {
       for (const spec of this.chord.barre) {
         barreData.push({ fret: spec.fret, stringStart: spec.stringStart, stringEnd: spec.stringEnd });
       }
       // Remove individual note circles that lie on a barre (the bar itself shows them)
-      const filteredNotes = notesData.filter((note) => {
+      finalNotes = notesData.filter((note) => {
         if (note.fret <= 0) return true; // open/muted always shown
         return !this.chord.barre!.some(
           (spec) =>
@@ -183,11 +198,36 @@ export class ChordDiagramView implements View {
             note.stringIndex <= spec.stringEnd
         );
       });
-      this.fretboard.setNotes(filteredNotes);
     } else {
-      this.fretboard.setNotes(notesData);
+      finalNotes = notesData;
     }
 
+    // Overlay a small red dot at the root position (drawn on top of the barre bar).
+    if (this.rootPosition) {
+      const { stringIndex: rStr, fret: rFret } = this.rootPosition;
+      const rootDot: NoteRenderData = {
+        fret: rFret,
+        stringIndex: rStr,
+        noteName: "R",
+        intervalLabel: "R",
+        displayLabel: "",
+        fillColor: "#cc2222",
+        strokeColor: "#ffffff",
+        strokeWidth: 1.5,
+        radiusOverride: this.fretboardConfig.noteRadiusPx * 0.55,
+      };
+      // Replace existing note at that position if present, otherwise append.
+      const existingIdx = finalNotes.findIndex(
+        (n) => n.stringIndex === rStr && n.fret === rFret
+      );
+      if (existingIdx >= 0) {
+        finalNotes[existingIdx] = rootDot;
+      } else {
+        finalNotes = [...finalNotes, rootDot];
+      }
+    }
+
+    this.fretboard.setNotes(finalNotes);
     this.fretboard.setBarres(barreData);
     this.fretboard.setLines([]); // Explicitly clear lines
   }
@@ -245,8 +285,8 @@ export class ChordDiagramView implements View {
     // --- Create Canvas ---
     const canvasIdSuffix = `chord-${this.title.replace(/[^a-zA-Z0-9-]/g, "_")}`;
     this.canvas = addCanvas(this.wrapperDiv, canvasIdSuffix); // Add canvas to wrapper
-    this.canvas.width = Math.max(150, this.requiredWidth);
-    this.canvas.height = Math.max(200, this.requiredHeight);
+    this.canvas.width = this.requiredWidth;
+    this.canvas.height = this.requiredHeight;
 
     this.ctx = this.canvas.getContext("2d");
     if (!this.ctx) {

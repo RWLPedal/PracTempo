@@ -1,5 +1,5 @@
 import { MUSIC_NOTES, getKeyIndex } from "./guitar_utils";
-import { Chord, chord_library } from "./chords"; // Import chord library
+import { Chord, chord_library } from "./chords";
 
 /**
  * Defines the quality of a chord derived from a scale degree.
@@ -88,7 +88,8 @@ function qualityToChordKeySuffix(quality: ChordQuality): string {
 export function getChordInKey(
     rootNoteIndex: number,
     romanNumeral: string,
-    keyType: KeyType = "Major"
+    keyType: KeyType = "Major",
+    chordLibrary: Record<string, Chord> = chord_library
 ): { chordName: string; chordKey: string | null; quality: ChordQuality } {
     const map = keyType === "Minor" ? MINOR_KEY_ROMAN_MAP : MAJOR_KEY_ROMAN_MAP;
     const mapEntry = map[romanNumeral];
@@ -130,17 +131,16 @@ export function getChordInKey(
     }
 
 
-    // --- Attempt to find matching chordKey in chord_library ---
-    // This part is heuristic and depends heavily on naming conventions in chord_library.
+    // --- Attempt to find matching chordKey in the provided library ---
+    // This part is heuristic and depends heavily on naming conventions in the library.
     let potentialKey: string | null = null;
 
     // 1. Try direct match with constructed name (e.g., "Am7")
-    const directKey = Object.keys(chord_library).find(key => chord_library[key].name === fullChordName);
+    const directKey = Object.keys(chordLibrary).find(key => chordLibrary[key].name === fullChordName);
     if (directKey) {
         potentialKey = directKey;
     } else {
-         // 2. Try constructing key from root + suffix (e.g., A + _MINOR + 7 -> A_MINOR7 ?)
-         // This needs careful mapping based on how keys ARE ACTUALLY defined in chords.ts
+        // 2. Try constructing key from root + suffix (e.g., A + _MINOR + 7 -> A_MINOR7 ?)
         const suffix = qualityToChordKeySuffix(mapEntry.quality);
         let constructedKeyBase = chordRootName.replace("#", "sharp"); // Replace '#' if keys use 'sharp'
 
@@ -149,23 +149,21 @@ export function getChordInKey(
             `${constructedKeyBase}${suffix}`, // e.g., A_MINOR, C_MAJOR
             `${constructedKeyBase.toUpperCase()}${suffix}`, // e.g., A_MINOR, C_MAJOR
             `${constructedKeyBase}${suffix.toUpperCase()}`, // e.g., Am7, Cmaj7 (might match chord name)
-             // Add specific overrides if needed
-             mapEntry.quality === 'Dominant7th' ? `${constructedKeyBase}7` : null, // G7
-             mapEntry.quality === 'Major7th' ? `${constructedKeyBase.toUpperCase()}MAJ7` : null, // AMAJ7
-             mapEntry.quality === 'Minor7th' ? `${constructedKeyBase}m7` : null, // Am7, Bm7
-        ].filter(v => v !== null); // Remove nulls
-
+            mapEntry.quality === 'Dominant7th' ? `${constructedKeyBase}7` : null, // G7
+            mapEntry.quality === 'Major7th' ? `${constructedKeyBase.toUpperCase()}MAJ7` : null, // AMAJ7
+            mapEntry.quality === 'Minor7th' ? `${constructedKeyBase}m7` : null, // Am7, Bm7
+        ].filter(v => v !== null);
 
         for (const testKey of variationsToTest) {
-             if (testKey && chord_library[testKey]) {
+            if (testKey && chordLibrary[testKey]) {
                 potentialKey = testKey;
                 break;
             }
         }
 
-         if (!potentialKey) {
-            console.warn(`Could not find key in chord_library for: ${fullChordName} (tried variations like ${variationsToTest.join(', ')})`);
-         }
+        if (!potentialKey) {
+            console.warn(`Could not find key in chord library for: ${fullChordName} (tried variations like ${variationsToTest.join(', ')})`);
+        }
     }
 
 

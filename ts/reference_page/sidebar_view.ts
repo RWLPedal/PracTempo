@@ -16,9 +16,9 @@ interface FeatureButton {
 const FEATURE_BUTTONS: FeatureButton[] = [
     { id: 'notes-feature',             icon: 'piano',      label: 'Notes',       viewId: 'configurable_guitar_feature', featureTypeName: 'Notes' },
     { id: 'scales-feature',            icon: 'music_note', label: 'Scales',      viewId: 'configurable_guitar_feature', featureTypeName: 'Scale' },
-    { id: 'chords-feature',            icon: 'grid_on',    label: 'Chords',      viewId: 'configurable_guitar_feature', featureTypeName: 'Chord',            requiredInstruments: ['Guitar', 'Ukulele'] },
+    { id: 'chords-feature',            icon: 'grid_on',    label: 'Chords',      viewId: 'configurable_guitar_feature', featureTypeName: 'Chord',            requiredInstruments: ['Guitar', 'Ukulele', 'Mandolin', 'Mandola'] },
     { id: 'triads-feature',            icon: 'looks_3',    label: 'Triads',      viewId: 'configurable_guitar_feature', featureTypeName: 'Triad Shapes',     requiredInstruments: ['Guitar'] },
-    { id: 'chord-progression-feature', icon: '123',        label: 'Progression', viewId: 'guitar_chord_progression',                                         requiredInstruments: ['Guitar'] },
+    { id: 'chord-progression-feature', icon: '123',        label: 'Progression', viewId: 'guitar_chord_progression',                                         requiredInstruments: ['Guitar', 'Mandolin', 'Mandola'] },
     { id: 'caged-feature',             icon: 'grid_view',  label: 'CAGED',       viewId: 'configurable_guitar_feature', featureTypeName: 'CAGED',            requiredInstruments: ['Guitar'] },
     { id: 'multifret-feature',         icon: 'layers',     label: 'MultiFret',   viewId: 'configurable_guitar_feature', featureTypeName: 'MultiSelectFretboard' },
     { id: 'metronome-feature',         icon: 'timer',      label: 'Metronome',   viewId: 'guitar_floating_metronome' },
