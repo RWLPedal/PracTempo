@@ -48,7 +48,7 @@ export class ConfigView {
                     `[data-arg-index="${argIndex}"] .control`
                 );
                 control?.querySelectorAll<HTMLButtonElement>('button[data-value]').forEach(btn => {
-                    btn.classList.toggle('is-info', values.includes(btn.dataset.value ?? ''));
+                    btn.classList.toggle('is-active', values.includes(btn.dataset.value ?? ''));
                 });
             } else {
                 // Non-variadic enum, or variadic enum rendered as a single <select>:
@@ -155,7 +155,7 @@ export class ConfigView {
 
         const field = this.container.querySelector<HTMLElement>(`[data-arg-index="${argIndex}"] .control`);
         field?.querySelectorAll<HTMLButtonElement>('button[data-value]').forEach(btn => {
-            btn.classList.toggle('is-info', values.includes(btn.dataset.value ?? ''));
+            btn.classList.toggle('is-active', values.includes(btn.dataset.value ?? ''));
         });
 
         return true;
@@ -194,7 +194,7 @@ export class ConfigView {
             // Checkbox and layer_list manage their own labels — skip the separate label element.
             if (arg.uiComponentType !== 'checkbox' && arg.uiComponentType !== 'layer_list') {
                 const label = document.createElement('label');
-                label.classList.add('label', 'is-small');
+                label.classList.add('config-label');
                 label.innerText = arg.name;
                 field.appendChild(label);
             }
@@ -233,7 +233,7 @@ export class ConfigView {
 
     private renderCheckbox(parent: HTMLElement, arg: ConfigurationSchemaArg): void {
         const cbLabel = document.createElement('label');
-        cbLabel.classList.add('checkbox', 'is-size-7');
+        cbLabel.classList.add('config-checkbox-label');
 
         const cb = document.createElement('input');
         cb.type = 'checkbox';
@@ -248,8 +248,7 @@ export class ConfigView {
 
     private renderEnumSelector(parent: HTMLElement, arg: ConfigurationSchemaArg, index: number): void {
         const selectContainer = document.createElement('div');
-        // is-fullwidth prevents the arrow from overlapping the selected text.
-        selectContainer.classList.add('select', 'is-small', 'is-fullwidth');
+        selectContainer.classList.add('config-select-wrap');
 
         const select = document.createElement('select');
         select.dataset.argName = arg.name;
@@ -305,7 +304,7 @@ export class ConfigView {
 
         const makeBtn = (label: string, isAdvanced: boolean): void => {
             const btn = document.createElement('button');
-            btn.classList.add('button', 'is-small', 'is-outlined');
+            btn.classList.add('config-toggle-btn');
             btn.innerText = label;
             btn.dataset.value = label;
 
@@ -313,13 +312,13 @@ export class ConfigView {
                 btn.classList.add('is-advanced-btn');
                 if (!showAdvanced) btn.style.display = 'none';
             }
-            if (currentSelection.has(label)) btn.classList.add('is-info');
+            if (currentSelection.has(label)) btn.classList.add('is-active');
 
             btn.addEventListener('click', () => {
-                btn.classList.toggle('is-info');
+                btn.classList.toggle('is-active');
                 const arr = (this.argValues.get(index) as string[]) ?? [];
                 const pos = arr.indexOf(label);
-                if (btn.classList.contains('is-info')) {
+                if (btn.classList.contains('is-active')) {
                     if (pos === -1) arr.push(label);
                 } else {
                     if (pos !== -1) arr.splice(pos, 1);
@@ -386,7 +385,7 @@ export class ConfigView {
                     advBtns.forEach(btn => {
                         btn.style.display = cb.checked ? '' : 'none';
                         if (!cb.checked) {
-                            btn.classList.remove('is-info');
+                            btn.classList.remove('is-active');
                             // Remove from selection
                             const arr = (this.argValues.get(controlledIndex) as string[]) ?? [];
                             const label = (btn as HTMLButtonElement).dataset.value ?? '';

@@ -1,0 +1,98 @@
+/*
+ * PracTempo — Design Tokens
+ * Three themes: warm · dark · forest
+ *
+ * Apply [data-theme="warm|dark|forest"] to <html> or <body>.
+ */
+
+/* ───────────────────────────────────────
+   WARM — Parchment · Slate Blue · Amber
+   ─────────────────────────────────────── */
+[data-theme="warm"] {
+  --bg:           #F2EDE4;
+  --panel-bg:     #FAF7F2;
+  --sidebar-bg:   #EDE8DF;
+  --settings-bg:  #F5F1EA;
+  --input-bg:     #EDE8DF;
+  --pad-off:      #E0D9CF;
+
+  --border:       #D8D0C4;
+  --shadow:       0 2px 12px rgba(44, 40, 32, 0.10);
+  --shadow-panel: 0 4px 20px rgba(44, 40, 32, 0.12);
+  --clr-shadow:   rgba(44, 40, 32, 0.10);
+
+  --text-primary: #2C2820;
+  --text-muted:   #8C7F72;
+  --text-sidebar: #4A4037;
+
+  --accent:       oklch(0.52 0.12 235);
+  --accent-dim:   oklch(0.62 0.10 235);
+  --accent-warm:  oklch(0.55 0.14 35);
+
+  --note-root:    oklch(0.55 0.14 35);
+  --note-third:   oklch(0.52 0.12 235);
+  --note-fifth:   oklch(0.52 0.12 110);
+  --note-alt:     #8C7F72;
+}
+
+
+/* ───────────────────────────────────────
+   DARK — Near-black · Crimson · Amber Gold
+   ─────────────────────────────────────── */
+[data-theme="dark"] {
+  --bg:           #18160F;
+  --panel-bg:     #221F17;
+  --sidebar-bg:   #1A180F;
+  --settings-bg:  #2A2720;
+  --input-bg:     #2A2720;
+  --pad-off:      #2E2B22;
+
+  --border:       #38342A;
+  --shadow:       0 2px 12px rgba(0, 0, 0, 0.40);
+  --shadow-panel: 0 4px 20px rgba(0, 0, 0, 0.50);
+  --clr-shadow:   rgba(0, 0, 0, 0.40);
+
+  --text-primary: #F0EBE0;
+  --text-muted:   #7A7265;
+  --text-sidebar: #BEB4A8;
+
+  --accent:       oklch(0.55 0.22 25);
+  --accent-dim:   oklch(0.45 0.16 25);
+  --accent-warm:  oklch(0.72 0.22 65);
+
+  --note-root:    oklch(0.50 0.22 25);
+  --note-third:   oklch(0.72 0.22 65);
+  --note-fifth:   oklch(0.65 0.17 95);
+  --note-alt:     #7A7265;
+}
+
+
+/* ───────────────────────────────────────
+   FOREST — Pacific NW · Pine Teal · Cedar
+   ─────────────────────────────────────── */
+[data-theme="forest"] {
+  --bg:           #141C1F;
+  --panel-bg:     #1C2830;
+  --sidebar-bg:   #101820;
+  --settings-bg:  #1E2E38;
+  --input-bg:     #1E2E38;
+  --pad-off:      #243038;
+
+  --border:       #2A3C48;
+  --shadow:       0 2px 12px rgba(0, 0, 0, 0.45);
+  --shadow-panel: 0 4px 24px rgba(0, 0, 0, 0.55);
+  --clr-shadow:   rgba(0, 0, 0, 0.45);
+
+  --text-primary: #E8E0D4;
+  --text-muted:   #607A82;
+  --text-sidebar: #A0B4BC;
+
+  --accent:       oklch(0.60 0.13 168);
+  --accent-dim:   oklch(0.48 0.10 168);
+  --accent-warm:  oklch(0.70 0.14 52);
+
+  --note-root:    oklch(0.6 0.13 168);
+  --note-third:   oklch(0.7 0.14 52);
+  --note-fifth:   oklch(0.62 0.14 230);
+  --note-alt:     #607A82;
+}

@@ -3,45 +3,67 @@ import { VolumeControl } from '../views/volume_control';
 import { AppSettings, getCategorySettings } from '../settings';
 import { GuitarSettings } from '../guitar/guitar_settings';
 
-interface FeatureButton {
+type Theme = 'warm' | 'dark' | 'forest';
+
+interface NavButton {
     id: string;
     icon: string;
     label: string;
     viewId: string;
     featureTypeName?: string;
-    /** If set, button is only shown when the active instrument is in this list. */
     requiredInstruments?: string[];
 }
 
-const FEATURE_BUTTONS: FeatureButton[] = [
-    { id: 'notes-feature',             icon: 'piano',      label: 'Notes',       viewId: 'configurable_guitar_feature', featureTypeName: 'Notes' },
-    { id: 'scales-feature',            icon: 'music_note', label: 'Scales',      viewId: 'configurable_guitar_feature', featureTypeName: 'Scale' },
-    { id: 'chords-feature',            icon: 'grid_on',    label: 'Chords',      viewId: 'configurable_guitar_feature', featureTypeName: 'Chord',            requiredInstruments: ['Guitar', 'Ukulele', 'Mandolin', 'Mandola'] },
-    { id: 'triads-feature',            icon: 'looks_3',    label: 'Triads',      viewId: 'configurable_guitar_feature', featureTypeName: 'Triad Shapes',     requiredInstruments: ['Guitar'] },
-    { id: 'chord-progression-feature', icon: '123',        label: 'Progression', viewId: 'guitar_chord_progression',                                         requiredInstruments: ['Guitar', 'Mandolin', 'Mandola'] },
-    { id: 'caged-feature',             icon: 'grid_view',  label: 'CAGED',       viewId: 'configurable_guitar_feature', featureTypeName: 'CAGED',            requiredInstruments: ['Guitar'] },
-    { id: 'multifret-feature',         icon: 'layers',     label: 'MultiFret',   viewId: 'configurable_guitar_feature', featureTypeName: 'MultiSelectFretboard' },
-    { id: 'metronome-feature',         icon: 'timer',      label: 'Metronome',   viewId: 'guitar_floating_metronome' },
-    { id: 'legend-feature',            icon: 'palette',    label: 'Legend',      viewId: 'guitar_color_legend' },
-    { id: 'timer-feature',             icon: 'alarm',      label: 'Timer',       viewId: 'floating_timer' },
-    { id: 'drum-machine-feature',      icon: 'music_note', label: 'Backing Track', viewId: 'drum_machine' },
+interface NavSection {
+    label: string;
+    buttons: NavButton[];
+}
+
+const NAV_SECTIONS: NavSection[] = [
+    {
+        label: 'Reference',
+        buttons: [
+            { id: 'notes-feature',             icon: 'music_note',      label: 'Notes',        viewId: 'configurable_guitar_feature', featureTypeName: 'Notes' },
+            { id: 'scales-feature',            icon: 'show_chart',      label: 'Scales',       viewId: 'configurable_guitar_feature', featureTypeName: 'Scale' },
+            { id: 'chords-feature',            icon: 'grid_on',         label: 'Chords',       viewId: 'configurable_guitar_feature', featureTypeName: 'Chord',           requiredInstruments: ['Guitar', 'Ukulele', 'Mandolin', 'Mandola'] },
+            { id: 'triads-feature',            icon: 'change_history',  label: 'Triads',       viewId: 'configurable_guitar_feature', featureTypeName: 'Triad Shapes',    requiredInstruments: ['Guitar'] },
+            { id: 'chord-progression-feature', icon: 'arrow_forward',   label: 'Progression',  viewId: 'guitar_chord_progression',                                        requiredInstruments: ['Guitar', 'Mandolin', 'Mandola'] },
+            { id: 'caged-feature',             icon: 'grid_view',       label: 'CAGED',        viewId: 'configurable_guitar_feature', featureTypeName: 'CAGED',           requiredInstruments: ['Guitar'] },
+            { id: 'multifret-feature',         icon: 'layers',          label: 'MultiFret',    viewId: 'configurable_guitar_feature', featureTypeName: 'MultiSelectFretboard' },
+        ],
+    },
+    {
+        label: 'Practice',
+        buttons: [
+            { id: 'metronome-feature',    icon: 'timer',       label: 'Metronome',     viewId: 'guitar_floating_metronome' },
+            { id: 'timer-feature',        icon: 'alarm',       label: 'Timer',         viewId: 'floating_timer' },
+            { id: 'drum-machine-feature', icon: 'queue_music', label: 'Backing Track', viewId: 'drum_machine' },
+        ],
+    },
+    {
+        label: 'Tools',
+        buttons: [
+            { id: 'legend-feature', icon: 'palette', label: 'Legend', viewId: 'guitar_color_legend' },
+        ],
+    },
 ];
 
 export class SidebarView {
     private container: HTMLElement;
+    private isCollapsed = false;
 
     constructor(
         container: HTMLElement,
         private onFeatureClick: (viewId: string, featureTypeName?: string) => void,
         private floatingViewManager?: FloatingViewManager,
-        private appSettings?: AppSettings
+        private appSettings?: AppSettings,
+        private onThemeChange?: (theme: Theme) => void
     ) {
         this.container = container;
         this.render();
         this.addBottomBarListeners();
     }
 
-    /** Re-render the sidebar with updated settings (e.g. after instrument change). */
     public refresh(newSettings: AppSettings): void {
         this.appSettings = newSettings;
         this.render();
@@ -53,53 +75,124 @@ export class SidebarView {
         return getCategorySettings<GuitarSettings>(this.appSettings, 'Guitar')?.instrument ?? 'Guitar';
     }
 
+    private getCurrentTheme(): Theme {
+        return (this.appSettings?.theme as Theme) ?? 'warm';
+    }
+
     private render(): void {
         const instrument = this.getActiveInstrument();
-        const visibleButtons = FEATURE_BUTTONS.filter(
-            (b) => !b.requiredInstruments || b.requiredInstruments.includes(instrument)
-        );
+        const currentTheme = this.getCurrentTheme();
 
-        let buttonsHtml = '<div class="sidebar-content"><div class="buttons is-vertical">';
-        for (const button of visibleButtons) {
-            buttonsHtml += `
-                <button id="${button.id}" class="button is-link is-light is-fullwidth" title="${button.label}" data-view-id="${button.viewId}" data-feature-type-name="${button.featureTypeName || ''}">
-                    <span class="icon">
-                        <i class="material-icons">${button.icon}</i>
-                    </span>
-                    <span>${button.label}</span>
-                </button>
-            `;
-        }
-        buttonsHtml += `</div>
-            <div class="sidebar-bottom-bar">
-                <button id="save-layout-button" class="topbar-icon-button" title="Save window layout to file">
-                    <span class="material-icons">save</span>
-                </button>
-                <button id="load-layout-button" class="topbar-icon-button" title="Load window layout from file">
-                    <span class="material-icons">folder_open</span>
-                </button>
-                <div id="sidebar-volume-ctrl"></div>
-                <button id="settings-button" class="topbar-icon-button" title="Settings">
-                    <span class="material-icons">settings</span>
-                </button>
+        let html = `
+            <div class="sidebar-header">
+                <span class="material-icons sidebar-app-icon">music_note</span>
+                <span class="sidebar-app-name">PracTempo</span>
             </div>
-        </div>`;
+            <nav class="sidebar-nav">
+        `;
 
-        this.container.innerHTML = buttonsHtml;
+        for (const section of NAV_SECTIONS) {
+            const visibleButtons = section.buttons.filter(
+                (b) => !b.requiredInstruments || b.requiredInstruments.includes(instrument)
+            );
+            if (visibleButtons.length === 0) continue;
 
-        for (const button of visibleButtons) {
-            const buttonEl = document.getElementById(button.id);
-            if (buttonEl) {
-                buttonEl.addEventListener('click', (e) => {
-                    const target = e.currentTarget as HTMLElement;
-                    const viewId = target.dataset.viewId;
-                    const featureTypeName = target.dataset.featureTypeName;
-                    if (viewId) {
-                        this.onFeatureClick(viewId, featureTypeName || undefined);
-                    }
-                });
+            html += `<div class="sidebar-section-label">${section.label}</div>`;
+            for (const btn of visibleButtons) {
+                html += `
+                    <button id="${btn.id}" class="sidebar-nav-btn"
+                        data-view-id="${btn.viewId}"
+                        data-feature-type-name="${btn.featureTypeName ?? ''}">
+                        <span class="material-icons">${btn.icon}</span>
+                        <span>${btn.label}</span>
+                    </button>
+                `;
             }
         }
+
+        html += `</nav>`;
+
+        const themes: { key: Theme; title: string }[] = [
+            { key: 'warm',   title: 'Warm'   },
+            { key: 'dark',   title: 'Dark'   },
+            { key: 'forest', title: 'Forest' },
+        ];
+        const swatchesHtml = themes.map(t =>
+            `<button class="theme-swatch theme-swatch--${t.key}${currentTheme === t.key ? ' is-active' : ''}"
+                data-theme="${t.key}" title="${t.title}"></button>`
+        ).join('');
+
+        const collapseIcon = this.isCollapsed ? 'chevron_right' : 'chevron_left';
+        const collapseTitle = this.isCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+        html += `
+            <div class="sidebar-footer">
+                <div class="sidebar-theme-picker">
+                    <span class="sidebar-theme-label">Theme</span>
+                    ${swatchesHtml}
+                </div>
+                <div class="sidebar-tools-bar">
+                    <button id="sidebar-collapse-btn" class="topbar-icon-button" title="${collapseTitle}">
+                        <span class="material-icons">${collapseIcon}</span>
+                    </button>
+                    <button id="save-layout-button" class="topbar-icon-button" title="Save window layout">
+                        <span class="material-icons">save</span>
+                    </button>
+                    <button id="load-layout-button" class="topbar-icon-button" title="Load window layout">
+                        <span class="material-icons">folder_open</span>
+                    </button>
+                    <div id="sidebar-volume-ctrl"></div>
+                    <button id="settings-button" class="topbar-icon-button" title="Settings">
+                        <span class="material-icons">settings</span>
+                    </button>
+                </div>
+            </div>
+        `;
+
+        this.container.innerHTML = html;
+        this.applyCollapsedState();
+
+        // Wire collapse toggle
+        const collapseBtn = document.getElementById('sidebar-collapse-btn');
+        if (collapseBtn) {
+            collapseBtn.addEventListener('click', () => {
+                this.isCollapsed = !this.isCollapsed;
+                this.applyCollapsedState();
+                const icon = collapseBtn.querySelector<HTMLElement>('.material-icons');
+                if (icon) icon.textContent = this.isCollapsed ? 'chevron_right' : 'chevron_left';
+                collapseBtn.title = this.isCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+            });
+        }
+
+        // Wire nav buttons
+        for (const section of NAV_SECTIONS) {
+            for (const btn of section.buttons) {
+                const el = document.getElementById(btn.id);
+                if (el) {
+                    el.addEventListener('click', (e) => {
+                        const target = e.currentTarget as HTMLElement;
+                        const viewId = target.dataset.viewId;
+                        const featureTypeName = target.dataset.featureTypeName;
+                        if (viewId) {
+                            this.onFeatureClick(viewId, featureTypeName || undefined);
+                        }
+                    });
+                }
+            }
+        }
+
+        // Wire theme swatches
+        this.container.querySelectorAll<HTMLButtonElement>('.theme-swatch').forEach((swatch) => {
+            swatch.addEventListener('click', () => {
+                const theme = swatch.dataset.theme as Theme;
+                if (theme && this.onThemeChange) {
+                    this.onThemeChange(theme);
+                }
+            });
+        });
+    }
+
+    private applyCollapsedState(): void {
+        this.container.classList.toggle('is-collapsed', this.isCollapsed);
     }
 
     private addBottomBarListeners(): void {

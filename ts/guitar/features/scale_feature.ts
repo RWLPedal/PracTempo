@@ -19,7 +19,6 @@ import {
   clearAllChildren,
 } from "../guitar_utils"; // getNotesInScale removed
 import { FretboardView } from "../views/fretboard_view";
-import { getColor as getColorFromScheme, NOTE_COLORS } from "../colors";
 import { volumeManager } from "../../sounds/volume_manager";
 
 // Color for non-highlighted scale notes when highlighting is active
@@ -196,7 +195,7 @@ export class ScaleFeature extends GuitarFeature {
         const isNoteHighlighted = this.highlightNotes.has(noteName);
 
         let shouldRender = false;
-        let fillColor: string = NOTE_COLORS.DEFAULT;
+        let fillColor: string | undefined = undefined;
         let strokeColor: string | string[] = DEFAULT_STROKE;
         let strokeWidth: number = 1;
         let colorSchemeOverride: "note" | "interval" | undefined = undefined;
@@ -205,14 +204,14 @@ export class ScaleFeature extends GuitarFeature {
         if (highlightingActive) {
           if (isNoteHighlighted) {
             shouldRender = true;
-            fillColor = NOTE_COLORS[noteName] || NOTE_COLORS.DEFAULT;
-            strokeWidth = 1.5; // Slightly thicker stroke for highlighted
+            colorSchemeOverride = "note"; // resolved at render time against current theme
+            strokeWidth = 1.5;
             strokeColor = isNoteInScale
               ? IN_SCALE_HIGHLIGHT_STROKE
               : OUT_OF_SCALE_HIGHLIGHT_STROKE;
           } else if (isNoteInScale) {
             shouldRender = true;
-            fillColor = NON_HIGHLIGHTED_SCALE_COLOR;
+            fillColor = NON_HIGHLIGHTED_SCALE_COLOR; // fixed grey, theme-independent
             strokeColor = DEFAULT_STROKE;
             strokeWidth = 1;
             displayLabel = ""; // Hide label for non-highlighted scale notes in highlight mode
@@ -222,8 +221,7 @@ export class ScaleFeature extends GuitarFeature {
           if (isNoteInScale) {
             shouldRender = true;
             const intervalLabel = getIntervalLabel(noteRelativeToKey);
-            fillColor = getColorFromScheme("interval", noteName, intervalLabel);
-            colorSchemeOverride = "interval";
+            colorSchemeOverride = "interval"; // resolved at render time against current theme
             strokeColor =
               intervalLabel === "R"
                 ? IN_SCALE_HIGHLIGHT_STROKE

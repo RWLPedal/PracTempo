@@ -99,7 +99,8 @@ export class FloatingViewManager {
         descriptor.defaultWidth,
         descriptor.defaultHeight,
         isFretboardDescriptor(descriptor) && descriptor.supportsRotate ? () => this.handleRotateRequest(instanceId) : undefined,
-        isFretboardDescriptor(descriptor) && descriptor.supportsZoom ? () => this.handleZoomRequest(instanceId) : undefined
+        isFretboardDescriptor(descriptor) && descriptor.supportsZoom ? () => this.handleZoomRequest(instanceId) : undefined,
+        descriptor.supportsConfigToggle ? () => this.handleConfigToggleRequest(instanceId) : undefined
       );
 
       this.activeViews.set(instanceId, wrapper);
@@ -184,7 +185,8 @@ export class FloatingViewManager {
             state.size?.width ?? descriptor.defaultWidth,
             state.size?.height ?? descriptor.defaultHeight,
             isFretboardDescriptor(descriptor) && descriptor.supportsRotate ? () => this.handleRotateRequest(state.instanceId) : undefined,
-            isFretboardDescriptor(descriptor) && descriptor.supportsZoom ? () => this.handleZoomRequest(state.instanceId) : undefined
+            isFretboardDescriptor(descriptor) && descriptor.supportsZoom ? () => this.handleZoomRequest(state.instanceId) : undefined,
+            descriptor.supportsConfigToggle ? () => this.handleConfigToggleRequest(state.instanceId) : undefined
           );
           this.activeViews.set(state.instanceId, wrapper);
           this.viewAreaElement.appendChild(wrapper.element);
@@ -215,6 +217,16 @@ export class FloatingViewManager {
     } else {
       this.saveState();
     }
+  }
+
+  /**
+   * Relays a config toggle request to the view rendered inside the wrapper.
+   * The view (ConfigurableFeatureView) owns the collapse state; we just notify it.
+   */
+  private handleConfigToggleRequest(instanceId: string): void {
+    const wrapper = this.activeViews.get(instanceId);
+    if (!wrapper) return;
+    wrapper.contentEl.dispatchEvent(new CustomEvent('config-visibility-toggle', { bubbles: false }));
   }
 
   /**
@@ -339,10 +351,11 @@ export class FloatingViewManager {
     const newGuitarSettings = newSettings.categorySettings?.["Guitar"];
     const guitarSettingsChanged =
       JSON.stringify(oldGuitarSettings) !== JSON.stringify(newGuitarSettings);
+    const themeChanged = this.appSettings.theme !== newSettings.theme;
 
     this.appSettings = newSettings;
 
-    if (!guitarSettingsChanged) return;
+    if (!guitarSettingsChanged && !themeChanged) return;
 
     // Views that manage their own runtime state should not be re-created.
     const SKIP_VIEW_IDS = new Set(["guitar_floating_metronome", "floating_timer"]);

@@ -63,8 +63,10 @@ export class FloatingViewWrapper {
   private onSaveCallback: () => void;
   private onRotateCallback: (() => void) | null;
   private onZoomCallback: (() => void) | null;
+  private onConfigToggleCallback: (() => void) | null;
   private titleTextEl: HTMLElement;
   private zoomButtonEl: HTMLButtonElement | null = null;
+  private configToggleButtonEl: HTMLButtonElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private _resizeSaveTimer: ReturnType<typeof setTimeout> | null = null;
   /** Minimum wrapper width (px) — the descriptor's defaultWidth. Used as a floor
@@ -81,7 +83,8 @@ export class FloatingViewWrapper {
     defaultWidth?: number,
     defaultHeight?: number,
     onRotate?: () => void,
-    onZoom?: () => void
+    onZoom?: () => void,
+    onConfigToggle?: () => void
   ) {
     this.state = state;
     this.viewInstance = viewInstance;
@@ -90,6 +93,7 @@ export class FloatingViewWrapper {
     this.onSaveCallback = onSave;
     this.onRotateCallback = onRotate ?? null;
     this.onZoomCallback = onZoom ?? null;
+    this.onConfigToggleCallback = onConfigToggle ?? null;
     this.defaultWidth = defaultWidth ?? 0;
 
     this.element = document.createElement("div");
@@ -139,7 +143,7 @@ export class FloatingViewWrapper {
     if (this.onRotateCallback) {
       const rotateButton = document.createElement("button");
       rotateButton.classList.add("floating-view-rotate");
-      rotateButton.innerHTML = "&#8635;"; // ↻
+      rotateButton.innerHTML = '<span class="material-icons">autorenew</span>';
       rotateButton.title = "Rotate fretboard";
       rotateButton.onclick = (e) => {
         e.stopPropagation();
@@ -148,10 +152,23 @@ export class FloatingViewWrapper {
       buttonGroup.appendChild(rotateButton);
     }
 
+    if (this.onConfigToggleCallback) {
+      const configToggleButton = document.createElement("button");
+      configToggleButton.classList.add("floating-view-config-toggle");
+      configToggleButton.innerHTML = '<span class="material-icons">tune</span>';
+      configToggleButton.title = "Toggle configuration";
+      configToggleButton.onclick = (e) => {
+        e.stopPropagation();
+        this.onConfigToggleCallback!();
+      };
+      buttonGroup.appendChild(configToggleButton);
+      this.configToggleButtonEl = configToggleButton;
+    }
+
     if (this.onZoomCallback) {
       const zoomButton = document.createElement("button");
       zoomButton.classList.add("floating-view-zoom");
-      zoomButton.innerHTML = "&#8853;"; // ⊕
+      zoomButton.innerHTML = '<span class="material-icons">zoom_in</span>';
       zoomButton.title = "Toggle zoom";
       if (state.zoomActive) {
         zoomButton.classList.add("is-active");
@@ -166,7 +183,7 @@ export class FloatingViewWrapper {
 
     const closeButton = document.createElement("button");
     closeButton.classList.add("floating-view-close");
-    closeButton.innerHTML = "&times;";
+    closeButton.innerHTML = '<span class="material-icons">close</span>';
     closeButton.title = "Close";
     closeButton.onclick = (e) => {
       e.stopPropagation();
@@ -196,6 +213,15 @@ export class FloatingViewWrapper {
       if (detail) {
         this.state.viewState = { ...this.state.viewState, ...detail };
         this.onSaveCallback();
+      }
+    });
+
+    // React to config collapse/expand: sync button state; resize wrapper after transition.
+    this.contentElement.addEventListener('config-collapse-changed', (e: Event) => {
+      const { collapsed, isInitial, delta } = (e as CustomEvent<{ collapsed: boolean; isInitial: boolean; delta?: number }>).detail;
+      this.configToggleButtonEl?.classList.toggle('is-active', collapsed);
+      if (!isInitial && delta !== undefined) {
+        requestAnimationFrame(() => this._adjustHeightToContent(delta));
       }
     });
 
@@ -332,6 +358,20 @@ export class FloatingViewWrapper {
   public updateZoomButtonState(active: boolean): void {
     if (!this.zoomButtonEl) return;
     this.zoomButtonEl.classList.toggle("is-active", active);
+  }
+
+  /**
+   * Adjusts the wrapper height by a pixel delta (positive = grow, negative = shrink).
+   * Used after a config collapse/expand transition to keep the canvas visible without
+   * re-measuring scrollHeight (which is unreliable for overflow:hidden children).
+   */
+  private _adjustHeightToContent(delta: number): void {
+    const currentH = this.state.size?.height ?? parseFloat(this.element.style.height || "0");
+    const newHeight = Math.max(currentH + delta, 50);
+    this.element.style.height = `${newHeight}px`;
+    const currentWidth = this.state.size?.width ?? parseFloat(this.element.style.width || "0");
+    this.state.size = { width: currentWidth, height: newHeight };
+    this.onSaveCallback();
   }
 
   public destroy(): void {

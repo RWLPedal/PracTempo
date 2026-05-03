@@ -672,9 +672,9 @@ export function createLayerListInput(
     row.style.alignItems = "center";
     row.style.gap = "5px";
     row.style.padding = "3px 4px";
-    row.style.border = "1px solid var(--clr-border, #ccc)";
+    row.style.border = "1px solid var(--border)";
     row.style.borderRadius = "4px";
-    row.style.background = "var(--clr-surface, #fff)";
+    row.style.background = "var(--input-bg)";
 
     // Drag handle
     const dragHandle = document.createElement("span");

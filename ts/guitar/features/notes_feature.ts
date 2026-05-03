@@ -32,6 +32,7 @@ export class NotesFeature extends GuitarFeature {
   static readonly displayName = "Fretboard Notes";
   static readonly description =
     "Displays all notes on the fretboard. Select 'None' for note-based colors, or a root note for interval-based colors.";
+  static readonly defaultConfigCollapsed = true;
 
   readonly typeName = NotesFeature.typeName;
   private readonly rootNoteName: string | null;

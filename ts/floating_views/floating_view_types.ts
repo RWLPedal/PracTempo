@@ -10,6 +10,8 @@ export interface FloatingViewDescriptor {
   defaultWidth?: number; // Optional default width
   defaultHeight?: number; // Optional default height
   showInMenu?: boolean; // Optional: If false, won't be shown in spawnable view lists. Defaults to true.
+  /** When true, a config-toggle button (⚙) is shown in the title bar. */
+  supportsConfigToggle?: boolean;
   // Factory function to create an instance of the view's logic
   createView: (initialState?: any, appSettings?: AppSettings) => View;
 }

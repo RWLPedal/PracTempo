@@ -14,7 +14,7 @@ export interface CategorySettingsMap {
 
 /** Defines the structure for all application-level settings. */
 export interface AppSettings {
-  theme: "light" | "dark";
+  theme: "warm" | "dark" | "forest";
   practice: PracticeSettings;
   reference: ReferenceSettings;
   categorySettings: CategorySettingsMap;
@@ -22,7 +22,7 @@ export interface AppSettings {
 
 /** Initial default values for *global* settings (excluding category-specific ones). */
 export const BASE_DEFAULT_SETTINGS: Omit<AppSettings, "categorySettings"> = {
-  theme: "light",
+  theme: "warm",
   practice: DEFAULT_PRACTICE_SETTINGS,
   reference: DEFAULT_REFERENCE_SETTINGS,
 };
@@ -50,9 +50,9 @@ export function loadSettings(): AppSettings {
         categorySettings: JSON.parse(JSON.stringify(currentDefaultsByCategory)),
       };
 
-      // Merge top-level settings (theme)
+      // Merge top-level settings (theme); migrate old "light" value to "warm"
       if (parsedStored.theme) {
-        loadedSettings.theme = parsedStored.theme;
+        loadedSettings.theme = parsedStored.theme === 'light' ? 'warm' : parsedStored.theme;
       }
 
       // Merge nested page-specific settings

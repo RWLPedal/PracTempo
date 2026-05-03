@@ -12,7 +12,10 @@ export class ConfigurableFeatureView implements View {
     private appSettings: AppSettings;
     private featureTypeName: string;
     private initialConfig: string[] | undefined;
+    private initialState: any;
     private feature: Feature | null = null;
+    private configCollapsed = false;
+    private _lastConfigHeight = 0;
 
     private container: HTMLElement | null = null;
     private configContainer!: HTMLElement;
@@ -30,6 +33,7 @@ export class ConfigurableFeatureView implements View {
 
     constructor(initialState: any, appSettings: AppSettings) {
         this.appSettings = appSettings;
+        this.initialState = initialState;
         this.featureTypeName = initialState?.featureTypeName;
         this.initialConfig = Array.isArray(initialState?.config) ? initialState.config : undefined;
 
@@ -80,6 +84,73 @@ export class ConfigurableFeatureView implements View {
         } else {
             this.createAndRenderFeature(this.configView.currentConfig);
         }
+
+        // Apply initial config collapse state (saved > feature default > false).
+        const savedCollapsed = this.initialState?.configCollapsed as boolean | undefined;
+        const defaultCollapsed = (this.featureClass as any).defaultConfigCollapsed === true;
+        this.configCollapsed = savedCollapsed !== undefined ? savedCollapsed : defaultCollapsed;
+        if (this.configCollapsed) {
+            // Suppress the CSS transition so the initial state is instant (no flash on
+            // theme change / rotate / zoom which all recreate the view from scratch).
+            this.configContainer.style.transition = 'none';
+            this.configContainer.classList.add('is-collapsed');
+            // Force a reflow to commit the above before re-enabling transitions.
+            void this.configContainer.offsetHeight;
+            this.configContainer.style.transition = '';
+        }
+        // Notify wrapper of the initial state so the button reflects it.
+        container.dispatchEvent(new CustomEvent('config-collapse-changed', {
+            bubbles: true,
+            detail: { collapsed: this.configCollapsed, isInitial: true },
+        }));
+
+        // Handle user-triggered config toggle from the title-bar button.
+        container.addEventListener('config-visibility-toggle', () => {
+            const collapsing = !this.configCollapsed;
+
+            if (collapsing) {
+                // Measure BEFORE the class is applied so we have the real rendered height.
+                const mb = parseFloat(getComputedStyle(this.configContainer).marginBottom) || 0;
+                this._lastConfigHeight = this.configContainer.offsetHeight + mb;
+            }
+
+            this.configCollapsed = collapsing;
+            this.configContainer.classList.toggle('is-collapsed', this.configCollapsed);
+
+            // Persist the new state via the standard save channel.
+            container.dispatchEvent(new CustomEvent('feature-state-changed', {
+                bubbles: true,
+                detail: { configCollapsed: this.configCollapsed },
+            }));
+
+            // After the CSS transition completes, tell the wrapper to resize.
+            // A setTimeout fallback guards against transitionend not firing.
+            let settled = false;
+            const notify = () => {
+                if (settled) return;
+                settled = true;
+                clearTimeout(fallback);
+                this.configContainer.removeEventListener('transitionend', onEnd);
+
+                if (!this.configCollapsed) {
+                    // Expanding: measure actual height now that transition is done.
+                    const mb = parseFloat(getComputedStyle(this.configContainer).marginBottom) || 0;
+                    this._lastConfigHeight = this.configContainer.offsetHeight + mb;
+                }
+
+                const delta = this.configCollapsed ? -this._lastConfigHeight : this._lastConfigHeight;
+                container.dispatchEvent(new CustomEvent('config-collapse-changed', {
+                    bubbles: true,
+                    detail: { collapsed: this.configCollapsed, delta, isInitial: false },
+                }));
+            };
+            const onEnd = (e: TransitionEvent) => {
+                if (e.propertyName !== 'max-height') return;
+                notify();
+            };
+            const fallback = setTimeout(notify, 350);
+            this.configContainer.addEventListener('transitionend', onEnd);
+        });
 
         // React to incoming link notifications — show/hide "Driven" options
         container.addEventListener('link-status-changed', (e: Event) => {

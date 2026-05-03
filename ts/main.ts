@@ -25,6 +25,7 @@ import { Schedule } from "./schedule/schedule";
 import { FloatingViewManager } from './floating_views/floating_view_manager';
 import { getAvailableFloatingViews, registerFloatingView } from './floating_views/floating_view_registry';
 import { SettingsManager } from "./settings_manager";
+import { ThemeManager } from "./theme_manager";
 import { TimerView } from "./views/timer_view";
 import { ScheduleTimerView } from "./views/schedule_timer_view";
 import { SchedulePlaybackView } from "./views/schedule_playback_view";
@@ -53,6 +54,7 @@ export class Main {
 
   settings: AppSettings;
   settingsManager!: SettingsManager;
+  themeManager!: ThemeManager;
 
   constructor() {
     console.log("Initializing Main Application...");
@@ -72,6 +74,7 @@ export class Main {
 
     // Load settings - uses the now-populated registry for defaults
     this.settings = loadSettings();
+    this.themeManager = new ThemeManager(this.settings.theme);
 
     // --- Instantiate Managers ---
     this.floatingViewManager = new FloatingViewManager(this.settings, 'floatingViewStates_practice');
@@ -350,6 +353,8 @@ export class Main {
       try {
         localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
         this.settings = newSettings;
+        this.themeManager.apply(newSettings.theme);
+        this.settingsManager?.updateSettings(newSettings);
         if (this.floatingViewManager) {
             this.floatingViewManager.applySettingsChange(newSettings);
         }
@@ -360,11 +365,7 @@ export class Main {
    }
 
   private applySettings(): void {
-    if (this.settings.theme === "dark") {
-      document.body.classList.add("dark-theme");
-    } else {
-      document.body.classList.remove("dark-theme");
-    }
+    this.themeManager.apply(this.settings.theme);
     console.log("Global settings applied.");
   }
 

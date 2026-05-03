@@ -1,6 +1,7 @@
 import { SidebarView } from "./sidebar_view";
 import { FloatingViewManager } from '../floating_views/floating_view_manager';
 import { AppSettings, loadSettings, SETTINGS_STORAGE_KEY } from "../settings";
+import { ThemeManager } from "../theme_manager";
 import { registerCategory, getCategory } from "../feature_registry";
 import { GuitarCategory } from "../guitar/guitar_category";
 import { SettingsManager } from "../settings_manager";
@@ -15,6 +16,7 @@ class ReferencePage {
     private settings: AppSettings;
     private settingsManager: SettingsManager;
     private sidebarView: SidebarView | null = null;
+    private themeManager: ThemeManager;
 
     constructor() {
         registerCategory(new GuitarCategory());
@@ -40,6 +42,7 @@ class ReferencePage {
         });
 
         this.settings = loadSettings();
+        this.themeManager = new ThemeManager(this.settings.theme);
 
         this.floatingViewManager = new FloatingViewManager(this.settings, 'floatingViewStates_reference');
 
@@ -66,15 +69,16 @@ class ReferencePage {
                 sidebarContainer,
                 (viewId, featureTypeName) => this.handleFeatureClick(viewId, featureTypeName),
                 this.floatingViewManager,
-                this.settings
+                this.settings,
+                (theme) => this.handleThemeChange(theme)
             );
         }
 
         // Settings button is re-rendered inside sidebar on each refresh, so wire it up after render.
         this._wireSettingsButton();
 
-        this.floatingViewManager.restoreViewsFromState();
         this.applySettings();
+        this.floatingViewManager.restoreViewsFromState();
     }
 
     private _wireSettingsButton(): void {
@@ -101,6 +105,8 @@ class ReferencePage {
         try {
             localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(newSettings));
             this.settings = newSettings;
+            this.themeManager.apply(newSettings.theme);
+            this.settingsManager?.updateSettings(newSettings);
             if (this.floatingViewManager) {
                 this.floatingViewManager.applySettingsChange(newSettings);
             }
@@ -115,12 +121,14 @@ class ReferencePage {
         }
     }
 
+    private handleThemeChange(theme: 'warm' | 'dark' | 'forest'): void {
+        const newSettings = { ...this.settings, theme };
+        this.saveSettings(newSettings);
+        this.applySettings();
+    }
+
     private applySettings(): void {
-        if (this.settings.theme === "dark") {
-            document.body.classList.add("dark-theme");
-        } else {
-            document.body.classList.remove("dark-theme");
-        }
+        this.themeManager.apply(this.settings.theme);
     }
 }
 

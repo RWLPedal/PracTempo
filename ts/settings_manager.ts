@@ -39,8 +39,9 @@ const GLOBAL_SETTINGS_HTML = `
   <div class="field-label is-normal"><label class="label">Theme</label></div>
   <div class="field-body"><div class="field"><div class="control">
       <div class="select is-fullwidth"><select id="theme-select">
-          <option value="light">Light</option>
+          <option value="warm">Warm</option>
           <option value="dark">Dark</option>
+          <option value="forest">Forest</option>
       </select></div>
   </div></div></div>
 </div>
@@ -89,6 +90,14 @@ export class SettingsManager {
 
     public isOpen(): boolean {
         return this.modalEl?.classList.contains('is-active') ?? false;
+    }
+
+    public updateSettings(settings: AppSettings): void {
+        this.settings = settings;
+        if (this.isOpen()) {
+            const themeSelect = this.modalEl?.querySelector('#theme-select') as HTMLSelectElement | null;
+            if (themeSelect) themeSelect.value = settings.theme;
+        }
     }
 
     private populate(): void {
@@ -274,7 +283,7 @@ export class SettingsManager {
         const newSettings: AppSettings = JSON.parse(JSON.stringify(this.settings));
 
         // 1. Update global settings (Theme)
-        newSettings.theme = (this.modalEl.querySelector("#theme-select") as HTMLSelectElement).value as "light" | "dark";
+        newSettings.theme = (this.modalEl.querySelector("#theme-select") as HTMLSelectElement).value as "warm" | "dark" | "forest";
 
         // 2. Update page-specific settings
         if (this.pageType === 'practice') {

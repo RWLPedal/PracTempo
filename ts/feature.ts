@@ -70,6 +70,8 @@ export interface FeatureTypeDescriptor {
    * the listed instrument names. Omit for features that work on all instruments.
    */
   readonly requiredInstruments?: ReadonlyArray<string>;
+  /** When true, the config panel starts collapsed when the view is first opened. */
+  readonly defaultConfigCollapsed?: boolean;
   getConfigurationSchema(): ConfigurationSchema; // How to configure this feature type
   /**
    * Factory method to create an instance of the feature.

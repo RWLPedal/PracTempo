@@ -1,13 +1,13 @@
 /**
  * Guitar color helpers.
  *
- * All colors are derived from the single CHROMATIC_PALETTE defined in
- * color_palette.ts. NOTE_COLORS and INTERVAL_COLORS are kept for backward
- * compatibility with existing consumers.
+ * getNoteColor / getIntervalColor resolve the active theme's CSS custom
+ * properties at call time. NOTE_COLORS and INTERVAL_COLORS are Proxy objects
+ * that do the same thing on property access, so canvas consumers that read
+ * NOTE_COLORS[noteName] always get a current, theme-correct colour string.
  */
 
 import {
-  CHROMATIC_PALETTE,
   NOTE_PALETTE_INDEX,
   INTERVAL_PALETTE_INDEX,
   PALETTE_DEFAULT,
@@ -21,29 +21,52 @@ export {
   getIntervalColor,
 } from "./color_palette";
 
-// --- Note Colors (derived from palette) ---
-export const NOTE_COLORS: { [noteName: string]: string } = {
-  ...Object.fromEntries(
-    Object.entries(NOTE_PALETTE_INDEX).map(([name, idx]) => [
-      name,
-      CHROMATIC_PALETTE[idx],
-    ])
-  ),
-  DEFAULT: PALETTE_DEFAULT,
-};
+// ---------------------------------------------------------------------------
+// Dynamic colour maps
+// ---------------------------------------------------------------------------
 
-// --- Interval Colors (derived from palette) ---
-export const INTERVAL_COLORS: { [intervalLabel: string]: string } = {
-  ...Object.fromEntries(
-    Object.entries(INTERVAL_PALETTE_INDEX).map(([label, idx]) => [
-      label,
-      CHROMATIC_PALETTE[idx],
-    ])
-  ),
-  DEFAULT: PALETTE_DEFAULT,
-};
+const NOTE_COLOR_KEYS = [...Object.keys(NOTE_PALETTE_INDEX), "DEFAULT"];
+const INTERVAL_COLOR_KEYS = [...Object.keys(INTERVAL_PALETTE_INDEX), "DEFAULT"];
 
-// --- Color Scheme Type ---
+function makeColorProxy(
+  resolve: (key: string) => string,
+  keys: string[]
+): { [key: string]: string } {
+  return new Proxy({} as { [key: string]: string }, {
+    get(_t, key: string | symbol) {
+      if (typeof key === "symbol") return undefined;
+      return resolve(key);
+    },
+    has(_t, key) {
+      if (typeof key === "symbol") return false;
+      return keys.includes(key);
+    },
+    ownKeys() {
+      return keys;
+    },
+    getOwnPropertyDescriptor(_t, key) {
+      if (keys.includes(String(key))) {
+        return { configurable: true, enumerable: true, writable: false, value: undefined };
+      }
+      return undefined;
+    },
+  });
+}
+
+export const NOTE_COLORS: { [noteName: string]: string } = makeColorProxy(
+  getNoteColor,
+  NOTE_COLOR_KEYS
+);
+
+export const INTERVAL_COLORS: { [intervalLabel: string]: string } = makeColorProxy(
+  getIntervalColor,
+  INTERVAL_COLOR_KEYS
+);
+
+// ---------------------------------------------------------------------------
+// Color scheme type and dispatcher
+// ---------------------------------------------------------------------------
+
 export type FretboardColorScheme = "simplified" | "note" | "interval";
 
 /**

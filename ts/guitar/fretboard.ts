@@ -709,9 +709,15 @@ export class Fretboard {
           let fgColor = "#eee";
           if (primaryFill !== "transparent") {
             try {
-              const r = parseInt(primaryFill.slice(1, 3), 16);
-              const g = parseInt(primaryFill.slice(3, 5), 16);
-              const b = parseInt(primaryFill.slice(5, 7), 16);
+              let r: number, g: number, b: number;
+              const rgbMatch = primaryFill.match(/rgb\(\s*(\d+),\s*(\d+),\s*(\d+)/);
+              if (rgbMatch) {
+                r = +rgbMatch[1]; g = +rgbMatch[2]; b = +rgbMatch[3];
+              } else {
+                r = parseInt(primaryFill.slice(1, 3), 16);
+                g = parseInt(primaryFill.slice(3, 5), 16);
+                b = parseInt(primaryFill.slice(5, 7), 16);
+              }
               const brightness = (r * 299 + g * 587 + b * 114) / 1000;
               fgColor = brightness > 150 ? "#333" : "#eee";
             } catch (e) {
