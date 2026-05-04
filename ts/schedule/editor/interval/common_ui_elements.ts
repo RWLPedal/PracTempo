@@ -452,12 +452,17 @@ const LAYER_TYPE_LABELS: Record<LayerType, string> = {
   driven: "Driven (linked)",
 };
 
-const DEFAULT_LAYER_COLORS: Record<LayerType, string> = {
-  scale: "#4a90d9",
-  chord: "#e67e22",
-  notes: "#27ae60",
-  driven: "#9b59b6",
+const LAYER_COLOR_VARS: Record<LayerType, string> = {
+  scale:  '--layer-scale',
+  chord:  '--layer-chord',
+  notes:  '--layer-notes',
+  driven: '--layer-driven',
 };
+
+function getDefaultLayerColor(type: LayerType): string {
+  return getComputedStyle(document.documentElement)
+    .getPropertyValue(LAYER_COLOR_VARS[type]).trim();
+}
 
 /** Parses a layer encoded string back into its parts for pre-populating the UI */
 function parseLayerStringForUI(
@@ -739,7 +744,7 @@ export function createLayerListInput(
     // Re-build fields when layer type changes
     typeSelect.addEventListener("change", () => {
       const newType = typeSelect.value as LayerType;
-      colorInput.value = DEFAULT_LAYER_COLORS[newType];
+      colorInput.value = getDefaultLayerColor(newType);
       buildLayerFields(fieldsContainer, newType, data, [], onChange);
       onChange?.();
     });
@@ -767,7 +772,7 @@ export function createLayerListInput(
   addBtn.style.alignSelf = "flex-start";
   addBtn.style.marginTop = "4px";
   addBtn.onclick = () => {
-    addLayerRow("scale", [], DEFAULT_LAYER_COLORS.scale);
+    addLayerRow("scale", [], getDefaultLayerColor("scale"));
     onChange?.();
   };
   listContainer.appendChild(addBtn);

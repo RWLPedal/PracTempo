@@ -33,8 +33,70 @@
   --note-third:   oklch(0.52 0.12 235);
   --note-fifth:   oklch(0.52 0.12 110);
   --note-alt:     #8C7F72;
+
+  --layer-scale:  #507A35;   /* note-fifth feel: olive/sage green */
+  --layer-chord:  #A86030;   /* note-root feel: warm amber */
+  --layer-notes:  #3A5E8A;   /* note-third feel: slate blue */
+  --layer-driven: #8C7F72;   /* note-alt: warm grey */
+
+  /* Drum-machine palette — shared by sound cells and bass-degree cells */
+  --dm-palette-1: #2C4A7C;   /* slate blue  (kick / root) */
+  --dm-palette-2: #8A3818;   /* rust        (snare / 2) */
+  --dm-palette-3: #3A7038;   /* sage green  (hihat / 3) */
+  --dm-palette-4: #5A4888;   /* dusty purple(open-hihat / 4) */
+  --dm-palette-5: #286870;   /* dark teal   (crash / 5) */
+  --dm-palette-6: #705028;   /* warm brown  (tom / 6) */
+  --dm-palette-7: #7A3840;   /* burgundy    (shaker / 7) */
 }
 
+/* ─────────────────────────────────────────────────────────────────
+   INK  —  newsprint greyscale
+   Near-monotone greyscale with a halftone dot background texture.
+   Evokes printed sheet music, newspapers and e-ink displays.
+   Accent hues are deliberately desaturated (chroma ≈ 0) so that
+   colour carries no meaning — all hierarchy is expressed through
+   value (lightness) alone.
+   ───────────────────────────────────────────────────────────────── */
+:root[data-theme="ink"] {
+  --bg:             #F4F1EC;
+  --panel-bg:       #FDFCFA;
+  --sidebar-bg:     #EAE6DF;
+  --settings-bg:    #F0EDE7;
+  --input-bg:       #EAE6DF;
+  --border:         #C8C2B8;
+  --text-primary:   #1A1814;
+  --text-muted:     #7A7268;
+  --text-sidebar:   #3E3A34;
+
+  --accent:         oklch(0.28 0.00 0);     /* near-black */
+  --accent-dim:     oklch(0.45 0.00 0);
+  --accent-warm:    oklch(0.40 0.00 0);
+
+  --note-root:      oklch(0.22 0.00 0);     /* ink black */
+  --note-third:     oklch(0.48 0.00 0);     /* mid grey */
+  --note-fifth:     oklch(0.68 0.00 0);     /* light grey */
+  --note-alt:       oklch(0.55 0.00 0);     /* medium grey */
+
+  /* Layer default colors */
+  --layer-scale:  #384838;   /* dark grey-green */
+  --layer-chord:  #483828;   /* dark grey-brown */
+  --layer-notes:  #283848;   /* dark blue-grey */
+  --layer-driven: #7A7268;   /* medium grey (= text-muted) */
+
+  /* Drum-machine palette */
+  --dm-palette-1: #1C1814;
+  --dm-palette-2: #3A3028;
+  --dm-palette-3: #2A3220;
+  --dm-palette-4: #282830;
+  --dm-palette-5: #203028;
+  --dm-palette-6: #382C20;
+  --dm-palette-7: #585048;
+
+  --pad-off:        #DEDAD3;
+  --shadow:         0 1px 6px  rgba(26,24,20,0.08);
+  --shadow-panel:   0 2px 14px rgba(26,24,20,0.10);
+  --grain:          url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+}
 
 /* ───────────────────────────────────────
    DARK — Near-black · Crimson · Amber Gold
@@ -64,6 +126,21 @@
   --note-third:   oklch(0.72 0.22 65);
   --note-fifth:   oklch(0.65 0.17 95);
   --note-alt:     #7A7265;
+
+  /* Layer default colors */
+  --layer-scale:  #6AAA20;   /* note-fifth feel: bright yellow-green */
+  --layer-chord:  #A84020;   /* note-root feel: crimson-rust */
+  --layer-notes:  #C89028;   /* note-third feel: amber-gold */
+  --layer-driven: #7A7265;   /* note-alt: muted grey */
+
+  /* Drum-machine palette */
+  --dm-palette-1: #4870C0;   /* bright blue   (kick / root) */
+  --dm-palette-2: #C05020;   /* orange-red    (snare / 2) */
+  --dm-palette-3: #40A850;   /* bright green  (hihat / 3) */
+  --dm-palette-4: #8048C0;   /* purple        (open-hihat / 4) */
+  --dm-palette-5: #28A0A8;   /* teal          (crash / 5) */
+  --dm-palette-6: #A07828;   /* gold          (tom / 6) */
+  --dm-palette-7: #C03060;   /* crimson       (shaker / 7) */
 }
 
 
@@ -95,6 +172,21 @@
   --note-third:   oklch(0.7 0.14 52);
   --note-fifth:   oklch(0.62 0.14 230);
   --note-alt:     #607A82;
+
+  /* Layer default colors */
+  --layer-scale:  #28A080;   /* note-root feel: pine teal */
+  --layer-chord:  #B08030;   /* note-third feel: cedar amber */
+  --layer-notes:  #3080A8;   /* note-fifth feel: cerulean */
+  --layer-driven: #607A82;   /* note-alt: slate mist */
+
+  /* Drum-machine palette */
+  --dm-palette-1: #2870A0;   /* deep teal-blue (kick / root) */
+  --dm-palette-2: #806030;   /* cedar amber    (snare / 2) */
+  --dm-palette-3: #287858;   /* forest green   (hihat / 3) */
+  --dm-palette-4: #604898;   /* indigo         (open-hihat / 4) */
+  --dm-palette-5: #288878;   /* moss teal      (crash / 5) */
+  --dm-palette-6: #684A28;   /* bark           (tom / 6) */
+  --dm-palette-7: #804058;   /* berry          (shaker / 7) */
 }
 
 /* ───────────────────────────────────────
@@ -126,4 +218,19 @@
   --note-third:   #5fe100;
   --note-fifth:   #00d8ee;
   --note-alt:     #e1c5c4;
+
+  /* Layer default colors */
+  --layer-scale:  #c467ff;   /* note-root: electric violet */
+  --layer-chord:  #5fe100;   /* note-third: neon green */
+  --layer-notes:  #00d8ee;   /* note-fifth: neon cyan */
+  --layer-driven: #8060B0;   /* dim violet */
+
+  /* Drum-machine palette */
+  --dm-palette-1: #2040C8;   /* electric blue  (kick / root) */
+  --dm-palette-2: #E04010;   /* neon orange-red (snare / 2) */
+  --dm-palette-3: #10A830;   /* neon green      (hihat / 3) */
+  --dm-palette-4: #8820C8;   /* neon purple     (open-hihat / 4) */
+  --dm-palette-5: #10A8C8;   /* neon cyan       (crash / 5) */
+  --dm-palette-6: #C09010;   /* neon gold       (tom / 6) */
+  --dm-palette-7: #D01858;   /* neon pink       (shaker / 7) */
 }

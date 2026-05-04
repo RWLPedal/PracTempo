@@ -2,8 +2,7 @@ import { FloatingViewManager } from '../floating_views/floating_view_manager';
 import { VolumeControl } from '../views/volume_control';
 import { AppSettings, getCategorySettings } from '../settings';
 import { GuitarSettings } from '../guitar/guitar_settings';
-
-type Theme = 'warm' | 'dark' | 'forest' | 'neon';
+import { Theme, themeNames } from '../theme_manager';
 
 interface NavButton {
     id: string;
@@ -76,7 +75,7 @@ export class SidebarView {
     }
 
     private getCurrentTheme(): Theme {
-        return (this.appSettings?.theme as Theme) ?? 'warm';
+        return (this.appSettings?.theme as Theme) ?? Theme.WARM;
     }
 
     private render(): void {
@@ -112,13 +111,7 @@ export class SidebarView {
 
         html += `</nav>`;
 
-        const themes: { key: Theme; title: string }[] = [
-            { key: 'warm',   title: 'Warm'   },
-            { key: 'dark',   title: 'Dark'   },
-            { key: 'forest', title: 'Forest' },
-            { key: 'neon',   title: 'Neon' },
-        ];
-        const swatchesHtml = themes.map(t =>
+        const swatchesHtml = themeNames.map(t =>
             `<button class="theme-swatch theme-swatch--${t.key}${currentTheme === t.key ? ' is-active' : ''}"
                 data-theme="${t.key}" title="${t.title}"></button>`
         ).join('');

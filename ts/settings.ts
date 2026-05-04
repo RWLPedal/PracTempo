@@ -5,6 +5,8 @@ import {
 } from "./feature_registry";
 import { PracticeSettings, DEFAULT_PRACTICE_SETTINGS } from "./practice_settings";
 import { ReferenceSettings, DEFAULT_REFERENCE_SETTINGS } from "./reference_settings";
+import { Theme } from "./theme_manager";
+
 // --- FeatureCategoryName enum is removed ---
 
 /** Defines the structure for category-specific settings (keyed by category name string). */
@@ -14,7 +16,7 @@ export interface CategorySettingsMap {
 
 /** Defines the structure for all application-level settings. */
 export interface AppSettings {
-  theme: "warm" | "dark" | "forest" | "neon";
+  theme: Theme;
   practice: PracticeSettings;
   reference: ReferenceSettings;
   categorySettings: CategorySettingsMap;
@@ -22,7 +24,7 @@ export interface AppSettings {
 
 /** Initial default values for *global* settings (excluding category-specific ones). */
 export const BASE_DEFAULT_SETTINGS: Omit<AppSettings, "categorySettings"> = {
-  theme: "warm",
+  theme: Theme.WARM,
   practice: DEFAULT_PRACTICE_SETTINGS,
   reference: DEFAULT_REFERENCE_SETTINGS,
 };
@@ -52,7 +54,7 @@ export function loadSettings(): AppSettings {
 
       // Merge top-level settings (theme); migrate old "light" value to "warm"
       if (parsedStored.theme) {
-        loadedSettings.theme = parsedStored.theme === 'light' ? 'warm' : parsedStored.theme;
+        loadedSettings.theme = parsedStored.theme;
       }
 
       // Merge nested page-specific settings

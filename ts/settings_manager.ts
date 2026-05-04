@@ -1,5 +1,6 @@
 import { AppSettings } from "./settings";
 import { getAvailableCategories, getDefaultGlobalSettingsForCategory } from "./feature_registry";
+import { Theme } from "./theme_manager";
 
 type PageType = 'practice' | 'reference';
 type SaveCallback = (newSettings: AppSettings) => void;
@@ -284,7 +285,7 @@ export class SettingsManager {
         const newSettings: AppSettings = JSON.parse(JSON.stringify(this.settings));
 
         // 1. Update global settings (Theme)
-        newSettings.theme = (this.modalEl.querySelector("#theme-select") as HTMLSelectElement).value as "warm" | "dark" | "forest";
+        newSettings.theme = (this.modalEl.querySelector("#theme-select") as HTMLSelectElement).value as Theme;
 
         // 2. Update page-specific settings
         if (this.pageType === 'practice') {

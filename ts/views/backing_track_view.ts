@@ -35,12 +35,6 @@ interface DrumPreset {
 // ─── Chord progression helpers ─────────────────────────────────────────────────
 // CHORD_ROOTS, MAJOR_ROMANS, MINOR_ROMANS are imported from chord_key_resolver.ts
 
-const CHORD_SUFFIX_COLOR: Record<string, string> = {
-  MAJ:  '#2C4A7C',
-  MIN:  '#4E7FBA',
-  MAJ7: '#7B6EA8',
-  MIN7: '#5B9AB0',
-};
 
 function chordToneFreq(toneName: string, octave: number): number {
   const idx = CHORD_ROOTS.indexOf(toneName);
@@ -55,13 +49,13 @@ const MAJOR_SCALE_SEMITONES = [0, 2, 4, 5, 7, 9, 11];
 const MINOR_SCALE_SEMITONES = [0, 2, 3, 5, 7, 8, 10];
 
 const BASS_DEGREE_COLORS: Record<number, string> = {
-  1: '#2D5A27',
-  2: '#3A7032',
-  3: '#47863D',
-  4: '#3A7055',
-  5: '#2D5A44',
-  6: '#3A7065',
-  7: '#2A4A3A',
+  1: 'var(--dm-palette-1)',
+  2: 'var(--dm-palette-2)',
+  3: 'var(--dm-palette-3)',
+  4: 'var(--dm-palette-4)',
+  5: 'var(--dm-palette-5)',
+  6: 'var(--dm-palette-6)',
+  7: 'var(--dm-palette-7)',
 };
 
 // ─── Constants ─────────────────────────────────────────────────────────────────
@@ -69,13 +63,13 @@ const BASS_DEGREE_COLORS: Record<number, string> = {
 const NUM_TRACKS = 4;
 
 const SOUND_COLORS: Record<DrumSoundId, string> = {
-  kick:       '#2C4A7C',
-  snare:      '#4E7FBA',
-  hihat:      '#7A96A8',
-  open_hihat: '#5B9AB0',
-  crash:      '#7B6EA8',
-  tom:        '#5C7A3A',
-  shaker:     '#8B7355',
+  kick:       'var(--dm-palette-1)',
+  snare:      'var(--dm-palette-2)',
+  hihat:      'var(--dm-palette-3)',
+  open_hihat: 'var(--dm-palette-4)',
+  crash:      'var(--dm-palette-5)',
+  tom:        'var(--dm-palette-6)',
+  shaker:     'var(--dm-palette-7)',
 };
 
 // ─── Preset library ────────────────────────────────────────────────────────────
@@ -712,7 +706,7 @@ export class BackingTrackView implements View {
 
   private updateBassCellAppearance(cell: HTMLElement, degree: BassStep): void {
     if (degree !== null) {
-      cell.style.background = BASS_DEGREE_COLORS[degree] ?? '#2D5A27';
+      cell.style.background = BASS_DEGREE_COLORS[degree] ?? 'var(--dm-palette-1)';
       cell.textContent      = String(degree);
       cell.classList.add('dm-cell-filled');
       cell.title = `Scale degree ${degree}`;
@@ -730,11 +724,10 @@ export class BackingTrackView implements View {
       const entry = romans.find(r => r.roman === chord);
       const chordKey = entry ? this.resolveChordKey(entry) : null;
       const chordName = chordKey ? (chord_tones_library[chordKey]?.name ?? chord) : chord;
-      const color = CHORD_SUFFIX_COLOR[entry?.suffix ?? 'MAJ'] ?? '#2C4A7C';
 
       cell.textContent = chord;
       cell.title       = chordName;
-      cell.style.setProperty('--dm-measure-color', color);
+      cell.style.setProperty('--dm-measure-color', 'var(--accent-dim)');
       cell.classList.add('dm-measure-filled');
     } else {
       cell.textContent = '';

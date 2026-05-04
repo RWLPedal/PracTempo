@@ -1,7 +1,7 @@
 import { SidebarView } from "./sidebar_view";
 import { FloatingViewManager } from '../floating_views/floating_view_manager';
 import { AppSettings, loadSettings, SETTINGS_STORAGE_KEY } from "../settings";
-import { ThemeManager } from "../theme_manager";
+import { ThemeManager, Theme } from "../theme_manager";
 import { registerCategory, getCategory } from "../feature_registry";
 import { GuitarCategory } from "../guitar/guitar_category";
 import { SettingsManager } from "../settings_manager";
@@ -36,7 +36,7 @@ class ReferencePage {
             viewId: "drum_machine",
             displayName: "Backing Track",
             categoryName: "General",
-            defaultWidth: 580,
+            defaultWidth: 585,
             defaultHeight: 300,
             createView: (initialState?: any) => new BackingTrackView(initialState),
         });
@@ -121,7 +121,7 @@ class ReferencePage {
         }
     }
 
-    private handleThemeChange(theme: 'warm' | 'dark' | 'forest' | 'neon'): void {
+    private handleThemeChange(theme: Theme): void {
         const newSettings = { ...this.settings, theme };
         this.saveSettings(newSettings);
         this.applySettings();
