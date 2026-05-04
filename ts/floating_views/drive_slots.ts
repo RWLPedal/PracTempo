@@ -11,36 +11,6 @@ import {
   MAJOR_ROMANS,
   MINOR_ROMANS,
 } from '../guitar/chord_key_resolver';
-import { chord_library } from '../guitar/chords';
-
-/**
- * Converts a chord_tones_library key (e.g. "C_MAJ", "A_MIN7") to the
- * chord_library key format (e.g. "C_MAJOR", "AM7"). Returns null when
- * no matching entry exists in chord_library.
- */
-function chordToneKeyToLibraryKey(toneKey: string | null): string | null {
-  if (!toneKey) return null;
-  const sep = toneKey.indexOf('_');
-  if (sep === -1) return null;
-  const root   = toneKey.slice(0, sep);
-  const suffix = toneKey.slice(sep + 1);
-
-  let candidate: string;
-  if (suffix === 'MAJ') {
-    candidate = `${root.replace('#', 'sharp')}_MAJOR`;
-  } else if (suffix === 'MIN') {
-    candidate = `${root.replace('#', 'sharp')}_MINOR`;
-  } else if (suffix === 'DOM7') {
-    candidate = `${root}7`;
-  } else if (suffix === 'MAJ7') {
-    candidate = `${root}MAJ7`;
-  } else if (suffix === 'MIN7') {
-    candidate = `${root}M7`;
-  } else {
-    return null;
-  }
-  return (chord_library as Record<string, unknown>)[candidate] ? candidate : null;
-}
 
 // ─── BackingTrackView as source ───────────────────────────────────────────────
 // viewId must match the registered floating view id for the backing track.
@@ -113,17 +83,38 @@ registerDriveSource({
 });
 
 // ─── ChordFeature as target ───────────────────────────────────────────────────
-// Drives the 'Chord' arg with an absolute chord key from any ChordSignal.
+// Drives the 'Root' and 'Type' args from any ChordSignal.
 
 registerDriveTarget({
   featureTypeName: 'Chord',
-  argName: 'Chord',
-  label: 'Chord (from linked source)',
+  argName: 'Root',
+  label: 'Root note (from linked source)',
   acceptedKinds: [SignalKind.Chord],
   resolveValue(signal: DriveSignal): string | null {
     if (signal.kind !== SignalKind.Chord) return null;
-    // chord_tones_library keys (e.g. "C_MAJ") differ from chord_library keys ("C_MAJOR")
-    return chordToneKeyToLibraryKey(signal.chordKey);
+    return signal.rootNote || null;
+  },
+});
+
+registerDriveTarget({
+  featureTypeName: 'Chord',
+  argName: 'Type',
+  label: 'Chord type (from linked source)',
+  acceptedKinds: [SignalKind.Chord],
+  resolveValue(signal: DriveSignal): string | null {
+    if (signal.kind !== SignalKind.Chord) return null;
+    if (signal.chordKey) {
+      const sep = signal.chordKey.indexOf('_');
+      if (sep !== -1) {
+        const suffix = signal.chordKey.slice(sep + 1);
+        const suffixMap: Record<string, string> = {
+          MAJ: 'Major', MIN: 'Minor', DOM7: '7', MAJ7: 'Maj7', MIN7: 'Min7',
+        };
+        const resolved = suffixMap[suffix];
+        if (resolved) return resolved;
+      }
+    }
+    return signal.keyType === 'Major' ? 'Major' : 'Minor';
   },
 });
 

@@ -19,7 +19,6 @@ This file tracks planned features, improvements, and bug fixes for PracTempo.
 *   Add fretboard visualization modes (e.g., "magic squares", blocks).
 *   Increase the size of the chord diagram display area.
 *   Validate existing scales, make sure scales are correct and useful.
-*   Add more chords. Support multiple chord representations/voicings.
 *   Find a suitable TAB format and implement TAB display.
 *   Add rendering/color scheme for CAGED positions.
 *   Add a training mode for specific CAGED positions.
@@ -29,7 +28,6 @@ This file tracks planned features, improvements, and bug fixes for PracTempo.
 *   Support display of licks/TAB notation snippets.
 *   Clean up and better define functionality that shows important notes over chord changes.
 *   Implement sounds on the fretboard (clickable fretboard).
-*   Add moveable chords for mandola and mandolin.
 
 ## Infrastructure & Development
 
