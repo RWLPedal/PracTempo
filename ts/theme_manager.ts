@@ -1,4 +1,4 @@
-export type Theme = 'warm' | 'dark' | 'forest';
+export type Theme = 'warm' | 'dark' | 'forest' | 'neon';
 type ThemeListener = (theme: Theme) => void;
 
 export class ThemeManager {

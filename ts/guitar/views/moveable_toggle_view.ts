@@ -1,8 +1,8 @@
 import { View } from "../../view";
 import { Chord } from "../chords";
-import { FretboardConfig } from "../fretboard";
+import { FretboardConfig, InstrumentName } from "../fretboard";
 import { ChordDiagramView } from "./chord_diagram_view";
-import { getMoveableGuitarShapes } from "../moveable_shapes";
+import { getMoveableShapes } from "../moveable_shapes";
 import { clearAllChildren } from "../guitar_utils";
 
 /**
@@ -18,22 +18,23 @@ export class MoveableToggleView implements View {
   private readonly moveableViews: ChordDiagramView[];
   readonly hasMoveableShapes: boolean;
 
-  constructor(chords: ReadonlyArray<Chord>, fretboardConfig: FretboardConfig, initialIsMoveable: boolean = false) {
+  constructor(chords: ReadonlyArray<Chord>, fretboardConfig: FretboardConfig, initialIsMoveable: boolean = false, instrumentName: InstrumentName = "Guitar") {
     this.isMoveable = initialIsMoveable;
     this.staticViews = chords.map(
       (c) => new ChordDiagramView(c, c.name, fretboardConfig)
     );
 
-    const moveableResults = chords.flatMap((c) =>
-      getMoveableGuitarShapes(c.name, fretboardConfig.tuning)
+    const moveableResults = ([] as ReturnType<typeof getMoveableShapes>).concat(
+      ...Array.from(chords).map((c: Chord) =>
+        getMoveableShapes(instrumentName, c.name, fretboardConfig.tuning, c.chordType)
+      )
     );
 
     this.moveableViews = moveableResults.map(
-      (r) =>
-        new ChordDiagramView(r.chord, r.title, fretboardConfig, {
-          stringIndex: r.rootStringIndex,
-          fret: r.rootFret,
-        })
+      (r) => new ChordDiagramView(r.chord, r.title, fretboardConfig, {
+        stringIndex: r.rootStringIndex,
+        fret: r.rootFret,
+      })
     );
 
     this.hasMoveableShapes = this.moveableViews.length > 0;

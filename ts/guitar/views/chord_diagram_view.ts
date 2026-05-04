@@ -188,9 +188,10 @@ export class ChordDiagramView implements View {
       for (const spec of this.chord.barre) {
         barreData.push({ fret: spec.fret, stringStart: spec.stringStart, stringEnd: spec.stringEnd });
       }
-      // Remove individual note circles that lie on a barre (the bar itself shows them)
+      // Remove individual note circles that lie on a barre (the bar itself shows them).
+      // Muted strings are always kept; open (fret 0) notes can be covered by a nut barre.
       finalNotes = notesData.filter((note) => {
-        if (note.fret <= 0) return true; // open/muted always shown
+        if (note.fret === -1) return true;
         return !this.chord.barre!.some(
           (spec) =>
             note.fret === spec.fret &&

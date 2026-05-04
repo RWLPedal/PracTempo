@@ -96,3 +96,34 @@
   --note-fifth:   oklch(0.62 0.14 230);
   --note-alt:     #607A82;
 }
+
+/* ───────────────────────────────────────
+   FOREST — Pacific NW · Pine Teal · Cedar
+   ─────────────────────────────────────── */
+[data-theme="neon"] {
+
+  --bg:           #0A0A0F;   /* near-black canvas */
+  --panel-bg:     #0F0F18;   /* floating panel background */
+  --sidebar-bg:   #08080D;   /* nav rail background */
+  --settings-bg:  #13131F;   /* settings drawer / input area */
+  --input-bg:     #13131F;   /* form inputs, select, pills */
+  --pad-off:      #1A1230;   /* unlit drum pads */
+
+  --border:       #2A3C48;
+  --shadow:        0 2px 16px rgba(140, 80, 255, 0.15);
+  --shadow-panel:  0 4px 28px rgba(140, 80, 255, 0.20);
+  --clr-shadow:   rgba(0, 0, 0, 0.45);
+
+  --text-primary: #e8e0ff;
+  --text-muted:   #6a5a9a;
+  --text-sidebar: #b0a0dd;
+
+  --accent:       oklch(0.60 0.13 168);
+  --accent-dim:   oklch(0.48 0.10 168);
+  --accent-warm:  oklch(0.70 0.14 52);
+
+  --note-root:    #c467ff;
+  --note-third:   #5fe100;
+  --note-fifth:   #00d8ee;
+  --note-alt:     #e1c5c4;
+}

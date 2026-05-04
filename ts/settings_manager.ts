@@ -42,6 +42,7 @@ const GLOBAL_SETTINGS_HTML = `
           <option value="warm">Warm</option>
           <option value="dark">Dark</option>
           <option value="forest">Forest</option>
+          <option value="neon">Neon</option>
       </select></div>
   </div></div></div>
 </div>

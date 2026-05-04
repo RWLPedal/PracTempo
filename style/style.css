@@ -1329,6 +1329,7 @@ body.dark-theme .color-swatch { border-color: rgba(255, 255, 255, 0.20); }
 .theme-swatch--warm   { background: #C4902A; border-color: #B07A18; }
 .theme-swatch--dark   { background: #C03820; border-color: #8A2010; }
 .theme-swatch--forest { background: #3D9E7A; border-color: #2A7A5C; }
+.theme-swatch--neon { background: #8b30ff; border-color: #8b30ff; }
 
 .sidebar-tools-bar {
   display: flex;

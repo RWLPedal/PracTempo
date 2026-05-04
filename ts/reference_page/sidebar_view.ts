@@ -3,7 +3,7 @@ import { VolumeControl } from '../views/volume_control';
 import { AppSettings, getCategorySettings } from '../settings';
 import { GuitarSettings } from '../guitar/guitar_settings';
 
-type Theme = 'warm' | 'dark' | 'forest';
+type Theme = 'warm' | 'dark' | 'forest' | 'neon';
 
 interface NavButton {
     id: string;
@@ -116,6 +116,7 @@ export class SidebarView {
             { key: 'warm',   title: 'Warm'   },
             { key: 'dark',   title: 'Dark'   },
             { key: 'forest', title: 'Forest' },
+            { key: 'neon',   title: 'Neon' },
         ];
         const swatchesHtml = themes.map(t =>
             `<button class="theme-swatch theme-swatch--${t.key}${currentTheme === t.key ? ' is-active' : ''}"

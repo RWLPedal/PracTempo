@@ -296,7 +296,7 @@ export class BackingTrackView implements View {
 
       this.bpmSliderEl       = document.createElement('input');
       this.bpmSliderEl.type  = 'range';
-      this.bpmSliderEl.min   = '60';
+      this.bpmSliderEl.min   = '30';
       this.bpmSliderEl.max   = '200';
       this.bpmSliderEl.value = String(this.bpm);
       this.bpmSliderEl.classList.add('dm-bpm-slider');

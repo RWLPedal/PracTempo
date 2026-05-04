@@ -6,11 +6,20 @@ import {
   ConfigurationSchemaArg,
 } from "../../feature";
 import { GuitarFeature } from "../guitar_base";
-import { Chord, chord_library, ukulele_chord_library, mandolin_chord_library, mandola_chord_library, getChordLibraryForInstrument } from "../chords";
+import {
+  Chord,
+  ChordType,
+  CHORD_TYPE_SORT_ORDER,
+  CHORD_LIBRARIES,
+  getChordLibraryForInstrument,
+  findChordByRootAndType,
+} from "../chords";
 import { AudioController } from "../../audio_controller";
 import { AppSettings, getCategorySettings } from "../../settings";
 import { ChordDiagramView } from "../views/chord_diagram_view";
 import { MoveableToggleView } from "../views/moveable_toggle_view";
+import { MOVEABLE_CHORD_LIBRARIES, getEasiestMoveableShape } from "../moveable_shapes";
+import { AVAILABLE_TUNINGS, STANDARD_TUNING } from "../fretboard";
 import { addHeader, clearAllChildren } from "../guitar_utils";
 import { GuitarSettings, GUITAR_SETTINGS_KEY, DEFAULT_GUITAR_SETTINGS } from "../guitar_settings";
 // Import generic and specific interval settings types
@@ -55,8 +64,8 @@ export class ChordFeature extends GuitarFeature {
 
     const guitarSettings = getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ?? DEFAULT_GUITAR_SETTINGS;
 
-    if (guitarSettings.instrument === "Guitar") {
-      this.moveableView = new MoveableToggleView(chords, this.fretboardConfig, this.isMoveable);
+    if (guitarSettings.instrument in MOVEABLE_CHORD_LIBRARIES) {
+      this.moveableView = new MoveableToggleView(chords, this.fretboardConfig, this.isMoveable, guitarSettings.instrument);
       this._views.push(this.moveableView);
     } else {
       // Other instruments: static chord diagrams only.
@@ -68,22 +77,31 @@ export class ChordFeature extends GuitarFeature {
 
   // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
-    const allChordKeys = [
-      ...new Set([
-        ...Object.keys(chord_library),
-        ...Object.keys(ukulele_chord_library),
-        ...Object.keys(mandolin_chord_library),
-        ...Object.keys(mandola_chord_library),
-      ]),
-    ];
+    // Collect root notes present in any library, in chromatic order.
+    const NOTE_ORDER = ['A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
+    const seenRoots = new Set<string>();
+    for (const lib of Object.values(CHORD_LIBRARIES)) {
+      for (const chord of Object.values(lib)) {
+        if (chord.rootKey) seenRoots.add(chord.rootKey);
+      }
+    }
+    const availableRoots = NOTE_ORDER.filter(n => seenRoots.has(n));
+    const chordTypes = CHORD_TYPE_SORT_ORDER.map(t => t as string);
+
     const specificArgs: ConfigurationSchemaArg[] = [
       {
-        name: "Chord",
+        name: "Root",
         type: "enum",
         required: true,
-        enum: allChordKeys,
-        description: "Select one or more chords. Available chords depend on the selected instrument.",
-        isVariadic: true,
+        enum: availableRoots,
+        description: "Root note of the chord.",
+      },
+      {
+        name: "Type",
+        type: "enum",
+        required: true,
+        enum: chordTypes,
+        description: "Chord quality. Available chords depend on the selected instrument.",
       },
       {
         name: "Moveable",
@@ -93,64 +111,76 @@ export class ChordFeature extends GuitarFeature {
       },
     ];
     return {
-      description: `Config: ${this.typeName},ChordName1[,ChordName2,...][,GuitarSettings]`,
+      description: `Config: ${this.typeName},Root,Type[,GuitarSettings]`,
       args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
-  // **** UPDATED createFeature Signature ****
   static createFeature(
     config: ReadonlyArray<string>,
     audioController: AudioController,
     settings: AppSettings,
-    intervalSettings: IntervalSettings, // <<< CHANGED: Accept generic base type
+    intervalSettings: IntervalSettings,
     maxCanvasHeight: number | undefined,
-    categoryName: string // <<< ADDED: Accept category name string
+    categoryName: string
   ): Feature {
-    // The last config value is 'true'/'false' (Moveable checkbox) in new-format configs.
-    // Old configs contain only chord names, so we check before consuming.
     const lastVal = config.length > 0 ? config[config.length - 1] : null;
     const hasMode = lastVal === 'true' || lastVal === 'false';
-    const chordKeys = hasMode ? config.slice(0, -1) : config;
+    const effectiveConfig = hasMode ? Array.from(config.slice(0, -1)) : Array.from(config);
 
-    if (chordKeys.length < 1) {
-      throw new Error(
-        `Invalid config for ${this.typeName}. Expected at least one ChordName.`
-      );
+    if (effectiveConfig.length < 1) {
+      throw new Error(`Invalid config for ${this.typeName}. Expected Root and Type.`);
     }
+
     const guitarSettings = getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ?? DEFAULT_GUITAR_SETTINGS;
     const library = getChordLibraryForInstrument(guitarSettings.instrument);
     const chords: Chord[] = [];
-    chordKeys.forEach((chordKey) => {
-      const chord = library[chordKey];
+
+    // New format: config[0] is a root note like "A", "Bb", "F#".
+    // Old format: config[0] is a library key like "A_MAJOR", "A7".
+    const isNewFormat = /^[A-G][b#]?$/.test(effectiveConfig[0]);
+
+    if (isNewFormat) {
+      const rootNote = effectiveConfig[0];
+      const typeName = effectiveConfig[1] ?? ChordType.MAJOR;
+      let chord = findChordByRootAndType(library, rootNote, typeName);
+      if (!chord) {
+        const tuning = AVAILABLE_TUNINGS[guitarSettings.tuning] ?? STANDARD_TUNING;
+        const result = getEasiestMoveableShape(
+          guitarSettings.instrument,
+          `${rootNote} ${typeName}`,
+          tuning,
+          typeName as ChordType
+        );
+        if (result) chord = result.chord;
+      }
       if (chord) {
         chords.push(chord);
       } else {
-        console.warn(
-          `[${this.typeName}] Unknown chord key for ${guitarSettings.instrument}: "${chordKey}". Skipping.`
-        );
+        console.warn(`[${this.typeName}] No "${typeName}" chord for root "${rootNote}" in ${guitarSettings.instrument} library.`);
       }
-    });
-    if (chords.length === 0) {
-      throw new Error(
-        `[${this.typeName}] No valid chords found in config: ${config.join(
-          ","
-        )}`
-      );
+    } else {
+      // Backward compat: treat each value as a library key.
+      effectiveConfig.forEach((key) => {
+        const chord = library[key];
+        if (chord) {
+          chords.push(chord);
+        } else {
+          console.warn(`[${this.typeName}] Unknown chord key for ${guitarSettings.instrument}: "${key}". Skipping.`);
+        }
+      });
     }
 
-    // --- Type Assertion for Constructor ---
-    // We assert that the intervalSettings object passed in is actually
-    // GuitarIntervalSettings because the ScheduleBuilder should have used the
-    // correct parser registered by the GuitarCategory.
-    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
-    // --- End Type Assertion ---
+    if (chords.length === 0) {
+      throw new Error(`[${this.typeName}] No valid chord found in config: ${config.join(",")}`);
+    }
 
+    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
     return new ChordFeature(
-      chordKeys, // Pass only the chord keys as the specific config
+      effectiveConfig,
       chords,
       settings,
-      guitarIntervalSettings, // Pass the asserted specific type
+      guitarIntervalSettings,
       audioController,
       maxCanvasHeight
     );

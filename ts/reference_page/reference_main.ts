@@ -121,7 +121,7 @@ class ReferencePage {
         }
     }
 
-    private handleThemeChange(theme: 'warm' | 'dark' | 'forest'): void {
+    private handleThemeChange(theme: 'warm' | 'dark' | 'forest' | 'neon'): void {
         const newSettings = { ...this.settings, theme };
         this.saveSettings(newSettings);
         this.applySettings();

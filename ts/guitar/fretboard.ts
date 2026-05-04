@@ -621,12 +621,15 @@ export class Fretboard {
 
     this.barresToRender.forEach((barre) => {
       const displayFret = barre.fret - this.startFret;
-      if (displayFret < 1 || displayFret > this.fretCount) return;
+      // displayFret === 0 with startFret === 0 means a nut barre (open-position shape).
+      // getNoteCoordinates(str, 0) returns the open-note area above the nut, which is
+      // the correct "behind the nut" position for these shapes.
+      if (displayFret === 0 && this.startFret !== 0) return;
+      if (displayFret < 0 || displayFret > this.fretCount) return;
 
       const p1 = this.getNoteCoordinates(barre.stringStart, barre.fret);
       const p2 = this.getNoteCoordinates(barre.stringEnd, barre.fret);
       const { x, y, w, h } = this._expandedBBox(p1, p2, noteRadius + padding);
-      // Pill shape: corner radius = half the short side
       const cornerRadius = Math.min(w, h) / 2;
 
       ctx.save();
@@ -700,7 +703,7 @@ export class Fretboard {
 
           // Determine Stroke Color
           let finalStrokeColor: string | string[] =
-            noteData.strokeColor || "black";
+            noteData.strokeColor || "#777";
 
           // Determine FG color (for text/icon) based on primary fill
           const primaryFill = Array.isArray(finalFillColor)

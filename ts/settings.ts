@@ -14,7 +14,7 @@ export interface CategorySettingsMap {
 
 /** Defines the structure for all application-level settings. */
 export interface AppSettings {
-  theme: "warm" | "dark" | "forest";
+  theme: "warm" | "dark" | "forest" | "neon";
   practice: PracticeSettings;
   reference: ReferenceSettings;
   categorySettings: CategorySettingsMap;
