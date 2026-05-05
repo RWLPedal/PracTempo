@@ -295,6 +295,7 @@ export class ChordDiagramView implements View {
       this.canvas = null;
       return;
     }
+    this.fretboard.attachClickHandler(this.canvas);
 
     // Append the wrapper to the main container
     container.appendChild(this.wrapperDiv);
@@ -322,12 +323,13 @@ export class ChordDiagramView implements View {
   stop(): void {} // No active processes
 
   destroy(): void {
+    this.fretboard?.detachClickHandler();
     if (this.wrapperDiv && this.wrapperDiv.parentNode) {
       this.wrapperDiv.parentNode.removeChild(this.wrapperDiv);
     }
     this.wrapperDiv = null;
     this.canvas = null;
     this.ctx = null;
-    this.fretboard?.clearMarkings(); // Clear data in underlying fretboard
+    this.fretboard?.clearMarkings();
   }
 }

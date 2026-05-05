@@ -90,7 +90,7 @@ export abstract class GuitarFeature implements Feature {
       undefined, // sideNumbers
       stringWidths,
       this.maxCanvasHeight,
-      guitarGlobalSettings.zoomMultiplier ?? 1.0
+      guitarGlobalSettings.zoomMultiplier ?? 1.2
     );
 
     // --- Metronome Handling ---

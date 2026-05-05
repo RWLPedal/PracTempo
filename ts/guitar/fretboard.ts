@@ -4,6 +4,7 @@ import {
   OPEN_NOTE_RADIUS_FACTOR,
 } from "./guitar_utils";
 import { FretboardColorScheme, getColor as getColorFromScheme } from "./colors";
+import { playFrequency } from "../sounds/note_sounds";
 
 export enum NoteIcon {
   None = "none",
@@ -115,7 +116,7 @@ export class FretboardConfig {
     ],
     stringWidths?: number[],
     maxCanvasHeight?: number,
-    globalScaleMultiplier: number = 1.0
+    globalScaleMultiplier: number = 1.2
   ) {
     this.stringWidths = stringWidths ?? defaultStringWidths(tuning.tuning.length);
 
@@ -184,28 +185,32 @@ export class FretboardConfig {
 
 // --- Tuning Definitions ---
 export class Tuning {
-  constructor(public readonly tuning: Array<number>) {}
+  constructor(
+    public readonly tuning: Array<number>,
+    /** MIDI note number for each open string (C4=60, A4=69). Used for audio playback. */
+    public readonly openStringMidi?: ReadonlyArray<number>
+  ) {}
 }
 
 // Guitar tunings (6-string, semitones with A=0)
-export const STANDARD_TUNING              = new Tuning([7, 0, 5, 10, 2, 7]);     // E-A-D-G-B-E
-export const DROP_D_TUNING                = new Tuning([5, 0, 5, 10, 2, 7]);     // D-A-D-G-B-E
-export const BARITONE_B_STANDARD_TUNING   = new Tuning([2, 7, 0, 5, 9, 2]);      // B-E-A-D-F#-B
-export const BARITONE_A_STANDARD_TUNING   = new Tuning([0, 5, 10, 3, 7, 0]);     // A-D-G-C-E-A
+export const STANDARD_TUNING              = new Tuning([7, 0, 5, 10, 2, 7],        [40, 45, 50, 55, 59, 64]); // E-A-D-G-B-E
+export const DROP_D_TUNING                = new Tuning([5, 0, 5, 10, 2, 7],        [38, 45, 50, 55, 59, 64]); // D-A-D-G-B-E
+export const BARITONE_B_STANDARD_TUNING   = new Tuning([2, 7, 0, 5, 9, 2],         [35, 40, 45, 50, 54, 59]); // B-E-A-D-F#-B
+export const BARITONE_A_STANDARD_TUNING   = new Tuning([0, 5, 10, 3, 7, 0],        [33, 38, 43, 48, 52, 57]); // A-D-G-C-E-A
 
 // Bass tunings (4-string)
-export const BASS_STANDARD_TUNING         = new Tuning([7, 0, 5, 10]);           // E-A-D-G
+export const BASS_STANDARD_TUNING         = new Tuning([7, 0, 5, 10],              [28, 33, 38, 43]);          // E-A-D-G
 
 // Ukulele tunings (4-string)
-export const UKULELE_GCEA_TUNING          = new Tuning([10, 3, 7, 0]);           // G-C-E-A
+export const UKULELE_GCEA_TUNING          = new Tuning([10, 3, 7, 0],              [67, 60, 64, 69]);          // G-C-E-A (high G)
 
 // Mandolin-family tunings (4-string, tuned in 5ths)
-export const MANDOLA_TUNING               = new Tuning([3, 10, 5, 0]);           // C-G-D-A
-export const MANDOLIN_TUNING              = new Tuning([10, 5, 0, 7]);           // G-D-A-E
+export const MANDOLA_TUNING               = new Tuning([3, 10, 5, 0],              [48, 55, 62, 69]);          // C-G-D-A
+export const MANDOLIN_TUNING              = new Tuning([10, 5, 0, 7],              [55, 62, 69, 76]);          // G-D-A-E
 
 // Extended-range guitar tunings
-export const GUITAR_7_STANDARD_TUNING     = new Tuning([2, 7, 0, 5, 10, 2, 7]); // B-E-A-D-G-B-E
-export const GUITAR_8_STANDARD_TUNING     = new Tuning([9, 2, 7, 0, 5, 10, 2, 7]); // F#-B-E-A-D-G-B-E
+export const GUITAR_7_STANDARD_TUNING     = new Tuning([2, 7, 0, 5, 10, 2, 7],    [35, 40, 45, 50, 55, 59, 64]);     // B-E-A-D-G-B-E
+export const GUITAR_8_STANDARD_TUNING     = new Tuning([9, 2, 7, 0, 5, 10, 2, 7], [30, 35, 40, 45, 50, 55, 59, 64]); // F#-B-E-A-D-G-B-E
 
 // --- Instrument / Tuning Organization ---
 export type InstrumentName =
@@ -273,6 +278,9 @@ export class Fretboard {
    */
   private horizontalCanvasWidth: number;
 
+  private _clickCanvas: HTMLCanvasElement | null = null;
+  private _clickHandler: ((e: MouseEvent) => void) | null = null;
+
   constructor(
     public readonly config: FretboardConfig,
     public readonly leftPx = 45,
@@ -314,6 +322,57 @@ export class Fretboard {
   /** Sets the starting fret number for the diagram display. */
   public setStartFret(fret: number): void {
     this.startFret = Math.max(0, fret);
+  }
+
+  /** Attaches a click listener to a canvas so note circles play their pitch when clicked. */
+  public attachClickHandler(canvas: HTMLCanvasElement): void {
+    if (this._clickCanvas && this._clickHandler) {
+      this._clickCanvas.removeEventListener("click", this._clickHandler);
+    }
+    this._clickCanvas = canvas;
+    this._clickHandler = (e: MouseEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      this._handleCanvasClick(
+        (e.clientX - rect.left) * scaleX,
+        (e.clientY - rect.top) * scaleY
+      );
+    };
+    canvas.style.cursor = "pointer";
+    canvas.addEventListener("click", this._clickHandler);
+  }
+
+  /** Removes the click listener previously attached by attachClickHandler. */
+  public detachClickHandler(): void {
+    if (this._clickCanvas && this._clickHandler) {
+      this._clickCanvas.removeEventListener("click", this._clickHandler);
+      this._clickCanvas.style.cursor = "";
+      this._clickCanvas = null;
+      this._clickHandler = null;
+    }
+  }
+
+  private _handleCanvasClick(x: number, y: number): void {
+    const hitRadius = this.config.noteRadiusPx * 1.5;
+    for (const note of this.notesToRender) {
+      if (note.fret < 0) continue;
+      const { x: nx, y: ny } = this.getNoteCoordinates(note.stringIndex, note.fret);
+      const dx = x - nx;
+      const dy = y - ny;
+      if (dx * dx + dy * dy <= hitRadius * hitRadius) {
+        this._playNoteSound(note.stringIndex, note.fret);
+        return;
+      }
+    }
+  }
+
+  private _playNoteSound(stringIndex: number, fret: number): void {
+    const midiBase = this.config.tuning.openStringMidi;
+    if (!midiBase || stringIndex >= midiBase.length) return;
+    const midi = midiBase[stringIndex] + fret;
+    const freq = 440 * Math.pow(2, (midi - 69) / 12);
+    playFrequency(freq, { wave: "triangle", duration: 1.2, attack: 0.01, release: 0.4, volume: 0.45 });
   }
 
   // --- Coordinate Transform ---
@@ -411,7 +470,7 @@ export class Fretboard {
     }
 
     // --- Frets & Markers ---
-    ctx.font = textHeight + "px Sans-serif";
+    ctx.font = `400 ${textHeight}px 'DM Mono', monospace`;
     ctx.strokeStyle = "#555";
     ctx.fillStyle = "#aaa";
 
@@ -662,7 +721,7 @@ export class Fretboard {
 
   private _renderNotes(ctx: CanvasRenderingContext2D): void {
     const scaleFactor = this.config.scaleFactor;
-    const baseFontSize = 16 * scaleFactor;
+    const baseFontSize = 18 * scaleFactor;
     const baseNoteRadius = this.config.noteRadiusPx;
     const maxStringIndex = this.config.stringCount - 1;
 
@@ -703,7 +762,7 @@ export class Fretboard {
 
           // Determine Stroke Color
           let finalStrokeColor: string | string[] =
-            noteData.strokeColor || "#777";
+            noteData.strokeColor || "transparent";
 
           // Determine FG color (for text/icon) based on primary fill
           const primaryFill = Array.isArray(finalFillColor)
@@ -764,7 +823,7 @@ export class Fretboard {
             const fontSizeRatio = 0.9;
             const effectiveFontSize = Math.min(
               baseFontSize,
-              effectiveRadius * 2 * fontSizeRatio * 0.6
+              effectiveRadius * 2 * fontSizeRatio * 0.7
             );
             this._drawText(ctx, contentToDraw, x, y, effectiveFontSize, fgColor);
           }
@@ -877,7 +936,7 @@ export class Fretboard {
   ): void {
     ctx.save();
     ctx.fillStyle = color;
-    ctx.font = `bold ${fontSize}px Sans-serif`;
+    ctx.font = `400 ${fontSize}px 'DM Mono', monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     const textYOffset = fontSize * 0.05;

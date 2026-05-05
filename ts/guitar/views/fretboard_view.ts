@@ -81,7 +81,9 @@ export class FretboardView implements View {
     if (!this.ctx) {
       console.error("Failed to get 2D context for FretboardView.");
       this.canvas = null;
+      return;
     }
+    this.fretboard.attachClickHandler(this.canvas);
   }
 
   // --- Public Methods to Pass Data to Fretboard Instance ---
@@ -125,11 +127,12 @@ export class FretboardView implements View {
   stop(): void {} // No dynamic behavior
 
   destroy(): void {
+    this.fretboard.detachClickHandler();
     if (this.canvas && this.canvas.parentNode) {
       this.canvas.parentNode.removeChild(this.canvas);
     }
     this.canvas = null;
     this.ctx = null;
-    this.fretboard.clearMarkings(); // Clear data in underlying fretboard
+    this.fretboard.clearMarkings();
   }
 }

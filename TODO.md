@@ -27,7 +27,6 @@ This file tracks planned features, improvements, and bug fixes for PracTempo.
 *   Add a catalog of fret marker icons (besides stars) and use where appropriate.
 *   Support display of licks/TAB notation snippets.
 *   Clean up and better define functionality that shows important notes over chord changes.
-*   Implement sounds on the fretboard (clickable fretboard).
 
 ## Infrastructure & Development
 
