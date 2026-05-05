@@ -120,6 +120,8 @@ export interface ConfigurationSchemaArg {
   };
   required?: boolean;
   enum?: string[];
+  /** Initial selected value when rendering a fresh (unconfigured) enum selector. Overrides the first enum entry. */
+  defaultValue?: string;
   description?: string;
   example?: string;
   isVariadic?: boolean;

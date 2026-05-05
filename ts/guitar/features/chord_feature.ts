@@ -76,17 +76,11 @@ export class ChordFeature extends GuitarFeature {
   }
 
   // --- Static Methods ---
+  static readonly ALL_TYPES_VALUE = "All";
+
   static getConfigurationSchema(): ConfigurationSchema {
-    // Collect root notes present in any library, in chromatic order.
-    const NOTE_ORDER = ['A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
-    const seenRoots = new Set<string>();
-    for (const lib of Object.values(CHORD_LIBRARIES)) {
-      for (const chord of Object.values(lib)) {
-        if (chord.rootKey) seenRoots.add(chord.rootKey);
-      }
-    }
-    const availableRoots = NOTE_ORDER.filter(n => seenRoots.has(n));
-    const chordTypes = CHORD_TYPE_SORT_ORDER.map(t => t as string);
+    const availableRoots = ['A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
+    const chordTypes = [ChordFeature.ALL_TYPES_VALUE, ...CHORD_TYPE_SORT_ORDER.map(t => t as string)];
 
     const specificArgs: ConfigurationSchemaArg[] = [
       {
@@ -101,7 +95,8 @@ export class ChordFeature extends GuitarFeature {
         type: "enum",
         required: true,
         enum: chordTypes,
-        description: "Chord quality. Available chords depend on the selected instrument.",
+        defaultValue: ChordType.MAJOR,
+        description: "Chord quality, or 'All' to show all variations. Available chords depend on the selected instrument.",
       },
       {
         name: "Moveable",
@@ -143,21 +138,28 @@ export class ChordFeature extends GuitarFeature {
     if (isNewFormat) {
       const rootNote = effectiveConfig[0];
       const typeName = effectiveConfig[1] ?? ChordType.MAJOR;
-      let chord = findChordByRootAndType(library, rootNote, typeName);
-      if (!chord) {
-        const tuning = AVAILABLE_TUNINGS[guitarSettings.tuning] ?? STANDARD_TUNING;
-        const result = getEasiestMoveableShape(
-          guitarSettings.instrument,
-          `${rootNote} ${typeName}`,
-          tuning,
-          typeName as ChordType
-        );
-        if (result) chord = result.chord;
-      }
-      if (chord) {
-        chords.push(chord);
-      } else {
-        console.warn(`[${this.typeName}] No "${typeName}" chord for root "${rootNote}" in ${guitarSettings.instrument} library.`);
+
+      const typesToFind = typeName === ChordFeature.ALL_TYPES_VALUE
+        ? CHORD_TYPE_SORT_ORDER
+        : [typeName as ChordType];
+
+      for (const t of typesToFind) {
+        let chord = findChordByRootAndType(library, rootNote, t);
+        if (!chord) {
+          const tuning = AVAILABLE_TUNINGS[guitarSettings.tuning] ?? STANDARD_TUNING;
+          const result = getEasiestMoveableShape(
+            guitarSettings.instrument,
+            `${rootNote} ${t}`,
+            tuning,
+            t
+          );
+          if (result) chord = result.chord;
+        }
+        if (chord) {
+          chords.push(chord);
+        } else if (typeName !== ChordFeature.ALL_TYPES_VALUE) {
+          console.warn(`[${this.typeName}] No "${t}" chord for root "${rootNote}" in ${guitarSettings.instrument} library.`);
+        }
       }
     } else {
       // Backward compat: treat each value as a library key.
@@ -193,7 +195,12 @@ export class ChordFeature extends GuitarFeature {
     if (uniqueNames.length === 1) {
       headerText = `${uniqueNames[0]} Chord`;
     } else if (uniqueNames.length > 1) {
-      headerText = uniqueNames.slice(0, 3).join(" / ") + " Chords";
+      const uniqueRoots = [...new Set(this.chords.map((c) => c.rootKey))];
+      if (uniqueRoots.length === 1) {
+        headerText = `${uniqueRoots[0]} Chord Variations`;
+      } else {
+        headerText = uniqueNames.slice(0, 3).join(" / ") + " Chords";
+      }
     }
     const header = addHeader(container, headerText);
     header.classList.add("feature-main-title");

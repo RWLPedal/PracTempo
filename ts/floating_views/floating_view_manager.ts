@@ -86,7 +86,8 @@ export class FloatingViewManager {
     };
 
     try {
-      const viewInstance = descriptor.createView(state.viewState, this.appSettings);
+      const spawnSettings = this._buildOverriddenSettings(undefined, 1.0);
+      const viewInstance = descriptor.createView(state.viewState, spawnSettings);
       const title = options?.title ?? descriptor.displayName;
 
       const wrapper = new FloatingViewWrapper(
@@ -169,10 +170,7 @@ export class FloatingViewManager {
             effectiveOrientation,
             state.zoomActive ?? false
           );
-          const settingsToUse =
-            state.orientationOverride || state.zoomActive
-              ? this._buildOverriddenSettings(state.orientationOverride, zoomMultiplier)
-              : this.appSettings;
+          const settingsToUse = this._buildOverriddenSettings(state.orientationOverride, zoomMultiplier);
 
           const viewInstance = descriptor.createView(state.viewState, settingsToUse);
           const wrapper = new FloatingViewWrapper(

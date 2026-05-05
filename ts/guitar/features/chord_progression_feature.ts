@@ -21,7 +21,7 @@ import {
 } from "../guitar_utils";
 import { KeyType, getChordInKey } from "../progressions";
 import { ChordDiagramView } from "../views/chord_diagram_view";
-import { getEasiestMoveableGuitarShape } from "../moveable_shapes";
+import { getEasiestMoveableShape } from "../moveable_shapes";
 
 /** Displays chord diagrams for a Roman numeral progression in a given key. */
 export class ChordProgressionFeature extends GuitarFeature {
@@ -66,7 +66,6 @@ export class ChordProgressionFeature extends GuitarFeature {
     // Create ChordDiagramViews (metronome view is handled by base constructor)
     const rootNoteIndex = getKeyIndex(this.rootNoteName);
     const guitarSettings = getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ?? DEFAULT_GUITAR_SETTINGS;
-    const isGuitar = guitarSettings.instrument === "Guitar";
 
     if (rootNoteIndex !== -1) {
       this.progression.forEach((numeral) => {
@@ -75,24 +74,19 @@ export class ChordProgressionFeature extends GuitarFeature {
           ? chordLibrary[chordDetails.chordKey]
           : null;
         if (chordData) {
-          // For guitar, substitute the easiest moveable barre chord shape.
-          if (isGuitar) {
-            const easiest = getEasiestMoveableGuitarShape(chordData.name, this.fretboardConfig.tuning);
-            if (easiest) {
-              const title = `${chordDetails.chordName} [${easiest.shapeName}] (${numeral})`;
-              this._views.push(new ChordDiagramView(easiest.chord, title, this.fretboardConfig));
-              return;
-            }
-          }
           const title = `${chordDetails.chordName} (${numeral})`;
-          // Add view to the mutable _views array from base class
-          this._views.push(
-            new ChordDiagramView(chordData, title, this.fretboardConfig)
-          );
+          this._views.push(new ChordDiagramView(chordData, title, this.fretboardConfig));
         } else {
-          console.warn(
-            `[${this.typeName}] Chord data not found for ${chordDetails.chordName} (${numeral}) in key ${this.rootNoteName}`
-          );
+          // Chord not in open-chord library — fall back to a moveable shape.
+          const easiest = getEasiestMoveableShape(guitarSettings.instrument, chordDetails.chordName, this.fretboardConfig.tuning);
+          if (easiest) {
+            const title = `${chordDetails.chordName} [${easiest.shapeName}] (${numeral})`;
+            this._views.push(new ChordDiagramView(easiest.chord, title, this.fretboardConfig));
+          } else {
+            console.warn(
+              `[${this.typeName}] No chord shape found for ${chordDetails.chordName} (${numeral}) in key ${this.rootNoteName}`
+            );
+          }
         }
       });
     } else {

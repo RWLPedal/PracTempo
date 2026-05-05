@@ -267,8 +267,11 @@ export class ConfigView {
         });
 
         if (options.length > 0) {
-            select.value = options[0];
-            this.argValues.set(index, options[0]);
+            const initial = (arg.defaultValue && options.includes(arg.defaultValue))
+                ? arg.defaultValue
+                : options[0];
+            select.value = initial;
+            this.argValues.set(index, initial);
         }
 
         selectContainer.appendChild(select);

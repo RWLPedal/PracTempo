@@ -677,6 +677,7 @@ export class Fretboard {
     const scaleFactor = this.config.scaleFactor;
     const noteRadius = this.config.noteRadiusPx;
     const padding = 2 * scaleFactor;
+    const noteAltColor = getComputedStyle(document.documentElement).getPropertyValue('--note-alt').trim() || '#777';
 
     this.barresToRender.forEach((barre) => {
       const displayFret = barre.fret - this.startFret;
@@ -686,14 +687,18 @@ export class Fretboard {
       if (displayFret === 0 && this.startFret !== 0) return;
       if (displayFret < 0 || displayFret > this.fretCount) return;
 
+      // Nut barres use half expansion so the pill is narrower and sits clear of the nut line.
+      const isNutBarre = displayFret === 0 && this.startFret === 0;
+      const expand = isNutBarre ? (noteRadius + padding) * 0.5 : noteRadius + padding;
+
       const p1 = this.getNoteCoordinates(barre.stringStart, barre.fret);
       const p2 = this.getNoteCoordinates(barre.stringEnd, barre.fret);
-      const { x, y, w, h } = this._expandedBBox(p1, p2, noteRadius + padding);
+      const { x, y, w, h } = this._expandedBBox(p1, p2, expand);
       const cornerRadius = Math.min(w, h) / 2;
 
       ctx.save();
       this._roundedRectPath(ctx, x, y, w, h, cornerRadius);
-      ctx.fillStyle = barre.color ?? "#777";
+      ctx.fillStyle = barre.color ?? noteAltColor;
       ctx.fill();
       ctx.restore();
     });
