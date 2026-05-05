@@ -207,41 +207,71 @@ body.dark-theme #task-wrapper { color: var(--clr-text-dark); }
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.timer-row {
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: 12px;
+.timer-ring-container {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  align-self: center;
+}
+.timer-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg) scale(-1, 1);
+}
+.timer-ring-bg {
+  fill: none;
+  stroke: var(--clr-border);
+  stroke-width: 12;
+}
+.timer-ring-progress {
+  fill: none;
+  stroke: var(--clr-primary);
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-dasharray: 628.3;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.9s linear;
 }
 .timer-controls {
   display: flex;
   flex-direction: row;
-  gap: 6px;
+  justify-content: center;
+  gap: 8px;
+}
+.timer-start-pause,
+.timer-reset {
+  padding: 4px 14px;
+  font-size: 1em;
+  min-width: 2.5em;
 }
 .timer-display {
-  font-family: 'SF Mono', 'Fira Code', 'JetBrains Mono', 'Cascadia Code', 'Consolas', monospace;
-  font-size: 3.5em;
+  font-family: 'DM Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 2.2em;
   font-weight: 400;
   line-height: 1.1;
   cursor: pointer;
   border-radius: 6px;
-  padding: 4px 14px;
-  background: var(--clr-primary);
-  color: white;
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--clr-text);
   user-select: none;
-  min-width: 3ch;
+  min-width: 7.5ch;
   text-align: center;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
 }
 .timer-display[contenteditable="true"],
 .timer-display.is-editing {
-  outline: 3px solid rgba(255, 255, 255, 0.7);
+  outline: 2px solid var(--clr-primary);
+  background: var(--clr-tertiary);
   cursor: text;
   user-select: text;
 }
-/* Smaller display when inside a floating view */
-.floating-view-content .timer-display { font-size: 2.5em; }
 
 /* ─── SchedulePlaybackView ───────────────────────────────────────────────── */
 .schedule-playback-view {

@@ -9,10 +9,14 @@ export class TimerView implements View {
   private timerId: number | null = null;
   private isEditing: boolean = false;
 
+  private static readonly RING_RADIUS = 100;
+  private static readonly RING_CIRCUMFERENCE = 2 * Math.PI * TimerView.RING_RADIUS;
+
   // DOM refs
   private containerEl: HTMLElement | null = null;
   private titleEl: HTMLElement | null = null;
   private displayEl: HTMLElement | null = null;
+  private progressRingEl: SVGCircleElement | null = null;
   private startPauseBtn: HTMLButtonElement | null = null;
   private resetBtn: HTMLButtonElement | null = null;
 
@@ -53,38 +57,61 @@ export class TimerView implements View {
     this.titleEl.hidden = true;
     wrapper.appendChild(this.titleEl);
 
-    // Inner row: display + controls
-    const row = document.createElement('div');
-    row.classList.add('timer-row');
+    // Ring container with SVG progress ring + centered display
+    const ringContainer = document.createElement('div');
+    ringContainer.classList.add('timer-ring-container');
 
-    // Countdown display
+    const svgNS = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(svgNS, 'svg') as SVGSVGElement;
+    svg.setAttribute('class', 'timer-ring');
+    svg.setAttribute('viewBox', '0 0 220 220');
+    svg.setAttribute('aria-hidden', 'true');
+
+    const bgCircle = document.createElementNS(svgNS, 'circle') as SVGCircleElement;
+    bgCircle.setAttribute('class', 'timer-ring-bg');
+    bgCircle.setAttribute('cx', '110');
+    bgCircle.setAttribute('cy', '110');
+    bgCircle.setAttribute('r', String(TimerView.RING_RADIUS));
+    svg.appendChild(bgCircle);
+
+    this.progressRingEl = document.createElementNS(svgNS, 'circle') as SVGCircleElement;
+    this.progressRingEl.setAttribute('class', 'timer-ring-progress');
+    this.progressRingEl.setAttribute('cx', '110');
+    this.progressRingEl.setAttribute('cy', '110');
+    this.progressRingEl.setAttribute('r', String(TimerView.RING_RADIUS));
+    svg.appendChild(this.progressRingEl);
+    ringContainer.appendChild(svg);
+
+    // Countdown display (centered inside ring)
     this.displayEl = document.createElement('div');
     this.displayEl.classList.add('timer-display');
     this.displayEl.textContent = formatDuration(this.currentSeconds);
     this.displayEl.addEventListener('click', () => this.handleDisplayClick());
-    row.appendChild(this.displayEl);
+    ringContainer.appendChild(this.displayEl);
 
-    // Controls row
+    wrapper.appendChild(ringContainer);
+
+    // Controls below ring
     const controls = document.createElement('div');
     controls.classList.add('timer-controls');
 
     this.startPauseBtn = document.createElement('button');
-    this.startPauseBtn.classList.add('button', 'timer-start-pause', 'is-medium');
+    this.startPauseBtn.classList.add('button', 'timer-start-pause');
     this.startPauseBtn.textContent = '▶';
     this.startPauseBtn.addEventListener('click', () => this.handleStartPause());
     controls.appendChild(this.startPauseBtn);
 
     this.resetBtn = document.createElement('button');
-    this.resetBtn.classList.add('button', 'timer-reset', 'is-medium');
+    this.resetBtn.classList.add('button', 'timer-reset');
     this.resetBtn.textContent = '↺';
     this.resetBtn.addEventListener('click', () => this.handleReset());
     controls.appendChild(this.resetBtn);
 
-    row.appendChild(controls);
-    wrapper.appendChild(row);
+    wrapper.appendChild(controls);
     container.appendChild(wrapper);
 
     this.updateButtonState();
+    this.updateRingProgress();
 
     // Persist initial duration so the wrapper can restore it on reload.
     container.dispatchEvent(new CustomEvent('feature-state-changed', {
@@ -112,6 +139,7 @@ export class TimerView implements View {
     this.stopCountdown();
     this.containerEl = null;
     this.displayEl = null;
+    this.progressRingEl = null;
     this.startPauseBtn = null;
     this.resetBtn = null;
   }
@@ -323,6 +351,16 @@ export class TimerView implements View {
     if (this.displayEl) {
       this.displayEl.textContent = formatDuration(this.currentSeconds);
     }
+    this.updateRingProgress();
+  }
+
+  private updateRingProgress(): void {
+    if (!this.progressRingEl) return;
+    const fraction = this.duration > 0
+      ? Math.max(0, Math.min(1, this.currentSeconds / this.duration))
+      : 1;
+    this.progressRingEl.style.strokeDashoffset =
+      String(TimerView.RING_CIRCUMFERENCE * (1 - fraction));
   }
 
   private updateButtonState(): void {
