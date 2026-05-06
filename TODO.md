@@ -9,7 +9,7 @@ This file tracks planned features, improvements, and bug fixes for PracTempo.
 *   Add a "chord hints" mode showing adjacent/related chord shapes.
 *   Define and implement consistent stroke/fill colors for diagrams.
 *   Improve documentation around the CSV schedule, hinting for supported options by feature class.
-*   Basic support for some non-Guitar feature class, to ensure multiple feature classes work.
+*   Remove guitar-specific references, moving to more generic fret naming.
 *   Allow sub-intervals within a scheduled task.
 *   Support reference/information pages for each feature.
 
@@ -17,7 +17,6 @@ This file tracks planned features, improvements, and bug fixes for PracTempo.
 
 *   Totally refactor chord library, make it more comprehensive.
 *   Add fretboard visualization modes (e.g., "magic squares", blocks).
-*   Increase the size of the chord diagram display area.
 *   Validate existing scales, make sure scales are correct and useful.
 *   Find a suitable TAB format and implement TAB display.
 *   Add rendering/color scheme for CAGED positions.
@@ -27,6 +26,7 @@ This file tracks planned features, improvements, and bug fixes for PracTempo.
 *   Add a catalog of fret marker icons (besides stars) and use where appropriate.
 *   Support display of licks/TAB notation snippets.
 *   Clean up and better define functionality that shows important notes over chord changes.
+*   Add drone tool
 
 ## Infrastructure & Development
 
@@ -38,3 +38,4 @@ This file tracks planned features, improvements, and bug fixes for PracTempo.
 *   Support multiple languages (internationalization/i18n).
 *   Implement ARIA support for accessibility.
 *   Refactor/establish a clear hierarchy separating views from features.
+*   Reconcile schedule view and reference view, consolidating into a single view.

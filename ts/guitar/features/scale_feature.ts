@@ -19,8 +19,6 @@ import {
   clearAllChildren,
 } from "../guitar_utils"; // getNotesInScale removed
 import { FretboardView } from "../views/fretboard_view";
-import { volumeManager } from "../../sounds/volume_manager";
-
 // Color for non-highlighted scale notes when highlighting is active
 const NON_HIGHLIGHTED_SCALE_COLOR = "#CCCCCC"; // Lighter grey for contrast
 const OUT_OF_SCALE_HIGHLIGHT_STROKE = "#C0392B"; // Muted red for out-of-scale highlights
@@ -42,12 +40,6 @@ export class ScaleFeature extends GuitarFeature {
   private readonly headerText: string;
   private fretboardViewInstance: FretboardView;
   private fretCount: number;
-
-  // Drone state
-  private _droneActive = false;
-  private _droneOsc: OscillatorNode | null = null;
-  private _droneGain: GainNode | null = null;
-  private _droneVolumeUnsubscribe: (() => void) | null = null;
 
   constructor(
     config: ReadonlyArray<string>, // [ScaleName, RootNote, ...HighlightNotes]
@@ -91,6 +83,7 @@ export class ScaleFeature extends GuitarFeature {
         type: "enum",
         required: true,
         enum: availableScaleNames,
+        defaultValue: "Major",
         description: "Name of the scale.",
       },
       {
@@ -267,85 +260,6 @@ export class ScaleFeature extends GuitarFeature {
     titleRow.classList.add('feature-title-row');
     const header = addHeader(titleRow, this.headerText);
     header.classList.add('feature-main-title');
-    titleRow.appendChild(this.buildDroneButton());
     container.appendChild(titleRow);
-  }
-
-  private buildDroneButton(): HTMLButtonElement {
-    const btn = document.createElement('button');
-    btn.classList.add('drone-icon-btn');
-    btn.title = 'Toggle root-note drone';
-    const icon = document.createElement('span');
-    icon.classList.add('material-icons');
-    icon.textContent = 'graphic_eq';
-    btn.appendChild(icon);
-    if (this._droneActive) btn.classList.add('is-active');
-    btn.addEventListener('click', () => {
-      this._droneActive = !this._droneActive;
-      btn.classList.toggle('is-active', this._droneActive);
-      if (this._droneActive) this.startDrone();
-      else this.stopDrone();
-    });
-    return btn;
-  }
-
-  destroy(): void {
-    this.stopDrone();
-  }
-
-  /** Frequency of the root note at octave 3.
-   *  MUSIC_NOTES is A-indexed (0=A), so: freq = 440 * 2^((keyIndex + 12*(octave-4)) / 12). */
-  private getRootFrequency(): number {
-    return 440 * Math.pow(2, (this.keyIndex + 12 * (3 - 4)) / 12);
-  }
-
-  private startDrone(): void {
-    this.stopDrone();
-    try {
-      const ctx = volumeManager.getAudioContext();
-      const now = ctx.currentTime;
-
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.value = this.getRootFrequency();
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-
-      const vol = 0.15 * volumeManager.getVolume();
-      gain.gain.setValueAtTime(0, now);
-      gain.gain.linearRampToValueAtTime(vol, now + 0.3);
-      osc.start(now);
-
-      this._droneOsc = osc;
-      this._droneGain = gain;
-
-      this._droneVolumeUnsubscribe = volumeManager.onChange(v => {
-        if (this._droneGain) {
-          this._droneGain.gain.setTargetAtTime(0.15 * v, ctx.currentTime, 0.05);
-        }
-      });
-    } catch (e) {
-      console.warn('ScaleFeature: could not start drone', e);
-    }
-  }
-
-  private stopDrone(): void {
-    if (this._droneVolumeUnsubscribe) {
-      this._droneVolumeUnsubscribe();
-      this._droneVolumeUnsubscribe = null;
-    }
-    if (this._droneOsc && this._droneGain) {
-      try {
-        const ctx = volumeManager.getAudioContext();
-        const now = ctx.currentTime;
-        this._droneGain.gain.cancelScheduledValues(now);
-        this._droneGain.gain.setValueAtTime(this._droneGain.gain.value, now);
-        this._droneGain.gain.linearRampToValueAtTime(0, now + 0.3);
-        this._droneOsc.stop(now + 0.35);
-      } catch (_) { /* ignore */ }
-      this._droneOsc = null;
-      this._droneGain = null;
-    }
   }
 }
