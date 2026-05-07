@@ -7,6 +7,7 @@ import { registerCategory } from "./feature_registry";
 import { registerFloatingView } from "./floating_views/floating_view_registry";
 import { InstrumentCategory } from "./instrument/instrument_category";
 import { TimerView } from "./views/timer_view";
+import { DroneView } from "./views/drone_view";
 
 export function registerBuiltins(): void {
     registerCategory(new InstrumentCategory());
@@ -18,5 +19,14 @@ export function registerBuiltins(): void {
         defaultWidth: 300,
         defaultHeight: 150,
         createView: (initialState?: any) => new TimerView(initialState?.duration ?? 300),
+    });
+
+    registerFloatingView({
+        viewId: "drone_view",
+        displayName: "Drone",
+        categoryName: "General",
+        defaultWidth: 175,
+        defaultHeight: 80,
+        createView: (initialState?: any) => new DroneView(initialState),
     });
 }

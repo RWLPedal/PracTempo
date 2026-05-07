@@ -82,6 +82,29 @@ registerDriveSource({
   },
 });
 
+// ─── ScaleFeature as source ──────────────────────────────────────────────────
+// When the scale config changes, emit a ChordSignal with the scale's root note.
+// Using ChordSignal (not KeySignal) so drone targets can distinguish chord-level
+// signals from overall-key signals and follow the scale root specifically.
+
+registerDriveSource({
+  viewId: 'configurable_instrument_feature',
+  featureTypeName: 'Scale',
+  extractSignals(detail: any): ChordSignal[] {
+    const config: string[] = detail?.config ?? [];
+    const rootNote: string = config[1] ?? 'C';
+    const scaleName: string = config[0] ?? 'Major';
+    const keyType: 'Major' | 'Minor' = scaleName.toLowerCase().includes('minor') ? 'Minor' : 'Major';
+    return [{
+      kind: SignalKind.Chord,
+      chordKey: null,
+      rootNote,
+      keyType,
+      roman: null,
+    }];
+  },
+});
+
 // ─── ChordFeature as target ───────────────────────────────────────────────────
 // Drives the 'Root' and 'Type' args from any ChordSignal.
 

@@ -37,7 +37,7 @@ const NOTE_SEMITONES: Record<string, number> = {
   B: 11,
 };
 
-const NOTE_NAMES: NoteName[] = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
+export const NOTE_NAMES: NoteName[] = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 /**
  * Convert a note name + octave to its frequency in Hz.
@@ -134,4 +134,87 @@ export function playFrequency(frequency: number, options: PlayNoteOptions = {}):
  */
 export function playNote(note: NoteName, octave: number = 4, options: PlayNoteOptions = {}): void {
   playFrequency(noteToFrequency(note, octave), options);
+}
+
+export interface SustainedNoteOptions {
+  wave?: WaveType;
+  volume?: number;
+}
+
+/** A continuously-playing note that can be started, retargeted, and stopped with a fade. */
+export class SustainedNote {
+  private oscillator: OscillatorNode | null = null;
+  private gainNode: GainNode | null = null;
+  private unsubscribeVolume: (() => void) | null = null;
+  private baseVolume = 0.5;
+
+  start(note: NoteName, octave = 4, options: SustainedNoteOptions = {}): void {
+    this.destroy();
+    const { wave = 'sine', volume = 0.5 } = options;
+    this.baseVolume = volume;
+    try {
+      const ctx = getContext();
+      const gain = ctx.createGain();
+      gain.gain.setValueAtTime(0, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(volume * volumeManager.getVolume(), ctx.currentTime + 0.05);
+      gain.connect(ctx.destination);
+
+      const osc = ctx.createOscillator();
+      osc.type = wave;
+      osc.frequency.value = noteToFrequency(note, octave);
+      osc.connect(gain);
+      osc.start();
+
+      this.oscillator = osc;
+      this.gainNode = gain;
+      this.unsubscribeVolume = volumeManager.onChange((v) => {
+        if (this.gainNode) {
+          this.gainNode.gain.setTargetAtTime(this.baseVolume * v, getContext().currentTime, 0.05);
+        }
+      });
+    } catch (e) {
+      console.warn('SustainedNote: could not start', e);
+    }
+  }
+
+  setNote(note: NoteName, octave = 4): void {
+    if (!this.oscillator) return;
+    this.oscillator.frequency.setTargetAtTime(noteToFrequency(note, octave), getContext().currentTime, 0.05);
+  }
+
+  stop(): void {
+    this.unsubscribeVolume?.();
+    this.unsubscribeVolume = null;
+    if (!this.oscillator || !this.gainNode) return;
+
+    const ctx = getContext();
+    const gain = this.gainNode;
+    const osc = this.oscillator;
+    this.oscillator = null;
+    this.gainNode = null;
+
+    gain.gain.cancelScheduledValues(ctx.currentTime);
+    gain.gain.setValueAtTime(gain.gain.value, ctx.currentTime);
+    gain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.08);
+    osc.stop(ctx.currentTime + 0.1);
+    osc.addEventListener('ended', () => {
+      osc.disconnect();
+      gain.disconnect();
+    });
+  }
+
+  /** Hard stop with no fade — use when the view is being destroyed. */
+  destroy(): void {
+    this.unsubscribeVolume?.();
+    this.unsubscribeVolume = null;
+    if (this.oscillator) {
+      try { this.oscillator.stop(); } catch {}
+      try { this.oscillator.disconnect(); } catch {}
+      this.oscillator = null;
+    }
+    if (this.gainNode) {
+      try { this.gainNode.disconnect(); } catch {}
+      this.gainNode = null;
+    }
+  }
 }

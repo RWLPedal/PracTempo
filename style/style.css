@@ -1409,6 +1409,40 @@ body.dark-theme .color-swatch { border-color: rgba(255, 255, 255, 0.20); }
   justify-content: center;
 }
 
+/* ─── DroneView ──────────────────────────────────────────────────────────── */
+.drone-view {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+}
+
+.drone-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.drone-play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  height: 26px;
+  min-width: 32px;
+  border-radius: 4px;
+}
+
+.drone-play-btn .material-icons {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.drone-play-btn.is-active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
 /* ─── DrumMachineView ────────────────────────────────────────────────────── */
 .drum-machine-view {
   display: flex;
