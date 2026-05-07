@@ -9,6 +9,7 @@ import {
 import { getFloatingViewDescriptor } from "./floating_view_registry";
 import { AppSettings } from "../settings"; // Needed for createView
 import { LinkManager } from "./link_manager";
+import { getFeatureTypeNameByViewId } from "./drive_registry";
 
 const FLOATING_VIEW_STATE_KEY = "floatingViewStates";
 const FLOATING_VIEW_AREA_ID = "floating-view-area";
@@ -49,6 +50,21 @@ export class FloatingViewManager {
 
   public getViewId(instanceId: string): string | null {
     return (this.activeViews.get(instanceId)?.['state'] as FloatingViewInstanceState | undefined)?.viewId ?? null;
+  }
+
+  /**
+   * Returns the drive-registry featureTypeName for a given instance.
+   * For configurable feature views, reads featureTypeName from viewState.
+   * For standalone view targets (Drone, BackingTrack, Metronome), looks it up
+   * from the drive registry by viewId.
+   */
+  public getFeatureTypeName(instanceId: string): string | null {
+    const state = (this.activeViews.get(instanceId) as any)?.['state'] as FloatingViewInstanceState | undefined;
+    if (!state) return null;
+    if (state.viewId === 'configurable_instrument_feature') {
+      return (state.viewState as any)?.featureTypeName ?? null;
+    }
+    return getFeatureTypeNameByViewId(state.viewId);
   }
 
   public spawnView(

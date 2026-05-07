@@ -1910,6 +1910,52 @@ body.dark-theme .dm-measure-cell.dm-measure-filled {
   color: #fff;
 }
 
+/* Signal tooltip shown on arrow hover */
+.link-signal-tooltip {
+  position: absolute;
+  pointer-events: none;
+  display: none;
+  flex-direction: column;
+  gap: 2px;
+  background: var(--clr-bg, #F8F9FA);
+  border: 1px solid var(--clr-border, #D0D7E0);
+  border-radius: 6px;
+  padding: 6px 10px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  font-size: 0.75rem;
+  white-space: nowrap;
+  z-index: 9999;
+}
+.link-signal-tooltip.is-visible {
+  display: flex;
+}
+.link-signal-row {
+  color: var(--clr-text-muted, #888);
+  font-weight: normal;
+}
+.link-signal-matched {
+  color: var(--clr-primary, #2C4A7C);
+  font-weight: bold;
+}
+.link-signal-emitted-only,
+.link-signal-accepted-only {
+  opacity: 0.5;
+}
+.link-signal-no-data {
+  font-style: italic;
+  opacity: 0.6;
+}
+
+/* Dark theme adjustments for signal tooltip */
+body.dark-theme .link-signal-tooltip {
+  background: #1A1F2E;
+  border-color: #2E3A50;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+body.dark-theme .link-signal-matched {
+  color: var(--clr-sky-300, #87CEEB);
+}
+
 /* Provisional drag line */
 .link-provisional {
   stroke: var(--clr-primary, #2C4A7C);

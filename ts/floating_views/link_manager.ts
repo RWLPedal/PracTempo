@@ -1,7 +1,12 @@
 // ts/floating_views/link_manager.ts
 import { HandleSide, LinkRecord, DriveSignal } from './link_types';
 import { LinkOverlay } from './link_overlay';
-import { getDriveSourceDescriptor } from './drive_registry';
+import { ArrowMeta } from './link_arrow';
+import {
+  getDriveSourceDescriptor,
+  getDriveTargetSlots,
+  getFeatureTypeNameByViewId,
+} from './drive_registry';
 
 export class LinkManager {
   private links: LinkRecord[] = [];
@@ -12,6 +17,8 @@ export class LinkManager {
   private wrapperToInstanceId = new Map<HTMLElement, string>();
   // Maps instanceId → viewId (for looking up source descriptors)
   private instanceIdToViewId: (id: string) => string | null;
+  // Maps instanceId → featureTypeName (for drive target slot lookup)
+  private instanceIdToFeatureTypeName: ((id: string) => string | null) | null;
 
   // Caches the most recent signals from each source so new links get immediate delivery
   private lastSourceSignals = new Map<string, DriveSignal[]>();
@@ -23,9 +30,11 @@ export class LinkManager {
     private viewAreaEl: HTMLElement,
     private getWrapperEl: (instanceId: string) => HTMLElement | null,
     getViewId: (instanceId: string) => string | null,
-    private getContentEl: (instanceId: string) => HTMLElement | null = () => null
+    private getContentEl: (instanceId: string) => HTMLElement | null = () => null,
+    getFeatureTypeName: ((instanceId: string) => string | null) | null = null
   ) {
     this.instanceIdToViewId = getViewId;
+    this.instanceIdToFeatureTypeName = getFeatureTypeName;
     this.overlay = new LinkOverlay(viewAreaEl);
 
     this.overlay.onLinkCreated = (srcId, srcHandle, tgtId, tgtHandle) => {
@@ -88,7 +97,11 @@ export class LinkManager {
     });
 
     // Redraw arrows whenever window positions change (MutationObserver on style changes)
-    const mo = new MutationObserver(() => this.scheduleRedraw());
+    const mo = new MutationObserver((mutations) => {
+      if (mutations.some(m => !(m.target as Element).classList?.contains('link-signal-tooltip'))) {
+        this.scheduleRedraw();
+      }
+    });
     mo.observe(viewAreaEl, { attributes: true, attributeFilter: ['style'], subtree: true });
   }
 
@@ -200,6 +213,30 @@ export class LinkManager {
     });
   }
 
+  // ─── Arrow metadata ────────────────────────────────────────────────────────
+
+  private getArrowMeta(link: LinkRecord): ArrowMeta {
+    // Source descriptor
+    const sourceViewId = this.instanceIdToViewId(link.sourceInstanceId) ?? '';
+    const sourceFeatureTypeName = this.instanceIdToFeatureTypeName?.(link.sourceInstanceId) ?? undefined;
+    const sourceDescriptor = getDriveSourceDescriptor(sourceViewId, sourceFeatureTypeName);
+
+    // Target slots — look up by featureTypeName (configurable) or by viewId (standalone)
+    const targetViewId = this.instanceIdToViewId(link.targetInstanceId) ?? '';
+    const targetFeatureTypeName =
+      this.instanceIdToFeatureTypeName?.(link.targetInstanceId) ??
+      getFeatureTypeNameByViewId(targetViewId) ??
+      null;
+    const targetSlots = targetFeatureTypeName ? getDriveTargetSlots(targetFeatureTypeName) : [];
+    const acceptedKinds = [...new Set(targetSlots.flatMap(s => s.acceptedKinds))];
+
+    return {
+      emittedKinds: sourceDescriptor?.emittedKinds ?? [],
+      acceptedKinds,
+      lastSignals: this.lastSourceSignals.get(link.sourceInstanceId) ?? [],
+    };
+  }
+
   // ─── Link status notifications ─────────────────────────────────────────────
 
   private notifyLinkStatus(instanceId: string): void {
@@ -228,7 +265,11 @@ export class LinkManager {
     this.redrawScheduled = true;
     requestAnimationFrame(() => {
       this.redrawScheduled = false;
-      this.overlay.redrawAll(this.links, id => this.getWrapperEl(id));
+      this.overlay.redrawAll(
+        this.links,
+        id => this.getWrapperEl(id),
+        link => this.getArrowMeta(link)
+      );
     });
   }
 

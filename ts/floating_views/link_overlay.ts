@@ -1,8 +1,8 @@
 // ts/floating_views/link_overlay.ts
-// Renders link arrows and connection-point handles as SVG elements in an overlay,
-// avoiding any interaction with the wrapper's overflow:hidden CSS.
+// Renders connection-point handles as SVG elements and manages arrow instances.
 
 import { HandleSide, LinkRecord } from './link_types';
+import { LinkArrow, ArrowMeta } from './link_arrow';
 
 const SVG_NS = 'http://www.w3.org/2000/svg';
 const HANDLE_RADIUS = 6;
@@ -32,6 +32,9 @@ export class LinkOverlay {
 
   // Which instanceId is currently hovered (for handle visibility)
   private hoveredInstanceId: string | null = null;
+
+  // Active arrow instances — destroyed and recreated on each redrawAll
+  private arrows: LinkArrow[] = [];
 
   constructor(container: HTMLElement) {
     this.container = container;
@@ -64,8 +67,14 @@ export class LinkOverlay {
 
   public redrawAll(
     links: LinkRecord[],
-    getEl: (instanceId: string) => HTMLElement | null
+    getEl: (instanceId: string) => HTMLElement | null,
+    getMeta: (link: LinkRecord) => ArrowMeta
   ): void {
+    // Destroy old arrows (each removes its SVG group and tooltip div)
+    this.arrows.forEach(a => a.destroy());
+    this.arrows = [];
+
+    // Clear remaining SVG content (handles)
     while (this.svg.firstChild) this.svg.removeChild(this.svg.firstChild);
 
     const containerRect = this.container.getBoundingClientRect();
@@ -76,7 +85,7 @@ export class LinkOverlay {
       this.drawHandles(wrapperEl, instanceId, containerRect, isHovered);
     });
 
-    // Draw arrows
+    // Create arrows
     for (const link of links) {
       const sourceEl = getEl(link.sourceInstanceId);
       const targetEl = getEl(link.targetInstanceId);
@@ -86,7 +95,14 @@ export class LinkOverlay {
       const tgt = this.getHandleCenter(targetEl, link.targetHandle, containerRect);
       if (!src || !tgt) continue;
 
-      this.drawArrow(link, src, tgt);
+      const captured = link; // avoid closure over loop variable
+      const arrow = new LinkArrow(
+        captured, src, tgt,
+        this.svg, this.container,
+        () => getMeta(captured),
+        (id) => this.onLinkDeleted?.(id)
+      );
+      this.arrows.push(arrow);
     }
 
     // Re-add provisional line if mid-drag
@@ -138,7 +154,7 @@ export class LinkOverlay {
     }
   }
 
-  // ─── Arrow drawing ─────────────────────────────────────────────────────────
+  // ─── Handle center ─────────────────────────────────────────────────────────
 
   private getHandleCenter(
     wrapperEl: HTMLElement,
@@ -156,95 +172,6 @@ export class LinkOverlay {
       x: x - containerRect.left,
       y: y - containerRect.top,
     };
-  }
-
-  private drawArrow(
-    link: LinkRecord,
-    src: { x: number; y: number },
-    tgt: { x: number; y: number }
-  ): void {
-    const g = document.createElementNS(SVG_NS, 'g') as SVGGElement;
-    g.dataset.linkId = link.id;
-    g.setAttribute('class', 'link-arrow-group');
-
-    const cp1 = this.controlPoint(src, link.sourceHandle);
-    const cp2 = this.controlPoint(tgt, link.targetHandle);
-    const d = `M${src.x},${src.y} C${cp1.x},${cp1.y} ${cp2.x},${cp2.y} ${tgt.x},${tgt.y}`;
-
-    const path = document.createElementNS(SVG_NS, 'path') as SVGPathElement;
-    path.setAttribute('d', d);
-    path.setAttribute('class', 'link-arrow-path');
-    g.appendChild(path);
-
-    g.appendChild(this.makeArrowhead(tgt, link.targetHandle));
-
-    // Invisible wide hit-target
-    const hitPath = document.createElementNS(SVG_NS, 'path') as SVGPathElement;
-    hitPath.setAttribute('d', d);
-    hitPath.setAttribute('class', 'link-arrow-hit');
-    g.appendChild(hitPath);
-
-    // Delete button at bezier midpoint
-    const mid = this.bezierMidpoint(src, cp1, cp2, tgt);
-    g.appendChild(this.makeDeleteButton(mid, link.id));
-
-    this.svg.appendChild(g);
-  }
-
-  private controlPoint(pt: { x: number; y: number }, side: HandleSide): { x: number; y: number } {
-    const offset = 80;
-    if (side === 'left')   return { x: pt.x - offset, y: pt.y };
-    if (side === 'right')  return { x: pt.x + offset, y: pt.y };
-    if (side === 'top')    return { x: pt.x, y: pt.y - offset };
-    return { x: pt.x, y: pt.y + offset };
-  }
-
-  private bezierMidpoint(
-    p0: { x: number; y: number },
-    p1: { x: number; y: number },
-    p2: { x: number; y: number },
-    p3: { x: number; y: number }
-  ): { x: number; y: number } {
-    const t = 0.5, mt = 1 - t;
-    return {
-      x: mt*mt*mt*p0.x + 3*mt*mt*t*p1.x + 3*mt*t*t*p2.x + t*t*t*p3.x,
-      y: mt*mt*mt*p0.y + 3*mt*mt*t*p1.y + 3*mt*t*t*p2.y + t*t*t*p3.y,
-    };
-  }
-
-  private makeArrowhead(tip: { x: number; y: number }, side: HandleSide): SVGPolygonElement {
-    const s = 9;
-    let points: string;
-    // Apex at the element edge; base extends *away* from the element so the body is fully visible.
-    if (side === 'left')        points = `${tip.x},${tip.y} ${tip.x-s},${tip.y-s/2} ${tip.x-s},${tip.y+s/2}`;
-    else if (side === 'right')  points = `${tip.x},${tip.y} ${tip.x+s},${tip.y-s/2} ${tip.x+s},${tip.y+s/2}`;
-    else if (side === 'top')    points = `${tip.x},${tip.y} ${tip.x-s/2},${tip.y-s} ${tip.x+s/2},${tip.y-s}`;
-    else                         points = `${tip.x},${tip.y} ${tip.x-s/2},${tip.y+s} ${tip.x+s/2},${tip.y+s}`;
-    const poly = document.createElementNS(SVG_NS, 'polygon') as SVGPolygonElement;
-    poly.setAttribute('points', points);
-    poly.setAttribute('class', 'link-arrow-head');
-    return poly;
-  }
-
-  private makeDeleteButton(center: { x: number; y: number }, linkId: string): SVGForeignObjectElement {
-    const size = 20;
-    const fo = document.createElementNS(SVG_NS, 'foreignObject') as SVGForeignObjectElement;
-    fo.setAttribute('x', String(center.x - size / 2));
-    fo.setAttribute('y', String(center.y - size / 2));
-    fo.setAttribute('width', String(size));
-    fo.setAttribute('height', String(size));
-    fo.setAttribute('class', 'link-delete-btn-fo');
-
-    const btn = document.createElement('button');
-    btn.className = 'link-delete-btn';
-    btn.textContent = '×';
-    btn.title = 'Remove link';
-    btn.addEventListener('mousedown', (e) => {
-      e.stopPropagation();
-      this.onLinkDeleted?.(linkId);
-    });
-    fo.appendChild(btn);
-    return fo;
   }
 
   // ─── Handle hover tracking ─────────────────────────────────────────────────
@@ -338,6 +265,8 @@ export class LinkOverlay {
   // ─── Lifecycle ─────────────────────────────────────────────────────────────
 
   public destroy(): void {
+    this.arrows.forEach(a => a.destroy());
+    this.arrows = [];
     this.container.removeEventListener('mousemove', this.onContainerMouseMove);
     document.removeEventListener('mousemove', this.onDocMouseMove);
     document.removeEventListener('mouseup', this.onDocMouseUp);

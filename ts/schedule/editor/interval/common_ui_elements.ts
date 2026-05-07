@@ -447,17 +447,15 @@ interface LayerListComponentData {
 type UiLayerType = Exclude<LayerType, LayerType.Caged>;
 
 const LAYER_TYPE_LABELS: Record<UiLayerType, string> = {
-  [LayerType.Scale]:  "Scale",
-  [LayerType.Chord]:  "Chord Tones",
-  [LayerType.Notes]:  "Notes",
-  [LayerType.Driven]: "Driven (linked)",
+  [LayerType.Scale]: "Scale",
+  [LayerType.Chord]: "Chord Tones",
+  [LayerType.Notes]: "Notes",
 };
 
 const LAYER_COLOR_VARS: Record<UiLayerType, string> = {
-  [LayerType.Scale]:  '--layer-scale',
-  [LayerType.Chord]:  '--layer-chord',
-  [LayerType.Notes]:  '--layer-notes',
-  [LayerType.Driven]: '--layer-driven',
+  [LayerType.Scale]: '--layer-scale',
+  [LayerType.Chord]: '--layer-chord',
+  [LayerType.Notes]: '--layer-notes',
 };
 
 function getDefaultLayerColor(type: UiLayerType): string {
@@ -473,10 +471,6 @@ function parseLayerStringForUI(
   if (parts.length < 2) return null;
   const type = parts[0] as LayerType;
   const color = parts[parts.length - 1];
-  if (type === "driven" && parts.length >= 3) {
-    // driven|chord|#color  or  driven|scale|#color
-    return { type, fields: [parts[1]], color };
-  }
   if (parts.length < 3) return null;
   if (type === "scale" && parts.length >= 4) {
     return { type, fields: [parts[1], parts[2]], color };
@@ -515,55 +509,52 @@ function buildLayerFields(
     scaleWrapper.appendChild(scaleSelect);
     fieldsContainer.appendChild(scaleWrapper);
 
-    // Root note dropdown
+    // Root note dropdown — value may be "driven" when restored from a linked save
     const rootNotes = data.rootNoteOptions ?? [];
     const rootWrapper = document.createElement("div");
     rootWrapper.classList.add("select", "is-small");
     const rootSelect = document.createElement("select");
     rootSelect.dataset.field = "rootNote";
+    if (initialFields[1] === "driven") {
+      const drivenOpt = document.createElement("option");
+      drivenOpt.value = "driven";
+      drivenOpt.text = "⟳ Driven";
+      drivenOpt.style.fontStyle = "italic";
+      rootSelect.appendChild(drivenOpt);
+    }
     rootNotes.forEach((note) => {
       const opt = new Option(note, note);
-      if (note === (initialFields[1] ?? "")) opt.selected = true;
+      if (note === (initialFields[1] ?? "") && initialFields[1] !== "driven") opt.selected = true;
       rootSelect.appendChild(opt);
     });
+    if (initialFields[1] === "driven") rootSelect.value = "driven";
     rootSelect.addEventListener("change", () => onChange?.());
     rootWrapper.appendChild(rootSelect);
     fieldsContainer.appendChild(rootWrapper);
 
   } else if (layerType === "chord") {
-    // Chord key dropdown
+    // Chord key dropdown — value may be "driven" when restored from a linked save
     const entries = data.chordEntries ?? [];
     const chordWrapper = document.createElement("div");
     chordWrapper.classList.add("select", "is-small");
     const chordSelect = document.createElement("select");
     chordSelect.dataset.field = "chordKey";
+    if (initialFields[0] === "driven") {
+      const drivenOpt = document.createElement("option");
+      drivenOpt.value = "driven";
+      drivenOpt.text = "⟳ Driven";
+      drivenOpt.style.fontStyle = "italic";
+      chordSelect.appendChild(drivenOpt);
+    }
     entries.forEach(({ key, label }) => {
       const opt = new Option(label, key);
-      if (key === (initialFields[0] ?? "")) opt.selected = true;
+      if (key === (initialFields[0] ?? "") && initialFields[0] !== "driven") opt.selected = true;
       chordSelect.appendChild(opt);
     });
+    if (initialFields[0] === "driven") chordSelect.value = "driven";
     chordSelect.addEventListener("change", () => onChange?.());
     chordWrapper.appendChild(chordSelect);
     fieldsContainer.appendChild(chordWrapper);
-
-  } else if (layerType === "driven") {
-    // Sub-type: chord tones or scale
-    const subWrapper = document.createElement("div");
-    subWrapper.classList.add("select", "is-small");
-    const subSelect = document.createElement("select");
-    subSelect.dataset.field = "drivenSubType";
-    const subTypes: Array<{ value: string; label: string }> = [
-      { value: "chord", label: "Chord Tones" },
-      { value: "scale", label: "Scale" },
-    ];
-    subTypes.forEach(({ value, label }) => {
-      const opt = new Option(label, value);
-      if (value === (initialFields[0] ?? "chord")) opt.selected = true;
-      subSelect.appendChild(opt);
-    });
-    subSelect.addEventListener("change", () => onChange?.());
-    subWrapper.appendChild(subSelect);
-    fieldsContainer.appendChild(subWrapper);
 
   } else if (layerType === "notes") {
     // Toggle buttons for individual note selection
@@ -778,6 +769,38 @@ export function createLayerListInput(
   };
   listContainer.appendChild(addBtn);
 
+  // Expose a hook so ConfigView can add/remove the "⟳ Driven" option on linked field dropdowns.
+  // linked=true  → add "driven" option to rootNote and chordKey selects; autoSelect=true also selects it.
+  // linked=false → remove "driven" option (reset to first real option if currently selected).
+  (container as any)._setLinked = (linked: boolean, autoSelect: boolean) => {
+    let needsNotify = false;
+    rowsContainer.querySelectorAll<HTMLSelectElement>("[data-field='rootNote'], [data-field='chordKey']").forEach(select => {
+      const existing = select.querySelector<HTMLOptionElement>('option[value="driven"]');
+      if (linked) {
+        if (!existing) {
+          const opt = document.createElement("option");
+          opt.value = "driven";
+          opt.text = "⟳ Driven";
+          opt.style.fontStyle = "italic";
+          select.insertBefore(opt, select.firstChild);
+        }
+        if (autoSelect && select.value !== "driven") {
+          select.value = "driven";
+          needsNotify = true;
+        }
+      } else {
+        if (existing) {
+          if (select.value === "driven") {
+            const first = select.querySelector<HTMLOptionElement>('option:not([value="driven"])');
+            if (first) { select.value = first.value; needsNotify = true; }
+          }
+          existing.remove();
+        }
+      }
+    });
+    if (needsNotify) onChange?.();
+  };
+
   container.appendChild(listContainer);
 }
 
@@ -809,10 +832,6 @@ export function extractLayerListValues(container: HTMLElement): string[] {
         .filter((v) => v);
       // Always emit the row (even if no notes selected) to preserve position
       encoded = `notes|${activeNotes.join(",")}|${color}`;
-    } else if (type === "driven") {
-      const subType =
-        row.querySelector<HTMLSelectElement>("[data-field='drivenSubType']")?.value ?? "chord";
-      encoded = `driven|${subType}|${color}`;
     }
     if (encoded) results.push(encoded);
   });

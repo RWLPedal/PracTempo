@@ -99,42 +99,59 @@ export class ConfigView {
      */
     public setDrivenVisible(argName: string, visible: boolean): void {
         const select = this.container.querySelector<HTMLSelectElement>(`select[data-arg-name="${argName}"]`);
-        if (!select) return;
-        const existing = select.querySelector<HTMLOptionElement>('option[value="__driven__"]');
-        if (visible && !existing) {
-            const opt = document.createElement('option');
-            opt.value = '__driven__';
-            opt.text = '⟳ Driven';
-            opt.style.fontStyle = 'italic';
-            select.insertBefore(opt, select.firstChild);
-        } else if (!visible && existing) {
-            if (select.value === '__driven__') {
-                // Reset to first non-driven option before removing
-                const first = select.querySelector<HTMLOptionElement>('option:not([value="__driven__"])');
-                if (first) select.value = first.value;
+        if (select) {
+            const existing = select.querySelector<HTMLOptionElement>('option[value="__driven__"]');
+            if (visible && !existing) {
+                const opt = document.createElement('option');
+                opt.value = '__driven__';
+                opt.text = '⟳ Driven';
+                opt.style.fontStyle = 'italic';
+                select.insertBefore(opt, select.firstChild);
+            } else if (!visible && existing) {
+                if (select.value === '__driven__') {
+                    const first = select.querySelector<HTMLOptionElement>('option:not([value="__driven__"])');
+                    if (first) select.value = first.value;
+                }
+                existing.remove();
             }
-            existing.remove();
+            return;
         }
+        // LayerList arg: delegate to the container's _setLinked hook
+        this._callLayerListLinked(argName, visible, false);
     }
 
     /**
      * Switches the named arg's select to the "⟳ Driven" sentinel and triggers a feature rebuild.
      * No-ops if the arg is not a select element or is already in driven mode.
      * Called automatically when an incoming link arrives on a simple (non-layer-list) arg.
+     * For LayerList args, adds "⟳ Driven" to field dropdowns and auto-selects it.
      */
     public selectDriven(argName: string): void {
         if (typeof this.schema === 'string') return;
         const select = this.container.querySelector<HTMLSelectElement>(`select[data-arg-name="${argName}"]`);
-        if (!select || select.value === '__driven__') return;
+        if (select) {
+            if (select.value === '__driven__') return;
+            let argIndex = -1;
+            this.schema.args.forEach((arg, i) => { if (arg.name === argName) argIndex = i; });
+            if (argIndex === -1) return;
+            this.setDrivenVisible(argName, true);
+            select.value = '__driven__';
+            this.argValues.set(argIndex, '__driven__');
+            this.notifyChange();
+            return;
+        }
+        // LayerList arg: show driven options and auto-select them
+        this._callLayerListLinked(argName, true, true);
+    }
 
-        let argIndex = -1;
-        this.schema.args.forEach((arg, i) => { if (arg.name === argName) argIndex = i; });
+    private _callLayerListLinked(argName: string, linked: boolean, autoSelect: boolean): void {
+        if (typeof this.schema === 'string') return;
+        const argIndex = this.schema.args.findIndex(a => a.name === argName);
         if (argIndex === -1) return;
-
-        this.setDrivenVisible(argName, true); // ensure the option is present
-        select.value = '__driven__';
-        this.argValues.set(argIndex, '__driven__');
-        this.notifyChange();
+        const listEl = this.layerListContainers.get(argIndex);
+        if (!listEl) return;
+        const fn = (listEl as any)._setLinked;
+        if (typeof fn === 'function') fn(linked, autoSelect);
     }
 
     /**

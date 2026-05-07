@@ -4,6 +4,8 @@ import { DriveSignal, SignalKind } from './link_types';
 export interface DriveSourceDescriptor {
   viewId: string;
   featureTypeName?: string; // set for configurable features e.g. 'MultiSelectFretboard'
+  /** Declarative list of SignalKinds this source can emit. Used for arrow tooltip display. */
+  emittedKinds: SignalKind[];
   /**
    * Returns an ordered array of signals from this source's current state.
    * Index matters: signals[i] is routed to the i-th outgoing link.
@@ -15,6 +17,8 @@ export interface DriveSourceDescriptor {
 
 export interface DriveTargetSlot {
   featureTypeName: string;  // e.g. 'Chord', 'MultiSelectFretboard'
+  /** For standalone (non-configurable) view targets, the floating view's viewId. */
+  viewId?: string;
   argName: string;          // config arg name this slot can drive
   label: string;            // human-readable label shown in the UI
   acceptedKinds: SignalKind[]; // uses same SignalKind enum as DriveSignal.kind
@@ -34,6 +38,8 @@ export interface DriveTargetSlot {
 
 const sourceDescriptors = new Map<string, DriveSourceDescriptor>();
 const targetSlots = new Map<string, DriveTargetSlot[]>();
+// Maps floating-view viewId → featureTypeName for standalone view targets.
+const viewIdToTargetFeatureTypeName = new Map<string, string>();
 
 // ─── Registration functions ───────────────────────────────────────────────────
 
@@ -48,6 +54,7 @@ export function registerDriveTarget(slot: DriveTargetSlot): void {
   const existing = targetSlots.get(slot.featureTypeName) ?? [];
   existing.push(slot);
   targetSlots.set(slot.featureTypeName, existing);
+  if (slot.viewId) viewIdToTargetFeatureTypeName.set(slot.viewId, slot.featureTypeName);
 }
 
 // ─── Lookup functions ─────────────────────────────────────────────────────────
@@ -65,4 +72,12 @@ export function getDriveSourceDescriptor(
 
 export function getDriveTargetSlots(featureTypeName: string): DriveTargetSlot[] {
   return targetSlots.get(featureTypeName) ?? [];
+}
+
+/**
+ * Returns the featureTypeName registered for a standalone view target by its viewId.
+ * Returns null if no target slot was registered with that viewId.
+ */
+export function getFeatureTypeNameByViewId(viewId: string): string | null {
+  return viewIdToTargetFeatureTypeName.get(viewId) ?? null;
 }

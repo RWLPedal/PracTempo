@@ -20,6 +20,7 @@ import {
 
 registerDriveSource({
   viewId: 'drum_machine',
+  emittedKinds: [SignalKind.Chord, SignalKind.Key, SignalKind.Tempo],
   extractSignals(detail: any): DriveSignal[] {
     const roman: string | null = detail?.currentChord ?? null;
     const root: string = detail?.progRootNote ?? 'C';
@@ -66,6 +67,7 @@ registerDriveSource({
 registerDriveSource({
   viewId: 'configurable_instrument_feature',
   featureTypeName: 'MultiSelectFretboard',
+  emittedKinds: [SignalKind.Chord],
   extractSignals(detail: any): ChordSignal[] {
     const config: string[] = detail?.config ?? [];
     const signals: ChordSignal[] = [];
@@ -95,6 +97,7 @@ registerDriveSource({
 registerDriveSource({
   viewId: 'configurable_instrument_feature',
   featureTypeName: 'Scale',
+  emittedKinds: [SignalKind.Chord],
   extractSignals(detail: any): ChordSignal[] {
     const config: string[] = detail?.config ?? [];
     const rootNote: string = config[1] ?? 'C';
@@ -277,9 +280,58 @@ registerDriveTarget({
 
 registerDriveSource({
   viewId: 'instrument_floating_metronome',
+  emittedKinds: [SignalKind.Tempo],
   extractSignals(detail: any): DriveSignal[] {
     if (typeof detail?.bpm !== 'number') return [];
     return [{ kind: SignalKind.Tempo, bpm: detail.bpm }];
+  },
+});
+
+// ─── DroneView as target ──────────────────────────────────────────────────────
+// DroneView (viewId: 'drone_view') listens for drive-signal on its container
+// and updates its root note from the incoming ChordSignal.rootNote.
+// resolveValue returns null; DroneView handles signal application directly.
+
+registerDriveTarget({
+  featureTypeName: 'Drone',
+  viewId: 'drone_view',
+  argName: 'Note',
+  label: 'Root note (from linked source)',
+  acceptedKinds: [SignalKind.Chord],
+  resolveValue(_signal: DriveSignal): string | null {
+    return null;
+  },
+});
+
+// ─── BackingTrackView as tempo target ─────────────────────────────────────────
+// BackingTrackView (viewId: 'drum_machine') listens for Tempo drive-signals
+// and updates its BPM directly.
+// resolveValue returns null; BackingTrackView handles signal application directly.
+
+registerDriveTarget({
+  featureTypeName: 'BackingTrack',
+  viewId: 'drum_machine',
+  argName: 'BPM',
+  label: 'BPM (from linked tempo source)',
+  acceptedKinds: [SignalKind.Tempo],
+  resolveValue(_signal: DriveSignal): string | null {
+    return null;
+  },
+});
+
+// ─── MetronomeView as tempo target ────────────────────────────────────────────
+// MetronomeView (viewId: 'instrument_floating_metronome') listens for Tempo
+// drive-signals and updates its BPM directly.
+// resolveValue returns null; MetronomeView handles signal application directly.
+
+registerDriveTarget({
+  featureTypeName: 'Metronome',
+  viewId: 'instrument_floating_metronome',
+  argName: 'BPM',
+  label: 'BPM (from linked tempo source)',
+  acceptedKinds: [SignalKind.Tempo],
+  resolveValue(_signal: DriveSignal): string | null {
+    return null;
   },
 });
 

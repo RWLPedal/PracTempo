@@ -42,7 +42,8 @@ class ReferencePage {
                 viewAreaEl,
                 (id) => this.floatingViewManager.getWrapperElement(id),
                 (id) => this.floatingViewManager.getViewId(id),
-                (id) => this.floatingViewManager.getContentElement(id)
+                (id) => this.floatingViewManager.getContentElement(id),
+                (id) => this.floatingViewManager.getFeatureTypeName(id)
             );
             this.floatingViewManager.setLinkManager(linkManager);
         }
