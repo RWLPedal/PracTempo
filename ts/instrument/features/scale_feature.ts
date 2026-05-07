@@ -14,7 +14,7 @@ import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import { NoteIcon, NoteRenderData, FretboardConfig } from "../fretboard";
 import {
   getKeyIndex,
-  MUSIC_NOTES,
+  NOTE_NAMES_FROM_A,
   getIntervalLabel,
   OPEN_NOTE_RADIUS_FACTOR,
   addHeader,
@@ -75,9 +75,9 @@ export class ScaleFeature extends InstrumentFeature {
   // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
     const availableScaleNames = Object.keys(scale_names).sort();
-    const availableKeys = MUSIC_NOTES.flat();
-    // Static list of all notes for the toggle buttons
-    const allNoteNames = MUSIC_NOTES.map((n) => n[0]); // Use primary sharp names
+    const availableKeys = NOTE_NAMES_FROM_A as string[];
+    // Static list of all notes for the toggle buttons (sharps only)
+    const allNoteNames = NOTE_NAMES_FROM_A as string[];
 
     const specificArgs: ConfigurationSchemaArg[] = [
       {
@@ -147,7 +147,7 @@ export class ScaleFeature extends InstrumentFeature {
     const keyIndex = getKeyIndex(rootNoteName);
     if (keyIndex === -1)
       throw new Error(`[${this.typeName}] Unknown key: "${rootNoteName}"`);
-    const validRootName = MUSIC_NOTES[keyIndex]?.[0] ?? rootNoteName;
+    const validRootName = NOTE_NAMES_FROM_A[keyIndex] ?? rootNoteName;
 
     const headerText = `${validRootName} ${scale.name}`;
     const guitarIntervalSettings = intervalSettings as InstrumentIntervalSettings;
@@ -185,7 +185,7 @@ export class ScaleFeature extends InstrumentFeature {
       for (let fretIndex = 0; fretIndex <= fretCount; fretIndex++) {
         const noteOffsetFromA = (stringTuning + fretIndex) % 12;
         const noteRelativeToKey = (noteOffsetFromA - this.keyIndex + 12) % 12;
-        const noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
+        const noteName = NOTE_NAMES_FROM_A[noteOffsetFromA] ?? "?";
         const isNoteInScale = this.scale.degrees.includes(noteRelativeToKey);
         const isNoteHighlighted = this.highlightNotes.has(noteName);
 
@@ -194,7 +194,7 @@ export class ScaleFeature extends InstrumentFeature {
         let strokeColor: string | string[] = DEFAULT_STROKE;
         let strokeWidth: number = 1;
         let colorSchemeOverride: "note" | "interval" | undefined = undefined;
-        let displayLabel = noteName;
+        let displayLabel: string = noteName;
 
         if (highlightingActive) {
           if (isNoteHighlighted) {

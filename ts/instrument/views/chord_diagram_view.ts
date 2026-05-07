@@ -12,12 +12,14 @@ import {
 import {
   START_PX,
   OPEN_NOTE_RADIUS_FACTOR,
-  MUSIC_NOTES,
+  NOTE_NAMES_FROM_A,
+  ALL_NOTE_NAMES,
   getKeyIndex,
   getIntervalLabel,
   addHeader, // Use for external title
   addCanvas,
 } from "../instrument_utils";
+import { NoteName } from "../music_types";
 
 /**
  * Helper to get the notes in a chord.
@@ -26,20 +28,17 @@ import {
  * @returns Sorted array of note names in the chord.
  */
 function getChordNotes(chord: Chord, config: FretboardConfig): string[] {
-  const notes = new Set<string>();
+  const notes = new Set<NoteName>();
   const tuning = config.tuning.tuning;
   for (let i = 0; i < chord.strings.length; i++) {
     const fret = chord.strings[i];
     if (fret >= 0 && i < tuning.length) {
-      // Check fret >= 0 and valid string index
       const noteIndex = (tuning[i] + fret) % 12;
-      notes.add(MUSIC_NOTES[noteIndex]?.[0] ?? "?");
+      notes.add(NOTE_NAMES_FROM_A[noteIndex]!);
     }
   }
-  // Define a canonical note order for sorting
-  const canonicalOrder = MUSIC_NOTES.map((n) => n[0]);
   return Array.from(notes).sort(
-    (a, b) => canonicalOrder.indexOf(a) - canonicalOrder.indexOf(b)
+    (a, b) => NOTE_NAMES_FROM_A.indexOf(a) - NOTE_NAMES_FROM_A.indexOf(b)
   );
 }
 
@@ -153,7 +152,7 @@ export class ChordDiagramView implements View {
         if (!isMuted) {
           const noteOffsetFromA =
             (config.tuning.tuning[stringIndex] + fret) % 12;
-          noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
+          noteName = NOTE_NAMES_FROM_A[noteOffsetFromA] ?? "?";
           if (chordRootIndex !== -1) {
             const noteRelativeToKey =
               (noteOffsetFromA - chordRootIndex + 12) % 12;
@@ -310,7 +309,7 @@ export class ChordDiagramView implements View {
     if (match) {
       const rootName = `${match[1]}${match[2] || ""}`;
       // Validate against known notes
-      if (MUSIC_NOTES.flat().includes(rootName)) return rootName;
+      if ((ALL_NOTE_NAMES as string[]).includes(rootName)) return rootName;
     }
     // Fallback might be needed if chord_library keys differ significantly from names
     console.warn(`Could not determine root note for chord name: ${chordName}`);

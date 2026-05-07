@@ -18,7 +18,7 @@ export class DroneView implements View {
   private linkStatusHandler: ((e: Event) => void) | null = null;
 
   constructor(initialState?: any) {
-    this.note = initialState?.note ?? 'A';
+    this.note = (initialState?.note as NoteName) ?? NoteName.A;
   }
 
   render(container: HTMLElement): void {

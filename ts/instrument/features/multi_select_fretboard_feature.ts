@@ -8,7 +8,8 @@ import { IntervalSettings } from "../../schedule/editor/interval/types";
 import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import { NoteRenderData } from "../fretboard";
 import {
-  MUSIC_NOTES,
+  NOTE_NAMES_FROM_A,
+  NOTE_FLAT_ALIAS_FROM_A,
   getKeyIndex,
   getIntervalLabel,
   OPEN_NOTE_RADIUS_FACTOR,
@@ -185,12 +186,12 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
 
   static getConfigurationSchema(): ConfigurationSchema {
     const availableScaleNames = Object.keys(scale_names).sort();
-    const rootNoteOptions = ([] as string[]).concat(...MUSIC_NOTES);
+    const rootNoteOptions = NOTE_NAMES_FROM_A as string[];
     const chordEntries = Object.entries(chord_tones_library).map(([key, entry]) => ({
       key,
       label: entry.name,
     }));
-    const noteNames = MUSIC_NOTES.map((n) => n[0]);
+    const noteNames = NOTE_NAMES_FROM_A as string[];
 
     const layersArg: ConfigurationSchemaArg = {
       name: "Layers",
@@ -309,7 +310,7 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
         const relativeOffset = (noteOffset - keyIndex + 12) % 12;
         if (!scale.degrees.includes(relativeOffset)) continue;
 
-        const noteName = MUSIC_NOTES[noteOffset]?.[0] ?? "?";
+        const noteName = NOTE_NAMES_FROM_A[noteOffset] ?? "?";
         const intervalLabel = getIntervalLabel(relativeOffset);
         const isRoot = relativeOffset === 0;
 
@@ -349,10 +350,10 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
     for (let stringIndex = 0; stringIndex < tuning.length; stringIndex++) {
       for (let fretIndex = 0; fretIndex <= this.fretCount; fretIndex++) {
         const noteOffset = (tuning[stringIndex] + fretIndex) % 12;
-        const noteGroup = MUSIC_NOTES[noteOffset] ?? [];
-        if (!noteGroup.some((n) => toneSet.has(n))) continue;
+        const noteName = NOTE_NAMES_FROM_A[noteOffset] ?? "?";
+        const alias = NOTE_FLAT_ALIAS_FROM_A[noteOffset];
+        if (!toneSet.has(noteName) && !(alias && toneSet.has(alias))) continue;
 
-        const noteName = noteGroup[0] ?? "?";
         notes.push({
           fret: fretIndex,
           stringIndex,
@@ -399,7 +400,7 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
         const relativeOffset = (noteOffset - keyIndex + 12) % 12;
         if (!scale.degrees.includes(relativeOffset)) continue;
 
-        const noteName = MUSIC_NOTES[noteOffset]?.[0] ?? "?";
+        const noteName = NOTE_NAMES_FROM_A[noteOffset] ?? "?";
         const intervalLabel = getIntervalLabel(relativeOffset);
 
         const lookupKey = `${stringIndex}:${fretIndex}`;

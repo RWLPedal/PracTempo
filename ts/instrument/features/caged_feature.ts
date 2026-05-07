@@ -15,7 +15,7 @@ import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import { NoteRenderData, FretboardConfig, Tuning } from "../fretboard";
 import {
   getKeyIndex,
-  MUSIC_NOTES,
+  NOTE_NAMES_FROM_A,
   getIntervalLabel,
   OPEN_NOTE_RADIUS_FACTOR,
   addHeader,
@@ -282,7 +282,7 @@ export class CagedFeature extends InstrumentFeature {
   }
 
   static getConfigurationSchema(): ConfigurationSchema {
-    const availableKeys = MUSIC_NOTES.flat();
+    const availableKeys = NOTE_NAMES_FROM_A as string[];
     const availableScales = [
       "Major",
       "Minor",
@@ -353,7 +353,7 @@ export class CagedFeature extends InstrumentFeature {
     const keyIndex = getKeyIndex(rootNoteName);
     if (keyIndex === -1)
       throw new Error(`[${this.typeName}] Unknown key: "${rootNoteName}"`);
-    const validRootName = MUSIC_NOTES[keyIndex]?.[0] ?? rootNoteName;
+    const validRootName = NOTE_NAMES_FROM_A[keyIndex] ?? rootNoteName;
 
     let scaleKey = scale_names[scaleTypeName as keyof typeof scale_names];
     if (!scaleKey) {
@@ -414,7 +414,7 @@ export class CagedFeature extends InstrumentFeature {
 
         if (!this.scale.degrees.includes(noteRelativeToKey)) continue;
 
-        const noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
+        const noteName = NOTE_NAMES_FROM_A[noteOffsetFromA] ?? "?";
         const intervalLabel = getIntervalLabel(noteRelativeToKey);
 
         const lookupKey = `${stringIndex}:${fretIndex}`;

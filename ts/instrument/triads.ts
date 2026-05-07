@@ -1,5 +1,5 @@
 ﻿import { FretboardConfig, Fretboard } from "./fretboard";
-import { MUSIC_NOTES, getKeyIndex, getIntervalLabel, START_PX } from "./instrument_utils";
+import { NOTE_NAMES_FROM_A, getKeyIndex, getIntervalLabel, START_PX } from "./instrument_utils";
 import { NoteRenderData, LineData } from "./fretboard";
 
 export type TriadQuality = "Major" | "Minor" | "Diminished" | "Augmented";
@@ -193,7 +193,7 @@ export function getTriadNotesAndLinesForGroup(
                   // }
 
 
-                  const noteName = MUSIC_NOTES[resultingNoteIndex]?.[0] ?? "?";
+                  const noteName = NOTE_NAMES_FROM_A[resultingNoteIndex] ?? "?";
                    // Corrected interval calculation:
                   const intervalSemitones = (resultingNoteIndex - rootNoteIndex + 12) % 12;
                   const intervalLabel = getIntervalLabel(intervalSemitones);

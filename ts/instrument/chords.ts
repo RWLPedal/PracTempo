@@ -69,10 +69,10 @@ export class Chord {
 export function findChordByRootAndType(
   library: Record<string, Chord>,
   rootKey: string,
-  chordType: string
+  chordType: ChordType
 ): Chord | undefined {
   return Object.values(library).find(
-    (c) => c.rootKey === rootKey && (c.chordType as string) === chordType
+    (c) => c.rootKey === rootKey && c.chordType === chordType
   );
 }
 
@@ -218,14 +218,14 @@ export const CHORD_LIBRARIES: Partial<Record<InstrumentName, Record<string, Chor
 };
 
 /** Returns the chord library appropriate for the given instrument. */
-export function getChordLibraryForInstrument(instrument: string): Record<string, Chord> {
-  return CHORD_LIBRARIES[instrument as InstrumentName] ?? chord_library;
+export function getChordLibraryForInstrument(instrument: InstrumentName): Record<string, Chord> {
+  return CHORD_LIBRARIES[instrument] ?? chord_library;
 }
 
 // ---------------------------------------------------------------------------
 // Comprehensive chord tones library (dynamically generated)
 // ---------------------------------------------------------------------------
-// Note names indexed from A=0, matching MUSIC_NOTES order in instrument_utils.ts.
+// Note names indexed from A=0, matching NOTE_NAMES_FROM_A order in instrument_utils.ts.
 // Uses a conventional mixed sharp/flat spelling: sharps for C#, F#, G#;
 // flats for Bb, Eb, Ab.
 const _TONE_NAMES = ['A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
@@ -281,7 +281,7 @@ const _ROOT_NOTES: _RootNoteSpec[] = [
 
 export interface ChordToneEntry {
   name: string;
-  tones: string[]; // note names (enharmonics match via MUSIC_NOTES in instrument_utils)
+  tones: string[]; // note names (enharmonics matched via NOTE_FLAT_ALIAS_FROM_A in instrument_utils)
 }
 
 /** Comprehensive chord tones library for all 12 roots × 19 chord types.

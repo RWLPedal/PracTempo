@@ -17,7 +17,7 @@ import { AppSettings } from "../../settings";
 import { IntervalSettings } from "../../schedule/editor/interval/types";
 import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import {
-  MUSIC_NOTES,
+  NOTE_NAMES_FROM_A,
   getKeyIndex,
   addHeader,
   clearAllChildren,
@@ -180,7 +180,7 @@ export class TriadFeature extends InstrumentFeature {
   }
 
   static getConfigurationSchema(): ConfigurationSchema {
-    const availableKeys = MUSIC_NOTES.flat();
+    const availableKeys = NOTE_NAMES_FROM_A as string[];
     const qualities: TriadQuality[] = [
       "Major",
       "Minor",
@@ -231,7 +231,7 @@ export class TriadFeature extends InstrumentFeature {
     const keyIndex = getKeyIndex(rootNoteName);
     if (keyIndex === -1)
       throw new Error(`[${this.typeName}] Unknown key: "${rootNoteName}"`);
-    const validRootName = MUSIC_NOTES[keyIndex]?.[0] ?? rootNoteName;
+    const validRootName = NOTE_NAMES_FROM_A[keyIndex] ?? rootNoteName;
 
     if (qualities.length === 0) {
       throw new Error(

@@ -1,4 +1,4 @@
-import { MUSIC_NOTES, getKeyIndex } from "./instrument_utils";
+import { NOTE_NAMES_FROM_A } from "./instrument_utils";
 import { Chord, chord_library } from "./chords";
 import { KeyType, ChordQuality } from "./music_types";
 export { KeyType, ChordQuality };
@@ -78,7 +78,7 @@ export function getChordInKey(
     }
 
     const chordRootIndex = (rootNoteIndex + mapEntry.degree) % 12;
-    const chordRootName = MUSIC_NOTES[chordRootIndex]?.[0] ?? "?";
+    const chordRootName = NOTE_NAMES_FROM_A[chordRootIndex] ?? "?";
 
     let fullChordName: string;
     switch (mapEntry.quality) {

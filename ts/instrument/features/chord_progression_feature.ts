@@ -16,7 +16,7 @@ import { AudioController } from "../../audio_controller";
 import { IntervalSettings } from "../../schedule/editor/interval/types";
 import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import {
-  MUSIC_NOTES,
+  NOTE_NAMES_FROM_A,
   getKeyIndex,
   addHeader,
   clearAllChildren,
@@ -100,7 +100,7 @@ export class ChordProgressionFeature extends InstrumentFeature {
 
   // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
-    const availableKeys = MUSIC_NOTES.flat();
+    const availableKeys = NOTE_NAMES_FROM_A as string[];
 
     const majorBasic    = ["I", "ii", "iii", "IV", "V", "vi", "vii°"];
     const majorAdvanced = ["Imaj7", "ii7", "iii7", "IVmaj7", "V7", "vi7", "viiø7"];
@@ -175,7 +175,7 @@ export class ChordProgressionFeature extends InstrumentFeature {
     const keyIndex = getKeyIndex(rootNoteName);
     if (keyIndex === -1)
       throw new Error(`[${this.typeName}] Unknown root note: "${rootNoteName}"`);
-    const validRootName = MUSIC_NOTES[keyIndex]?.[0] ?? rootNoteName;
+    const validRootName = NOTE_NAMES_FROM_A[keyIndex] ?? rootNoteName;
 
     if (progressionNumerals.length === 0) {
       throw new Error(`[${this.typeName}] Progression cannot be empty.`);

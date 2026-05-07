@@ -15,7 +15,7 @@ import { IntervalSettings } from "../../schedule/editor/interval/types";
 import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import { NoteRenderData, FretboardConfig } from "../fretboard"; // Import FretboardConfig
 import {
-  MUSIC_NOTES,
+  NOTE_NAMES_FROM_A,
   getKeyIndex,
   getIntervalLabel,
   OPEN_NOTE_RADIUS_FACTOR,
@@ -64,7 +64,7 @@ export class NotesFeature extends InstrumentFeature {
   // --- Static Methods ---
   static getConfigurationSchema(): ConfigurationSchema {
     // Unchanged
-    const availableKeys = ["None", ...MUSIC_NOTES.flat()];
+    const availableKeys = ["None", ...NOTE_NAMES_FROM_A];
     const specificArgs: ConfigurationSchemaArg[] = [
       {
         name: "Root Note",
@@ -144,7 +144,7 @@ export class NotesFeature extends InstrumentFeature {
       const stringTuning = config.tuning.tuning[stringIndex];
       for (let fretIndex = 0; fretIndex <= fretCount; fretIndex++) {
         const noteOffsetFromA = (stringTuning + fretIndex) % 12;
-        const noteName = MUSIC_NOTES[noteOffsetFromA]?.[0] ?? "?";
+        const noteName = NOTE_NAMES_FROM_A[noteOffsetFromA] ?? "?";
         let intervalLabel = "?";
         if (rootNoteIndex !== -1) {
           const noteRelativeToKey = (noteOffsetFromA - rootNoteIndex + 12) % 12;

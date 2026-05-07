@@ -2,15 +2,9 @@
 // Library for dynamically playing musical notes as pure tones via Web Audio API.
 
 import { volumeManager } from './volume_manager';
+import { NoteName, NOTE_NAMES } from '../instrument/music_types';
 
-export type NoteName =
-  | 'C' | 'C#' | 'Db'
-  | 'D' | 'D#' | 'Eb'
-  | 'E'
-  | 'F' | 'F#' | 'Gb'
-  | 'G' | 'G#' | 'Ab'
-  | 'A' | 'A#' | 'Bb'
-  | 'B';
+export { NoteName, NOTE_NAMES } from '../instrument/music_types';
 
 export type WaveType = 'sine' | 'square' | 'sawtooth' | 'triangle';
 
@@ -36,8 +30,6 @@ const NOTE_SEMITONES: Record<string, number> = {
   A: 9, 'A#': 10, Bb: 10,
   B: 11,
 };
-
-export const NOTE_NAMES: NoteName[] = ['C', 'C#', 'D', 'D#', 'E', 'F', 'F#', 'G', 'G#', 'A', 'A#', 'B'];
 
 /**
  * Convert a note name + octave to its frequency in Hz.

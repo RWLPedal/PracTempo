@@ -1,4 +1,5 @@
 import { Scale } from "./scales"; // Import Scale type
+import { NoteName } from "./music_types";
 
 // Feature configuration constants
 export const START_PX = 35;
@@ -9,11 +10,45 @@ export const CANVAS_HEIGHT_PX = 500;
 export const CANVAS_SUBTITLE_HEIGHT_PX = 25;
 export const CANVAS_SUBTITLE_FONT = '14px sans-serif';
 
-// Musical constants
-export const MUSIC_NOTES = [
-    ['A'], ['A#', 'Bb'], ['B'], ['C'], ['C#', 'Db'], ['D'],
-    ['D#', 'Eb'], ['E'], ['F'], ['F#', 'Gb'], ['G'], ['G#', 'Ab'],
+// Musical constants — A-indexed (0=A), matching the open-A tuning offset used by fretboard code.
+// Sharps only, 12 entries.
+export const NOTE_NAMES_FROM_A: NoteName[] = [
+  NoteName.A, NoteName.ASharp, NoteName.B, NoteName.C,
+  NoteName.CSharp, NoteName.D, NoteName.DSharp, NoteName.E,
+  NoteName.F, NoteName.FSharp, NoteName.G, NoteName.GSharp,
 ];
+
+// All 17 note names in A-indexed chromatic order, including flat enharmonics — for root-note dropdowns.
+export const ALL_NOTE_NAMES: NoteName[] = [
+  NoteName.A, NoteName.ASharp, NoteName.Bb, NoteName.B,
+  NoteName.C, NoteName.CSharp, NoteName.Db, NoteName.D,
+  NoteName.DSharp, NoteName.Eb, NoteName.E, NoteName.F,
+  NoteName.FSharp, NoteName.Gb, NoteName.G, NoteName.GSharp, NoteName.Ab,
+];
+
+// Flat enharmonic for each A-indexed semitone slot (undefined where there is none).
+export const NOTE_FLAT_ALIAS_FROM_A: (NoteName | undefined)[] = [
+  undefined,     // 0: A
+  NoteName.Bb,   // 1: A# -> Bb
+  undefined,     // 2: B
+  undefined,     // 3: C
+  NoteName.Db,   // 4: C# -> Db
+  undefined,     // 5: D
+  NoteName.Eb,   // 6: D# -> Eb
+  undefined,     // 7: E
+  undefined,     // 8: F
+  NoteName.Gb,   // 9: F# -> Gb
+  undefined,     // 10: G
+  NoteName.Ab,   // 11: G# -> Ab
+];
+
+const NOTE_NAME_TO_SEMITONE_FROM_A: Record<string, number> = {
+  [NoteName.A]: 0, [NoteName.ASharp]: 1, [NoteName.Bb]: 1,
+  [NoteName.B]: 2, [NoteName.C]: 3, [NoteName.CSharp]: 4, [NoteName.Db]: 4,
+  [NoteName.D]: 5, [NoteName.DSharp]: 6, [NoteName.Eb]: 6,
+  [NoteName.E]: 7, [NoteName.F]: 8, [NoteName.FSharp]: 9, [NoteName.Gb]: 9,
+  [NoteName.G]: 10, [NoteName.GSharp]: 11, [NoteName.Ab]: 11,
+};
 
 // --- Utility Functions ---
 
@@ -49,9 +84,8 @@ export function addCanvas(container: HTMLElement, idSuffix: string): HTMLCanvasE
 /** Finds the primary index (0-11) for a given note name (e.g., C, Db, F#) */
 export function getKeyIndex(noteName: string): number {
     if (!noteName) return -1;
-    // Normalize input slightly (e.g., lowercase, trim) - optional
-    const normalizedNote = noteName.trim(); //.toUpperCase(); - keep case for now
-    return MUSIC_NOTES.findIndex(group => group.includes(normalizedNote));
+    const idx = NOTE_NAME_TO_SEMITONE_FROM_A[noteName.trim()];
+    return idx !== undefined ? idx : -1;
 }
 
 /** Gets chord tones for highlighting (simple implementation) */
@@ -93,7 +127,6 @@ export function getNotesInScale(scale: Scale, rootNoteIndex: number): string[] {
     if (rootNoteIndex < 0 || rootNoteIndex > 11) return [];
     return scale.degrees.map(degree => {
         const noteIndex = (rootNoteIndex + degree) % 12;
-        // Return the primary name (first element) from the MUSIC_NOTES group
-        return MUSIC_NOTES[noteIndex]?.[0] ?? "?";
+        return NOTE_NAMES_FROM_A[noteIndex] ?? "?";
     });
 }
