@@ -1,4 +1,4 @@
-﻿import { Feature, ConfigurationSchemaArg } from "../feature";
+﻿import { Feature, ConfigurationSchemaArg, ArgType, UiComponentType } from "../feature";
 import { View } from "../view";
 import { MetronomeView } from "./views/metronome_view";
 import {
@@ -42,13 +42,13 @@ export abstract class InstrumentFeature implements Feature {
 
   static readonly BASE_INSTRUMENT_SETTINGS_CONFIG_ARG: ConfigurationSchemaArg = {
     name: "",
-    type: "ellipsis",
-    uiComponentType: "ellipsis",
+    type: ArgType.Ellipsis,
+    uiComponentType: UiComponentType.Ellipsis,
     description: "Configure interval-specific settings (e.g., Metronome).",
     nestedSchema: [
       {
         name: "metronomeBpm",
-        type: "number",
+        type: ArgType.Number,
         description: "Metronome BPM (0=off)",
       },
     ],

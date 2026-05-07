@@ -5,6 +5,7 @@ import {
   // FeatureCategoryName removed
   ConfigurationSchema,
   ConfigurationSchemaArg,
+  ArgType,
 } from "../../feature";
 import { InstrumentFeature } from "../instrument_base";
 import { AppSettings } from "../../settings";
@@ -67,7 +68,7 @@ export class NotesFeature extends InstrumentFeature {
     const specificArgs: ConfigurationSchemaArg[] = [
       {
         name: "Root Note",
-        type: "enum",
+        type: ArgType.Enum,
         required: false, // Optional argument
         enum: availableKeys,
         description:

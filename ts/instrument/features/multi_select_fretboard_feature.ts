@@ -1,6 +1,6 @@
 ﻿// ts/instrument/features/multi_select_fretboard_feature.ts
 
-import { Feature, ConfigurationSchema, ConfigurationSchemaArg } from "../../feature";
+import { Feature, ConfigurationSchema, ConfigurationSchemaArg, ArgType, UiComponentType } from "../../feature";
 import { InstrumentFeature } from "../instrument_base";
 import { AppSettings } from "../../settings";
 import { AudioController } from "../../audio_controller";
@@ -25,30 +25,31 @@ import {
   getCagedTuningOffset,
 } from "./caged_feature";
 import { DriveSignal, SignalKind } from "../../floating_views/link_types";
+import { LayerType } from "./layer_types";
 
 // --- Layer Spec Types ---
 
 interface ScaleLayer {
-  type: "scale";
+  type: LayerType.Scale;
   scaleName: string;
   rootNote: string;
   color: string;
 }
 
 interface ChordLayer {
-  type: "chord";
+  type: LayerType.Chord;
   chordKey: string;
   color: string;
 }
 
 interface NotesLayer {
-  type: "notes";
+  type: LayerType.Notes;
   noteNames: string[];
   color: string;
 }
 
 interface CagedLayer {
-  type: "caged";
+  type: LayerType.Caged;
   scaleName: string;
   rootNote: string;
 }
@@ -57,7 +58,7 @@ interface CagedLayer {
 // subType: "chord" → show chord tones of the incoming chord
 //          "scale" → show scale notes with the incoming root note (Major/Minor follows signal)
 interface DrivenLayer {
-  type: "driven";
+  type: LayerType.Driven;
   subType: "chord" | "scale";
   color: string;
 }
@@ -75,31 +76,31 @@ function parseLayerString(layerStr: string): LayerSpec | null {
   const parts = layerStr.split("|");
   if (parts.length < 2) return null;
 
-  const type = parts[0];
+  const type = parts[0] as LayerType;
 
-  if (type === "caged" && parts.length >= 3) {
-    return { type: "caged", scaleName: parts[1], rootNote: parts[2] };
+  if (type === LayerType.Caged && parts.length >= 3) {
+    return { type: LayerType.Caged, scaleName: parts[1], rootNote: parts[2] };
   }
 
-  if (type === "driven" && parts.length >= 3) {
+  if (type === LayerType.Driven && parts.length >= 3) {
     const subType = parts[1] === "scale" ? "scale" : "chord";
-    return { type: "driven", subType, color: parts[2] };
+    return { type: LayerType.Driven, subType, color: parts[2] };
   }
 
   // All other types need at least 3 parts and have color as the last part
   if (parts.length < 3) return null;
   const color = parts[parts.length - 1];
 
-  if (type === "scale" && parts.length >= 4) {
-    return { type: "scale", scaleName: parts[1], rootNote: parts[2], color };
-  } else if (type === "chord" && parts.length >= 3) {
-    return { type: "chord", chordKey: parts[1], color };
-  } else if (type === "notes" && parts.length >= 3) {
+  if (type === LayerType.Scale && parts.length >= 4) {
+    return { type: LayerType.Scale, scaleName: parts[1], rootNote: parts[2], color };
+  } else if (type === LayerType.Chord && parts.length >= 3) {
+    return { type: LayerType.Chord, chordKey: parts[1], color };
+  } else if (type === LayerType.Notes && parts.length >= 3) {
     const notesStr = parts[1];
     const noteNames = notesStr
       ? notesStr.split(",").map((n) => n.trim()).filter((n) => n.length > 0)
       : [];
-    return { type: "notes", noteNames, color };
+    return { type: LayerType.Notes, noteNames, color };
   }
   return null;
 }
@@ -152,7 +153,7 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
       const { signal } = (e as CustomEvent<{ signal: DriveSignal; linkId: string }>).detail;
       let changed = false;
       this.layers.forEach((layer, i) => {
-        if (layer.type !== 'driven') return;
+        if (layer.type !== LayerType.Driven) return;
         const accepts =
           (layer.subType === 'chord' && signal.kind === SignalKind.Chord) ||
           (layer.subType === 'scale' && (signal.kind === SignalKind.Chord || signal.kind === SignalKind.Key));
@@ -193,9 +194,9 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
 
     const layersArg: ConfigurationSchemaArg = {
       name: "Layers",
-      type: "string",
+      type: ArgType.String,
       isVariadic: true,
-      uiComponentType: "layer_list",
+      uiComponentType: UiComponentType.LayerList,
       description:
         "Layers to display on the fretboard, top-to-bottom in the list equals highest-to-lowest precedence.",
       uiComponentData: {
@@ -261,15 +262,15 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
 
   private getLayerNotes(layer: LayerSpec, drivenSignal?: DriveSignal): NoteRenderData[] {
     switch (layer.type) {
-      case "scale":
+      case LayerType.Scale:
         return this.getScaleLayerNotes(layer);
-      case "chord":
+      case LayerType.Chord:
         return this.getChordLayerNotes(layer);
-      case "notes":
+      case LayerType.Notes:
         return this.getNoteSetLayerNotes(layer.noteNames, layer.color);
-      case "caged":
+      case LayerType.Caged:
         return this.getCagedLayerNotes(layer);
-      case "driven":
+      case LayerType.Driven:
         return this.getDrivenLayerNotes(layer, drivenSignal);
       default:
         return [];
@@ -280,12 +281,12 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
     if (!signal) return [];
     if (layer.subType === "chord") {
       if (signal.kind !== SignalKind.Chord || !signal.chordKey) return [];
-      return this.getChordLayerNotes({ type: "chord", chordKey: signal.chordKey, color: layer.color });
+      return this.getChordLayerNotes({ type: LayerType.Chord, chordKey: signal.chordKey, color: layer.color });
     } else {
       // scale subType: driven by either a KeySignal or a ChordSignal (using rootNote/keyType)
       if (signal.kind !== SignalKind.Chord && signal.kind !== SignalKind.Key) return [];
       const scaleName = signal.keyType === "Major" ? "Major" : "Natural Minor";
-      return this.getScaleLayerNotes({ type: "scale", scaleName, rootNote: signal.rootNote, color: layer.color });
+      return this.getScaleLayerNotes({ type: LayerType.Scale, scaleName, rootNote: signal.rootNote, color: layer.color });
     }
   }
 

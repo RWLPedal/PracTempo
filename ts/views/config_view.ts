@@ -1,4 +1,4 @@
-import { ConfigurationSchema, ConfigurationSchemaArg } from "../feature";
+import { ConfigurationSchema, ConfigurationSchemaArg, ArgType, UiComponentType } from "../feature";
 import { createLayerListInput, extractLayerListValues } from "../schedule/editor/interval/common_ui_elements";
 
 export type ConfigChangeCallback = (config: (string | null)[]) => void;
@@ -35,11 +35,11 @@ export class ConfigView {
 
         let configIndex = 0;
         this.schema.args.forEach((arg, argIndex) => {
-            if (arg.uiComponentType === 'checkbox' || arg.uiComponentType === 'ellipsis') return;
-            if (arg.uiComponentType === 'layer_list') return;
+            if (arg.uiComponentType === UiComponentType.Checkbox || arg.uiComponentType === UiComponentType.Ellipsis) return;
+            if (arg.uiComponentType === UiComponentType.LayerList) return;
             if (configIndex >= config.length) return;
 
-            if (arg.isVariadic && arg.uiComponentType === 'toggle_button_selector') {
+            if (arg.isVariadic && arg.uiComponentType === UiComponentType.ToggleButtonSelector) {
                 // Toggle-button variadic: consume all remaining values
                 const values = config.slice(configIndex);
                 configIndex = config.length;
@@ -70,8 +70,8 @@ export class ConfigView {
         const result: (string | null)[] = [];
         this.schema.args.forEach((arg, index) => {
             // Checkboxes are purely UI-only; ellipsis (guitar settings) is handled externally.
-            if (arg.uiComponentType === 'checkbox' || arg.uiComponentType === 'ellipsis') return;
-            if (arg.uiComponentType === 'layer_list') {
+            if (arg.uiComponentType === UiComponentType.Checkbox || arg.uiComponentType === UiComponentType.Ellipsis) return;
+            if (arg.uiComponentType === UiComponentType.LayerList) {
                 const listContainer = this.layerListContainers.get(index);
                 if (listContainer) {
                     extractLayerListValues(listContainer).forEach(v => result.push(v));
@@ -184,7 +184,7 @@ export class ConfigView {
         this.container.innerHTML = '';
 
         this.schema.args.forEach((arg, index) => {
-            if (arg.uiComponentType === 'ellipsis') return; // handled externally
+            if (arg.uiComponentType === UiComponentType.Ellipsis) return; // handled externally
 
             const field = document.createElement('div');
             field.classList.add('field');
@@ -192,7 +192,7 @@ export class ConfigView {
             field.dataset.argName = arg.name;
 
             // Checkbox and layer_list manage their own labels — skip the separate label element.
-            if (arg.uiComponentType !== 'checkbox' && arg.uiComponentType !== 'layer_list') {
+            if (arg.uiComponentType !== UiComponentType.Checkbox && arg.uiComponentType !== UiComponentType.LayerList) {
                 const label = document.createElement('label');
                 label.classList.add('config-label');
                 label.innerText = arg.name;
@@ -214,14 +214,14 @@ export class ConfigView {
     // ------------------------------------------------------------------ //
 
     private renderArg(parent: HTMLElement, arg: ConfigurationSchemaArg, index: number): void {
-        if (arg.uiComponentType === 'checkbox') {
+        if (arg.uiComponentType === UiComponentType.Checkbox) {
             this.renderCheckbox(parent, arg);
-        } else if (arg.uiComponentType === 'layer_list') {
+        } else if (arg.uiComponentType === UiComponentType.LayerList) {
             this.renderLayerList(parent, arg, index);
-        } else if (arg.uiComponentType === 'toggle_button_selector') {
+        } else if (arg.uiComponentType === UiComponentType.ToggleButtonSelector) {
             const keyType = this.getKeyTypeForArg(arg);
             this.renderToggleButtons(parent, arg, index, keyType, false);
-        } else if (arg.type === 'enum') {
+        } else if (arg.type === ArgType.Enum) {
             this.renderEnumSelector(parent, arg, index);
         }
     }
@@ -345,7 +345,7 @@ export class ConfigView {
     private getKeyTypeForArg(arg: ConfigurationSchemaArg): string {
         if (typeof this.schema === 'string') return 'Major';
         const schema = this.schema;
-        const controller = schema.args.find(a => a.controlsArgName === arg.name && a.type === 'enum');
+        const controller = schema.args.find(a => a.controlsArgName === arg.name && a.type === ArgType.Enum);
         if (!controller) return 'Major';
         const idx = schema.args.indexOf(controller);
         return (this.argValues.get(idx) as string) ?? 'Major';
@@ -374,7 +374,7 @@ export class ConfigView {
             if (!controlledArg) return;
             const controlledIndex = schema.args.indexOf(controlledArg);
 
-            if (arg.uiComponentType === 'checkbox') {
+            if (arg.uiComponentType === UiComponentType.Checkbox) {
                 // Advanced checkbox → show/hide advanced buttons
                 const cb = this.container.querySelector<HTMLInputElement>(
                     `input[type="checkbox"][data-arg-name="${arg.name}"]`
@@ -400,7 +400,7 @@ export class ConfigView {
                     this.notifyChange();
                 });
 
-            } else if (arg.type === 'enum') {
+            } else if (arg.type === ArgType.Enum) {
                 // Key dropdown → rebuild Prog toggle buttons
                 const select = this.container.querySelector<HTMLSelectElement>(
                     `select[data-arg-name="${arg.name}"]`

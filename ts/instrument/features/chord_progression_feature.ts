@@ -4,6 +4,8 @@ import {
   // FeatureCategoryName removed
   ConfigurationSchema,
   ConfigurationSchemaArg,
+  ArgType,
+  UiComponentType,
 } from "../../feature";
 import { InstrumentFeature } from "../instrument_base";
 import { Chord, chord_library, getChordLibraryForInstrument } from "../chords";
@@ -108,14 +110,14 @@ export class ChordProgressionFeature extends InstrumentFeature {
     const specificArgs: ConfigurationSchemaArg[] = [
       {
         name: "Root Note",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         enum: availableKeys,
         description: "Root note (key) of the progression.",
       },
       {
         name: "Key Type",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         enum: ["Major", "Minor"],
         description: "Major or natural minor key.",
@@ -123,16 +125,16 @@ export class ChordProgressionFeature extends InstrumentFeature {
       },
       {
         name: "Advanced",
-        type: "boolean",
-        uiComponentType: "checkbox",
+        type: ArgType.Boolean,
+        uiComponentType: UiComponentType.Checkbox,
         description: "Show 7th chord options.",
         controlsArgName: "Prog",
       },
       {
         name: "Prog",
-        type: "string",
+        type: ArgType.String,
         required: true,
-        uiComponentType: "toggle_button_selector",
+        uiComponentType: UiComponentType.ToggleButtonSelector,
         uiComponentData: {
           buttonLabels: majorBasic,
           advancedButtonLabels: majorAdvanced,

@@ -4,6 +4,7 @@ import {
   Feature,
   ConfigurationSchema,
   ConfigurationSchemaArg,
+  ArgType,
 } from "../../feature";
 import { InstrumentFeature } from "../instrument_base";
 import { Scale, scales, scale_names } from "../scales";
@@ -293,28 +294,28 @@ export class CagedFeature extends InstrumentFeature {
     const specificArgs: ConfigurationSchemaArg[] = [
       {
         name: "Root Note",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         enum: availableKeys,
         description: "Root note of the scale.",
       },
       {
         name: "Scale Type",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         enum: availableScales.sort(),
         description: "Select the scale to display.",
       },
       {
         name: "Label Display",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         enum: labelOptions,
         description: "Display intervals or note names on the dots.",
       },
       {
         name: "Fill Display",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         enum: fillOptions,
         description:

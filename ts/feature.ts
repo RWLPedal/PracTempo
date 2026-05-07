@@ -93,17 +93,28 @@ export interface FeatureTypeDescriptor {
   ): Feature;
 }
 
+export enum ArgType {
+  String = "string",
+  Number = "number",
+  Boolean = "boolean",
+  Enum = "enum",
+  Ellipsis = "ellipsis",
+}
+
+export enum UiComponentType {
+  Text = "text",
+  Number = "number",
+  Enum = "enum",
+  ToggleButtonSelector = "toggle_button_selector",
+  Ellipsis = "ellipsis",
+  Checkbox = "checkbox",
+  LayerList = "layer_list",
+}
+
 export interface ConfigurationSchemaArg {
   name: string;
-  type: "string" | "number" | "boolean" | "enum" | "ellipsis";
-  uiComponentType?:
-    | "text"
-    | "number"
-    | "enum"
-    | "toggle_button_selector"
-    | "ellipsis"
-    | "checkbox"
-    | "layer_list";
+  type: ArgType;
+  uiComponentType?: UiComponentType;
   uiComponentData?: {
     buttonLabels?: string[];
     /** Advanced (7th chord) labels — hidden until the Advanced checkbox is checked. */

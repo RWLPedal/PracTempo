@@ -2,6 +2,8 @@
   Feature,
   ConfigurationSchema,
   ConfigurationSchemaArg,
+  ArgType,
+  UiComponentType,
 } from "../../feature";
 import { View } from "../../view";
 import { InstrumentFeature } from "../instrument_base";
@@ -189,17 +191,17 @@ export class TriadFeature extends InstrumentFeature {
     const specificArgs: ConfigurationSchemaArg[] = [
       {
         name: "Root Note",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         enum: availableKeys,
         description: "Root note of the triads.",
       },
       {
         name: "Qualities",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         isVariadic: true,
-        uiComponentType: "toggle_button_selector",
+        uiComponentType: UiComponentType.ToggleButtonSelector,
         uiComponentData: { buttonLabels: qualities },
         description: "Select one or more triad qualities to display.",
       },

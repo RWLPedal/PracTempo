@@ -2,6 +2,8 @@
 import {
   FeatureTypeDescriptor,
   ConfigurationSchemaArg,
+  ArgType,
+  UiComponentType,
   // FeatureCategoryName removed
 } from "../../../feature";
 import {
@@ -305,7 +307,7 @@ function populateArgsFromSchema(
     const isVariadic = arg.isVariadic; // Check schema flag directly
 
     // --- Determine which type of input to create and consume values ---
-    if (uiType === "checkbox") {
+    if (uiType === UiComponentType.Checkbox) {
       // --- Checkbox: UI-only, does NOT consume a value from currentValues ---
       label.textContent = labelText;
       const cbLabel = document.createElement("label");
@@ -318,23 +320,23 @@ function populateArgsFromSchema(
       cbLabel.appendChild(cb);
       inputsContainer.appendChild(cbLabel);
       // valueIndex intentionally NOT incremented
-    } else if (uiType === "layer_list") {
+    } else if (uiType === UiComponentType.LayerList) {
       // --- Layer List (MultiSelectFretboard) ---
       label.textContent = labelText;
       const variadicValues = currentValues.slice(valueIndex);
       createLayerListInput(inputsContainer, arg, variadicValues);
       valueIndex = currentValues.length; // consumes all remaining values
     } else if (
-      uiType === "toggle_button_selector" ||
-      (isVariadic && uiType !== "ellipsis")
+      uiType === UiComponentType.ToggleButtonSelector ||
+      (isVariadic && uiType !== UiComponentType.Ellipsis)
     ) {
       // --- Handle Variadic Types (Toggle Buttons or Generic Variadic) ---
       label.textContent = labelText;
       const variadicValues = currentValues.slice(valueIndex); // Consume remaining values
-      if (uiType === "toggle_button_selector") {
+      if (uiType === UiComponentType.ToggleButtonSelector) {
         // Determine initial key type from any enum controller for this arg
         const keyControllerName = schemaArgs.find(
-          a => a.controlsArgName === arg.name && a.type === "enum"
+          a => a.controlsArgName === arg.name && a.type === ArgType.Enum
         )?.name;
         const initKeyType = keyControllerName
           ? (controllerValues.get(keyControllerName) ?? "Major")
@@ -344,7 +346,7 @@ function populateArgsFromSchema(
         createVariadicInputElement(arg, inputsContainer, variadicValues);
       }
       valueIndex = currentValues.length; // Mark all remaining values as consumed
-    } else if (uiType === "ellipsis") {
+    } else if (uiType === UiComponentType.Ellipsis) {
       // --- Handle Ellipsis (Nested Settings) ---
       label.textContent = labelText;
       if (arg.nestedSchema) {
@@ -367,7 +369,7 @@ function populateArgsFromSchema(
       const currentValue =
         valueIndex < currentValues.length ? currentValues[valueIndex] : "";
       switch (arg.type) {
-        case "enum":
+        case ArgType.Enum:
           inputsContainer.appendChild(
             createDropdownInput(arg.name, arg.enum || [], currentValue)
           );
@@ -376,12 +378,12 @@ function populateArgsFromSchema(
             controllerValues.set(arg.name, currentValue || arg.enum?.[0] || "");
           }
           break;
-        case "number":
+        case ArgType.Number:
           inputsContainer.appendChild(
             createNumberInput(arg.name, currentValue)
           );
           break;
-        case "boolean":
+        case ArgType.Boolean:
           inputsContainer.appendChild(
             createDropdownInput(
               arg.name,
@@ -390,7 +392,7 @@ function populateArgsFromSchema(
             )
           );
           break;
-        default: // 'string' or unspecified defaults to text
+        default: // ArgType.String or unspecified defaults to text
           inputsContainer.appendChild(
             createTextInput(arg.name, currentValue, arg.example)
           );
@@ -430,7 +432,7 @@ function wireControllerArgs(
     const controlledArg = schemaArgs.find(a => a.name === arg.controlsArgName);
     if (!controllerInputs || !controlledInputs || !controlledArg) return;
 
-    if (arg.uiComponentType === "checkbox") {
+    if (arg.uiComponentType === UiComponentType.Checkbox) {
       // Checkbox shows/hides advanced buttons and deactivates hidden ones on hide
       const cb = controllerInputs.querySelector<HTMLInputElement>("input[type='checkbox']");
       if (!cb) return;
@@ -441,7 +443,7 @@ function wireControllerArgs(
           if (!cb.checked) btn.classList.remove("is-active", "is-info");
         });
       });
-    } else if (arg.type === "enum") {
+    } else if (arg.type === ArgType.Enum) {
       // Key dropdown rebuilds the toggle buttons preserving selection, respecting advanced state
       const select = controllerInputs.querySelector<HTMLSelectElement>("select");
       if (!select) return;

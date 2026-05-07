@@ -1,13 +1,7 @@
-﻿import { MUSIC_NOTES, getKeyIndex } from "./instrument_utils";
+import { MUSIC_NOTES, getKeyIndex } from "./instrument_utils";
 import { Chord, chord_library } from "./chords";
-
-/**
- * Defines the quality of a chord derived from a scale degree.
- */
-export type ChordQuality = "Major" | "Minor" | "Diminished" | "Augmented" | "Dominant7th" | "Major7th" | "Minor7th" | "Unknown"; // Expand as needed
-
-/** Whether to interpret Roman numerals as a major or natural minor key. */
-export type KeyType = "Major" | "Minor";
+import { KeyType, ChordQuality } from "./music_types";
+export { KeyType, ChordQuality };
 
 /**
  * Represents the mapping from a Roman numeral in a major key context
@@ -15,25 +9,22 @@ export type KeyType = "Major" | "Minor";
  */
 const MAJOR_KEY_ROMAN_MAP: { [numeral: string]: { degree: number; quality: ChordQuality } } = {
     // Diatonic Triads
-    "I": { degree: 0, quality: "Major" },    // Tonic Major
-    "ii": { degree: 2, quality: "Minor" },    // Supertonic Minor
-    "iii": { degree: 4, quality: "Minor" },    // Mediant Minor
-    "IV": { degree: 5, quality: "Major" },    // Subdominant Major
-    "V": { degree: 7, quality: "Major" },    // Dominant Major
-    "vi": { degree: 9, quality: "Minor" },    // Submediant Minor
-    "vii°": { degree: 11, quality: "Diminished" },// Leading Tone Diminished
+    "I":    { degree: 0,  quality: ChordQuality.Major      },
+    "ii":   { degree: 2,  quality: ChordQuality.Minor      },
+    "iii":  { degree: 4,  quality: ChordQuality.Minor      },
+    "IV":   { degree: 5,  quality: ChordQuality.Major      },
+    "V":    { degree: 7,  quality: ChordQuality.Major      },
+    "vi":   { degree: 9,  quality: ChordQuality.Minor      },
+    "vii°": { degree: 11, quality: ChordQuality.Diminished },
 
-    // Common Diatonic 7ths (can be expanded)
-    "Imaj7": { degree: 0, quality: "Major7th"},
-    "ii7": { degree: 2, quality: "Minor7th"},
-    "iii7": { degree: 4, quality: "Minor7th"},
-    "IVmaj7": { degree: 5, quality: "Major7th"},
-    "V7": { degree: 7, quality: "Dominant7th"},
-    "vi7": { degree: 9, quality: "Minor7th"},
-    "viiø7": { degree: 11, quality: "Minor7th"}, // Half-diminished (m7b5) - approximate for now
-    // Aliases or variations can be added here (e.g., "V/V")
-
-    // TODO: Add support for secondary dominants, borrowed chords, etc.
+    // Common Diatonic 7ths
+    "Imaj7":  { degree: 0,  quality: ChordQuality.Major7th    },
+    "ii7":    { degree: 2,  quality: ChordQuality.Minor7th    },
+    "iii7":   { degree: 4,  quality: ChordQuality.Minor7th    },
+    "IVmaj7": { degree: 5,  quality: ChordQuality.Major7th    },
+    "V7":     { degree: 7,  quality: ChordQuality.Dominant7th },
+    "vi7":    { degree: 9,  quality: ChordQuality.Minor7th    },
+    "viiø7":  { degree: 11, quality: ChordQuality.Minor7th    },
 };
 
 /**
@@ -42,116 +33,81 @@ const MAJOR_KEY_ROMAN_MAP: { [numeral: string]: { degree: number; quality: Chord
  */
 const MINOR_KEY_ROMAN_MAP: { [numeral: string]: { degree: number; quality: ChordQuality } } = {
     // Diatonic Triads (Natural Minor)
-    "i":    { degree: 0,  quality: "Minor" },       // Tonic Minor
-    "ii°":  { degree: 2,  quality: "Diminished" },  // Supertonic Diminished
-    "III":  { degree: 3,  quality: "Major" },        // Mediant Major
-    "iv":   { degree: 5,  quality: "Minor" },        // Subdominant Minor
-    "v":    { degree: 7,  quality: "Minor" },        // Dominant Minor
-    "VI":   { degree: 8,  quality: "Major" },        // Submediant Major
-    "VII":  { degree: 10, quality: "Major" },        // Subtonic Major
+    "i":    { degree: 0,  quality: ChordQuality.Minor      },
+    "ii°":  { degree: 2,  quality: ChordQuality.Diminished },
+    "III":  { degree: 3,  quality: ChordQuality.Major      },
+    "iv":   { degree: 5,  quality: ChordQuality.Minor      },
+    "v":    { degree: 7,  quality: ChordQuality.Minor      },
+    "VI":   { degree: 8,  quality: ChordQuality.Major      },
+    "VII":  { degree: 10, quality: ChordQuality.Major      },
 
     // Common Diatonic 7ths (Natural Minor)
-    "im7":     { degree: 0,  quality: "Minor7th" },
-    "iiø7":    { degree: 2,  quality: "Minor7th" },    // Half-diminished
-    "IIImaj7": { degree: 3,  quality: "Major7th" },
-    "iv7":     { degree: 5,  quality: "Minor7th" },
-    "v7":      { degree: 7,  quality: "Minor7th" },
-    "VImaj7":  { degree: 8,  quality: "Major7th" },
-    "VII7":    { degree: 10, quality: "Dominant7th" },
+    "im7":     { degree: 0,  quality: ChordQuality.Minor7th    },
+    "iiø7":    { degree: 2,  quality: ChordQuality.Minor7th    },
+    "IIImaj7": { degree: 3,  quality: ChordQuality.Major7th    },
+    "iv7":     { degree: 5,  quality: ChordQuality.Minor7th    },
+    "v7":      { degree: 7,  quality: ChordQuality.Minor7th    },
+    "VImaj7":  { degree: 8,  quality: ChordQuality.Major7th    },
+    "VII7":    { degree: 10, quality: ChordQuality.Dominant7th },
 };
 
-/**
- * Simple helper to map quality types to common suffixes used in chord_library keys.
- * This is a basic mapping and might need refinement based on chord_library structure.
- */
 function qualityToChordKeySuffix(quality: ChordQuality): string {
     switch (quality) {
-        case "Major": return "_MAJOR"; // Assuming MAJOR suffix exists
-        case "Minor": return "_MINOR"; // Assuming MINOR suffix exists
-        case "Diminished": return "_DIM"; // Placeholder - Check chord_library
-        case "Augmented": return "_AUG"; // Placeholder - Check chord_library
-        case "Dominant7th": return "7"; // Common notation
-        case "Major7th": return "MAJ7"; // Common notation
-        case "Minor7th": return "m7"; // Common notation - might need checking (AM7 vs A_MINOR7)
-        default: return ""; // Unknown or simple triad assumed if no suffix
+        case ChordQuality.Major:      return "_MAJOR";
+        case ChordQuality.Minor:      return "_MINOR";
+        case ChordQuality.Diminished: return "_DIM";
+        case ChordQuality.Augmented:  return "_AUG";
+        case ChordQuality.Dominant7th: return "7";
+        case ChordQuality.Major7th:   return "MAJ7";
+        case ChordQuality.Minor7th:   return "m7";
+        default: return "";
     }
 }
 
-/**
- * Calculates the chord name and attempts to find a matching key in the chord library
- * based on a root note index and a Roman numeral string (assuming Major Key context).
- *
- * @param rootNoteIndex - The index (0-11) of the key's root note.
- * @param romanNumeral - The Roman numeral string (e.g., "I", "vi", "V7").
- * @returns An object containing the calculated chord name and the potential chord library key.
- */
 export function getChordInKey(
     rootNoteIndex: number,
     romanNumeral: string,
-    keyType: KeyType = "Major",
+    keyType: KeyType = KeyType.Major,
     chordLibrary: Record<string, Chord> = chord_library
 ): { chordName: string; chordKey: string | null; quality: ChordQuality } {
-    const map = keyType === "Minor" ? MINOR_KEY_ROMAN_MAP : MAJOR_KEY_ROMAN_MAP;
+    const map = keyType === KeyType.Minor ? MINOR_KEY_ROMAN_MAP : MAJOR_KEY_ROMAN_MAP;
     const mapEntry = map[romanNumeral];
     if (!mapEntry) {
         console.warn(`Roman numeral "${romanNumeral}" not found in map.`);
-        return { chordName: `${romanNumeral}?`, chordKey: null, quality: "Unknown" };
+        return { chordName: `${romanNumeral}?`, chordKey: null, quality: ChordQuality.Unknown };
     }
 
     const chordRootIndex = (rootNoteIndex + mapEntry.degree) % 12;
-    const chordRootName = MUSIC_NOTES[chordRootIndex]?.[0] ?? "?"; // Get the primary name (e.g., C# over Db)
+    const chordRootName = MUSIC_NOTES[chordRootIndex]?.[0] ?? "?";
 
     let fullChordName: string;
-    // Construct the full chord name based on quality
     switch (mapEntry.quality) {
-        case "Major":
-            fullChordName = `${chordRootName}`; // Often just the letter for major
-            break;
-        case "Minor":
-            fullChordName = `${chordRootName}m`;
-            break;
-        case "Diminished":
-            fullChordName = `${chordRootName}dim`;
-            break;
-        case "Augmented":
-            fullChordName = `${chordRootName}aug`;
-            break;
-         case "Dominant7th":
-            fullChordName = `${chordRootName}7`;
-            break;
-        case "Major7th":
-            fullChordName = `${chordRootName}maj7`;
-            break;
-        case "Minor7th":
-            fullChordName = `${chordRootName}m7`;
-            break;
-        default:
-            fullChordName = `${chordRootName} (${mapEntry.quality})`; // Fallback
-            break;
+        case ChordQuality.Major:       fullChordName = `${chordRootName}`;         break;
+        case ChordQuality.Minor:       fullChordName = `${chordRootName}m`;        break;
+        case ChordQuality.Diminished:  fullChordName = `${chordRootName}dim`;      break;
+        case ChordQuality.Augmented:   fullChordName = `${chordRootName}aug`;      break;
+        case ChordQuality.Dominant7th: fullChordName = `${chordRootName}7`;        break;
+        case ChordQuality.Major7th:    fullChordName = `${chordRootName}maj7`;     break;
+        case ChordQuality.Minor7th:    fullChordName = `${chordRootName}m7`;       break;
+        default:                       fullChordName = `${chordRootName} (${mapEntry.quality})`; break;
     }
 
-
-    // --- Attempt to find matching chordKey in the provided library ---
-    // This part is heuristic and depends heavily on naming conventions in the library.
     let potentialKey: string | null = null;
 
-    // 1. Try direct match with constructed name (e.g., "Am7")
     const directKey = Object.keys(chordLibrary).find(key => chordLibrary[key].name === fullChordName);
     if (directKey) {
         potentialKey = directKey;
     } else {
-        // 2. Try constructing key from root + suffix (e.g., A + _MINOR + 7 -> A_MINOR7 ?)
         const suffix = qualityToChordKeySuffix(mapEntry.quality);
-        let constructedKeyBase = chordRootName.replace("#", "sharp"); // Replace '#' if keys use 'sharp'
+        let constructedKeyBase = chordRootName.replace("#", "sharp");
 
-        // Check common variations (e.g., C_MAJOR, G7, AM7, B_MINOR)
         const variationsToTest = [
-            `${constructedKeyBase}${suffix}`, // e.g., A_MINOR, C_MAJOR
-            `${constructedKeyBase.toUpperCase()}${suffix}`, // e.g., A_MINOR, C_MAJOR
-            `${constructedKeyBase}${suffix.toUpperCase()}`, // e.g., Am7, Cmaj7 (might match chord name)
-            mapEntry.quality === 'Dominant7th' ? `${constructedKeyBase}7` : null, // G7
-            mapEntry.quality === 'Major7th' ? `${constructedKeyBase.toUpperCase()}MAJ7` : null, // AMAJ7
-            mapEntry.quality === 'Minor7th' ? `${constructedKeyBase}m7` : null, // Am7, Bm7
+            `${constructedKeyBase}${suffix}`,
+            `${constructedKeyBase.toUpperCase()}${suffix}`,
+            `${constructedKeyBase}${suffix.toUpperCase()}`,
+            mapEntry.quality === ChordQuality.Dominant7th ? `${constructedKeyBase}7` : null,
+            mapEntry.quality === ChordQuality.Major7th    ? `${constructedKeyBase.toUpperCase()}MAJ7` : null,
+            mapEntry.quality === ChordQuality.Minor7th    ? `${constructedKeyBase}m7` : null,
         ].filter(v => v !== null);
 
         for (const testKey of variationsToTest) {
@@ -165,7 +121,6 @@ export function getChordInKey(
             console.warn(`Could not find key in chord library for: ${fullChordName} (tried variations like ${variationsToTest.join(', ')})`);
         }
     }
-
 
     return {
         chordName: fullChordName,

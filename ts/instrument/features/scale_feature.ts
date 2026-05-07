@@ -2,6 +2,8 @@
   Feature,
   ConfigurationSchema,
   ConfigurationSchemaArg,
+  ArgType,
+  UiComponentType,
 } from "../../feature";
 import { InstrumentFeature } from "../instrument_base";
 import { Scale, scale_names, scales } from "../scales";
@@ -80,7 +82,7 @@ export class ScaleFeature extends InstrumentFeature {
     const specificArgs: ConfigurationSchemaArg[] = [
       {
         name: "ScaleName",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         enum: availableScaleNames,
         defaultValue: "Major",
@@ -88,17 +90,17 @@ export class ScaleFeature extends InstrumentFeature {
       },
       {
         name: "Root Note",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         enum: availableKeys,
         description: "Root note of the scale.",
       },
       {
         name: "Highlight Notes",
-        type: "enum", // Use enum type
+        type: ArgType.Enum,
         required: false,
-        enum: allNoteNames, // Use the static list of all notes
-        uiComponentType: "toggle_button_selector",
+        enum: allNoteNames,
+        uiComponentType: UiComponentType.ToggleButtonSelector,
         isVariadic: true,
         uiComponentData: { buttonLabels: allNoteNames }, // Provide static labels
         description:

@@ -1,6 +1,8 @@
 ﻿// ts/instrument/chord_key_resolver.ts
 // Pure utility — shared by BackingTrackView and drive_slots.ts
 
+import { KeyType } from './music_types';
+
 export const CHORD_ROOTS = ['A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
 
 export interface RomanEntry { roman: string; degree: number; suffix: string; }
@@ -38,9 +40,9 @@ export const MINOR_ROMANS: RomanEntry[] = [
 export function resolveAbsoluteChordKey(
   roman: string,
   progRootNote: string,
-  progKeyType: 'Major' | 'Minor'
+  progKeyType: KeyType
 ): string | null {
-  const romans = progKeyType === 'Major' ? MAJOR_ROMANS : MINOR_ROMANS;
+  const romans = progKeyType === KeyType.Major ? MAJOR_ROMANS : MINOR_ROMANS;
   const entry = romans.find(r => r.roman === roman);
   if (!entry) return null;
   const rootIdx = CHORD_ROOTS.indexOf(progRootNote);
@@ -56,9 +58,9 @@ export function resolveAbsoluteChordKey(
 export function resolveChordRootNote(
   roman: string,
   progRootNote: string,
-  progKeyType: 'Major' | 'Minor'
+  progKeyType: KeyType
 ): string | null {
-  const romans = progKeyType === 'Major' ? MAJOR_ROMANS : MINOR_ROMANS;
+  const romans = progKeyType === KeyType.Major ? MAJOR_ROMANS : MINOR_ROMANS;
   const entry = romans.find(r => r.roman === roman);
   if (!entry) return null;
   const rootIdx = CHORD_ROOTS.indexOf(progRootNote);

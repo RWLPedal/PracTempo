@@ -10,6 +10,7 @@ import { buildGroupRowElement } from "./interval/group_row_ui";
 import { buildIntervalRowElement } from "./interval/interval_row_ui";
 import { SelectionManager } from "./selection_manager";
 import { applyIndentation, extractLayerListValues } from "./interval/common_ui_elements";
+import { UiComponentType } from "../../feature";
 import {
   getFeatureTypeDescriptor,
   getCategory,
@@ -249,12 +250,12 @@ export class RowManager {
               const uiType = inputsContainer.dataset.uiComponentType;
               const isVariadic = currentSchemaArg.isVariadic; // Check schema, not just dataset
 
-              if (uiType === "layer_list") {
+              if (uiType === UiComponentType.LayerList) {
                 // **** Layer List Logic ****
                 const layerValues = extractLayerListValues(inputsContainer);
                 featureArgsList.push(...layerValues);
                 schemaArgIndex = schemaArgs.length; // consumes all remaining schema args
-              } else if (uiType === "toggle_button_selector") {
+              } else if (uiType === UiComponentType.ToggleButtonSelector) {
                 // **** START: Toggle Button Logic ****
                 const activeButtons =
                   inputsContainer.querySelectorAll<HTMLButtonElement>(
@@ -267,10 +268,10 @@ export class RowManager {
                 // Toggle button consumes all remaining args if variadic
                 if (isVariadic) schemaArgIndex = schemaArgs.length;
                 // **** END: Toggle Button Logic ****
-              } else if (uiType === "checkbox") {
+              } else if (uiType === UiComponentType.Checkbox) {
                 // UI-only control — never serialized into featureArgsList
                 schemaArgIndex++;
-              } else if (uiType === "ellipsis") {
+              } else if (uiType === UiComponentType.Ellipsis) {
                 // Settings handled by intervalSettingsJSON, consume schema arg
                 schemaArgIndex++;
               } else if (isVariadic) {

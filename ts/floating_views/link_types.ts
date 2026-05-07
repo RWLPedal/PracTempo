@@ -1,5 +1,8 @@
 // ts/floating_views/link_types.ts
 
+import { KeyType } from '../instrument/music_types';
+export { KeyType } from '../instrument/music_types';
+
 export type HandleSide = 'top' | 'bottom' | 'left' | 'right';
 
 export interface LinkRecord {
@@ -26,7 +29,7 @@ export interface ChordSignal {
   kind: SignalKind.Chord;
   chordKey: string | null;       // absolute chord_tones_library key e.g. "C_MAJ"
   rootNote: string;              // resolved chord root note e.g. "F"
-  keyType: 'Major' | 'Minor';   // whether this chord is major or minor
+  keyType: KeyType;              // whether this chord is major or minor
   roman: string | null;          // roman numeral in source's key e.g. "IV", or null for rest
 }
 
@@ -36,7 +39,7 @@ export interface ChordSignal {
 export interface KeySignal {
   kind: SignalKind.Key;
   rootNote: string;              // e.g. "C"
-  keyType: 'Major' | 'Minor';   // e.g. "Major"
+  keyType: KeyType;              // e.g. "Major"
 }
 
 // A tempo signal — carries a BPM value from a metronome or backing track source.

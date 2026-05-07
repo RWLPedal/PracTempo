@@ -4,6 +4,7 @@
 
 import { registerDriveSource, registerDriveTarget } from './drive_registry';
 import { SignalKind, ChordSignal, KeySignal, DriveSignal } from './link_types';
+import { KeyType } from '../instrument/music_types';
 import {
   resolveAbsoluteChordKey,
   resolveChordRootNote,
@@ -22,11 +23,11 @@ registerDriveSource({
   extractSignals(detail: any): DriveSignal[] {
     const roman: string | null = detail?.currentChord ?? null;
     const root: string = detail?.progRootNote ?? 'C';
-    const keyType: 'Major' | 'Minor' = detail?.progKeyType ?? 'Major';
+    const keyType: KeyType = detail?.progKeyType ?? KeyType.Major;
 
     let chordKey: string | null = null;
     let chordRoot = root;
-    let chordKeyType: 'Major' | 'Minor' = keyType;
+    let chordKeyType: KeyType = keyType;
 
     if (roman) {
       chordKey = resolveAbsoluteChordKey(roman, root, keyType);
@@ -34,9 +35,9 @@ registerDriveSource({
       if (resolvedRoot) chordRoot = resolvedRoot;
 
       // Determine if this chord is major or minor quality
-      const romans = keyType === 'Major' ? MAJOR_ROMANS : MINOR_ROMANS;
+      const romans = keyType === KeyType.Major ? MAJOR_ROMANS : MINOR_ROMANS;
       const entry = romans.find(r => r.roman === roman);
-      if (entry) chordKeyType = isMajorChordSuffix(entry.suffix) ? 'Major' : 'Minor';
+      if (entry) chordKeyType = isMajorChordSuffix(entry.suffix) ? KeyType.Major : KeyType.Minor;
     }
 
     const chordSignal: ChordSignal = {
@@ -77,7 +78,7 @@ registerDriveSource({
           kind: SignalKind.Chord,
           chordKey,
           rootNote: chordKey?.split('_')[0] ?? '',
-          keyType: chordKey?.endsWith('MIN') || chordKey?.endsWith('MIN7') ? 'Minor' : 'Major',
+          keyType: chordKey?.endsWith('MIN') || chordKey?.endsWith('MIN7') ? KeyType.Minor : KeyType.Major,
           roman: null,
         });
       }
@@ -98,7 +99,7 @@ registerDriveSource({
     const config: string[] = detail?.config ?? [];
     const rootNote: string = config[1] ?? 'C';
     const scaleName: string = config[0] ?? 'Major';
-    const keyType: 'Major' | 'Minor' = scaleName.toLowerCase().includes('minor') ? 'Minor' : 'Major';
+    const keyType: KeyType = scaleName.toLowerCase().includes('minor') ? KeyType.Minor : KeyType.Major;
     return [{
       kind: SignalKind.Chord,
       chordKey: null,

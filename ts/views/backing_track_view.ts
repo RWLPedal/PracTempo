@@ -1,6 +1,6 @@
 ﻿// ts/views/backing_track_view.ts
 import { View } from '../view';
-import { SignalKind, TempoSignal } from '../floating_views/link_types';
+import { KeyType, SignalKind, TempoSignal } from '../floating_views/link_types';
 import {
   DrumSoundId,
   DRUM_SOUND_LABELS,
@@ -182,7 +182,7 @@ export class BackingTrackView implements View {
   // Chord progression state
   private numMeasures: 4 | 8 | 12 = 4;
   private progRootNote: string = 'C';
-  private progKeyType: 'Major' | 'Minor' = 'Major';
+  private progKeyType: KeyType = KeyType.Major;
   private selectedChord: string | null = null;
   private measureChords: (string | null)[] = [];
   private currentMeasure: number = -1;
@@ -482,7 +482,7 @@ export class BackingTrackView implements View {
     this.progKeyTypeBtn.classList.add('button', 'is-small', 'dm-key-type-btn');
     this.progKeyTypeBtn.textContent = this.progKeyType;
     this.progKeyTypeBtn.addEventListener('click', () => {
-      this.progKeyType = this.progKeyType === 'Major' ? 'Minor' : 'Major';
+      this.progKeyType = this.progKeyType === KeyType.Major ? KeyType.Minor : KeyType.Major;
       this.progKeyTypeBtn!.textContent = this.progKeyType;
       this.selectedChord = null;
       this.rebuildChordToolOptions();

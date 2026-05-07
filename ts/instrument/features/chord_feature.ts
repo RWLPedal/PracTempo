@@ -4,6 +4,8 @@ import {
   // FeatureCategoryName removed
   ConfigurationSchema,
   ConfigurationSchemaArg,
+  ArgType,
+  UiComponentType,
 } from "../../feature";
 import { InstrumentFeature } from "../instrument_base";
 import {
@@ -85,14 +87,14 @@ export class ChordFeature extends InstrumentFeature {
     const specificArgs: ConfigurationSchemaArg[] = [
       {
         name: "Root",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         enum: availableRoots,
         description: "Root note of the chord.",
       },
       {
         name: "Type",
-        type: "enum",
+        type: ArgType.Enum,
         required: true,
         enum: chordTypes,
         defaultValue: ChordType.MAJOR,
@@ -100,8 +102,8 @@ export class ChordFeature extends InstrumentFeature {
       },
       {
         name: "Moveable",
-        type: "boolean",
-        uiComponentType: "checkbox",
+        type: ArgType.Boolean,
+        uiComponentType: UiComponentType.Checkbox,
         description: "Show moveable barre chord shapes instead of standard open shapes. (Guitar only)",
       },
     ];

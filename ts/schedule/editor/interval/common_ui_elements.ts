@@ -1,6 +1,7 @@
 // ts/schedule/editor/interval/common_ui_elements.ts
-import { ConfigurationSchemaArg } from "../../../feature";
+import { ConfigurationSchemaArg, ArgType } from "../../../feature";
 import { IntervalSettings } from "./types";
+import { LayerType } from "../../../instrument/features/layer_types";
 
 // --- Generic UI Element Creation Functions ---
 
@@ -239,9 +240,9 @@ export function populateEllipsisDropdownContent(
         // This logic is already generic
         if (nestedArg.enum) {
              inputElement = createDropdownInput(nestedArg.name, nestedArg.enum, currentValueStr);
-        } else if (nestedArg.type === "number") {
+        } else if (nestedArg.type === ArgType.Number) {
              inputElement = createNumberInput(nestedArg.name, currentValueStr, nestedArg.description);
-        } else if (nestedArg.type === "boolean") {
+        } else if (nestedArg.type === ArgType.Boolean) {
              inputElement = createDropdownInput(nestedArg.name, ["true", "false"], currentValueStr || "false");
         } else { // Default to string/text input
              inputElement = createTextInput(nestedArg.name, currentValueStr, nestedArg.description);
@@ -255,8 +256,8 @@ export function populateEllipsisDropdownContent(
                     const target = e.target as HTMLInputElement | HTMLSelectElement;
                     let newValue: string | number | boolean = target.value;
                     // Convert value type based on schema
-                    if (nestedArg.type === "number") { newValue = parseInt(target.value, 10); if (isNaN(newValue)) newValue = 0; }
-                    else if (nestedArg.type === "boolean") { newValue = target.value === "true"; }
+                    if (nestedArg.type === ArgType.Number) { newValue = parseInt(target.value, 10); if (isNaN(newValue)) newValue = 0; }
+                    else if (nestedArg.type === ArgType.Boolean) { newValue = target.value === "true"; }
                     // Update the INSTANCE directly using the nestedArg name as key
                     (settingsInstance as any)[nestedArg.name] = newValue;
                     console.log(`Updated setting '${nestedArg.name}' to:`, newValue, settingsInstance); // Log generic instance
@@ -295,7 +296,7 @@ export function createVariadicInputElement(
         // Create appropriate input based on schema (handles enum within variadic now)
         if (arg.enum) {
              inputElement = createDropdownInput(arg.name, arg.enum, value);
-        } else if (arg.type === "number") {
+        } else if (arg.type === ArgType.Number) {
             inputElement = createNumberInput(arg.name, value);
         } else { // Default to text
             inputElement = createTextInput(arg.name, value, arg.example);
@@ -443,23 +444,23 @@ interface LayerListComponentData {
   noteNames?: string[];
 }
 
-type LayerType = "scale" | "chord" | "notes" | "driven";
+type UiLayerType = Exclude<LayerType, LayerType.Caged>;
 
-const LAYER_TYPE_LABELS: Record<LayerType, string> = {
-  scale: "Scale",
-  chord: "Chord Tones",
-  notes: "Notes",
-  driven: "Driven (linked)",
+const LAYER_TYPE_LABELS: Record<UiLayerType, string> = {
+  [LayerType.Scale]:  "Scale",
+  [LayerType.Chord]:  "Chord Tones",
+  [LayerType.Notes]:  "Notes",
+  [LayerType.Driven]: "Driven (linked)",
 };
 
-const LAYER_COLOR_VARS: Record<LayerType, string> = {
-  scale:  '--layer-scale',
-  chord:  '--layer-chord',
-  notes:  '--layer-notes',
-  driven: '--layer-driven',
+const LAYER_COLOR_VARS: Record<UiLayerType, string> = {
+  [LayerType.Scale]:  '--layer-scale',
+  [LayerType.Chord]:  '--layer-chord',
+  [LayerType.Notes]:  '--layer-notes',
+  [LayerType.Driven]: '--layer-driven',
 };
 
-function getDefaultLayerColor(type: LayerType): string {
+function getDefaultLayerColor(type: UiLayerType): string {
   return getComputedStyle(document.documentElement)
     .getPropertyValue(LAYER_COLOR_VARS[type]).trim();
 }
@@ -696,7 +697,7 @@ export function createLayerListInput(
     typeWrapper.style.flexShrink = "0";
     const typeSelect = document.createElement("select");
     typeSelect.classList.add("layer-type-select");
-    (Object.keys(LAYER_TYPE_LABELS) as LayerType[]).forEach((t) => {
+    (Object.keys(LAYER_TYPE_LABELS) as UiLayerType[]).forEach((t) => {
       const opt = new Option(LAYER_TYPE_LABELS[t], t);
       if (t === layerType) opt.selected = true;
       typeSelect.appendChild(opt);
@@ -743,7 +744,7 @@ export function createLayerListInput(
 
     // Re-build fields when layer type changes
     typeSelect.addEventListener("change", () => {
-      const newType = typeSelect.value as LayerType;
+      const newType = typeSelect.value as UiLayerType;
       colorInput.value = getDefaultLayerColor(newType);
       buildLayerFields(fieldsContainer, newType, data, [], onChange);
       onChange?.();
@@ -772,7 +773,7 @@ export function createLayerListInput(
   addBtn.style.alignSelf = "flex-start";
   addBtn.style.marginTop = "4px";
   addBtn.onclick = () => {
-    addLayerRow("scale", [], getDefaultLayerColor("scale"));
+    addLayerRow(LayerType.Scale, [], getDefaultLayerColor(LayerType.Scale));
     onChange?.();
   };
   listContainer.appendChild(addBtn);
