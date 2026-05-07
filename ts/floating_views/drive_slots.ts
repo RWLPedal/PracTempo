@@ -51,7 +51,11 @@ registerDriveSource({
       rootNote: root,
       keyType,
     };
-    return [chordSignal, keySignal];
+    const signals: DriveSignal[] = [chordSignal, keySignal];
+    if (typeof detail?.bpm === 'number') {
+      signals.push({ kind: SignalKind.Tempo, bpm: detail.bpm });
+    }
+    return signals;
   },
 });
 
@@ -171,6 +175,7 @@ registerDriveTarget({
   label: 'Scale name (from linked source)',
   acceptedKinds: [SignalKind.Key, SignalKind.Chord],
   resolveValue(signal: DriveSignal): string | null {
+    if (signal.kind === SignalKind.Tempo) return null;
     return signal.keyType === 'Major' ? 'Major' : 'Natural Minor';
   },
 });
@@ -181,6 +186,7 @@ registerDriveTarget({
   label: 'Root note (from linked source)',
   acceptedKinds: [SignalKind.Key, SignalKind.Chord],
   resolveValue(signal: DriveSignal): string | null {
+    if (signal.kind === SignalKind.Tempo) return null;
     return signal.rootNote;
   },
 });
@@ -195,6 +201,7 @@ registerDriveTarget({
   label: 'Root note (from linked source)',
   acceptedKinds: [SignalKind.Chord, SignalKind.Key],
   resolveValue(signal: DriveSignal): string | null {
+    if (signal.kind === SignalKind.Tempo) return null;
     return signal.rootNote || null;
   },
 });
@@ -245,6 +252,7 @@ registerDriveTarget({
   label: 'Root note (from linked source)',
   acceptedKinds: [SignalKind.Chord, SignalKind.Key],
   resolveValue(signal: DriveSignal): string | null {
+    if (signal.kind === SignalKind.Tempo) return null;
     return signal.rootNote || null;
   },
 });
@@ -258,6 +266,19 @@ registerDriveTarget({
   label: 'Root note (from linked source)',
   acceptedKinds: [SignalKind.Chord, SignalKind.Key],
   resolveValue(signal: DriveSignal): string | null {
+    if (signal.kind === SignalKind.Tempo) return null;
     return signal.rootNote || null;
   },
 });
+
+// ─── Metronome as tempo source ────────────────────────────────────────────────
+// The MetronomeView dispatches 'metronome-tempo-changed' with { bpm }.
+
+registerDriveSource({
+  viewId: 'instrument_floating_metronome',
+  extractSignals(detail: any): DriveSignal[] {
+    if (typeof detail?.bpm !== 'number') return [];
+    return [{ kind: SignalKind.Tempo, bpm: detail.bpm }];
+  },
+});
+

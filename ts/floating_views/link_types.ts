@@ -15,6 +15,7 @@ export interface LinkRecord {
 export enum SignalKind {
   Chord = 'Chord',
   Key   = 'Key',
+  Tempo = 'Tempo',
 }
 
 // A generic chord signal — different targets interpret it differently:
@@ -38,4 +39,10 @@ export interface KeySignal {
   keyType: 'Major' | 'Minor';   // e.g. "Major"
 }
 
-export type DriveSignal = ChordSignal | KeySignal;
+// A tempo signal — carries a BPM value from a metronome or backing track source.
+export interface TempoSignal {
+  kind: SignalKind.Tempo;
+  bpm: number;
+}
+
+export type DriveSignal = ChordSignal | KeySignal | TempoSignal;

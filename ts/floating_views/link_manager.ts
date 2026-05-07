@@ -13,6 +13,9 @@ export class LinkManager {
   // Maps instanceId → viewId (for looking up source descriptors)
   private instanceIdToViewId: (id: string) => string | null;
 
+  // Caches the most recent signals from each source so new links get immediate delivery
+  private lastSourceSignals = new Map<string, DriveSignal[]>();
+
   // RAF handle for debounced redraws
   private redrawScheduled = false;
 
@@ -46,6 +49,18 @@ export class LinkManager {
       if (!descriptor) return;
       const signals = descriptor.extractSignals((e as CustomEvent).detail);
       console.log('[LM] signals:', signals, 'links:', this.links);
+      this.routeSignals(instanceId, signals);
+    });
+
+    // Listen for metronome-tempo-changed (real-time BPM signal from MetronomeView)
+    viewAreaEl.addEventListener('metronome-tempo-changed', (e: Event) => {
+      const instanceId = this.resolveSourceInstanceId(e);
+      if (!instanceId) return;
+      const viewId = this.instanceIdToViewId(instanceId);
+      if (!viewId) return;
+      const descriptor = getDriveSourceDescriptor(viewId);
+      if (!descriptor) return;
+      const signals = descriptor.extractSignals((e as CustomEvent).detail);
       this.routeSignals(instanceId, signals);
     });
 
@@ -105,6 +120,7 @@ export class LinkManager {
       this.overlay.unregisterWrapper(instanceId);
       this.wrapperToInstanceId.delete(wrapperEl);
     }
+    this.lastSourceSignals.delete(instanceId);
     // Remove all links involving this instance
     const before = this.links.length;
     const affectedTargets = new Set<string>();
@@ -150,6 +166,9 @@ export class LinkManager {
     };
     this.links.push(link);
     this.notifyLinkStatus(targetId);
+    // Immediately deliver cached signals from this source to the new target
+    const cached = this.lastSourceSignals.get(sourceId);
+    if (cached?.length) this.routeSignalsToTarget(link, cached);
     this.scheduleRedraw();
   }
 
@@ -165,17 +184,19 @@ export class LinkManager {
 
   private routeSignals(sourceInstanceId: string, signals: DriveSignal[]): void {
     if (!signals.length) return;
+    this.lastSourceSignals.set(sourceInstanceId, signals);
     const outgoing = this.links.filter(l => l.sourceInstanceId === sourceInstanceId);
-    outgoing.forEach(link => {
-      const targetEl = this.getContentEl(link.targetInstanceId) ?? this.getWrapperEl(link.targetInstanceId);
-      if (!targetEl) return;
-      // Broadcast every signal to every outgoing link; targets filter by acceptedKinds.
-      signals.forEach(signal => {
-        targetEl.dispatchEvent(new CustomEvent('drive-signal', {
-          bubbles: true,
-          detail: { signal, linkId: link.id },
-        }));
-      });
+    outgoing.forEach(link => this.routeSignalsToTarget(link, signals));
+  }
+
+  private routeSignalsToTarget(link: LinkRecord, signals: DriveSignal[]): void {
+    const targetEl = this.getContentEl(link.targetInstanceId) ?? this.getWrapperEl(link.targetInstanceId);
+    if (!targetEl) return;
+    signals.forEach(signal => {
+      targetEl.dispatchEvent(new CustomEvent('drive-signal', {
+        bubbles: true,
+        detail: { signal, linkId: link.id },
+      }));
     });
   }
 

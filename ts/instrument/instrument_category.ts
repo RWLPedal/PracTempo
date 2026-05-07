@@ -17,7 +17,7 @@ import { MetronomeFeature } from "./features/metronome_feature";
 import { registerFloatingView } from "../floating_views/floating_view_registry";
 import { FretboardFloatingViewDescriptor } from "../floating_views/floating_view_types";
 import { ColorLegendView } from "./views/color_legend_view";
-import { FloatingMetronomeView } from "./views/floating_metronome_view";
+import { MetronomeView } from "./views/metronome_view";
 import { ConfigurableFeatureView } from '../views/configurable_feature_view';
 import { AppSettings } from "../settings";
 import { AudioController } from "../audio_controller";
@@ -230,10 +230,16 @@ export class InstrumentCategory implements Category {
       viewId: "instrument_floating_metronome",
       displayName: "Metronome",
       categoryName: this.getName(),
-      defaultWidth: 280,
-      defaultHeight: 150,
-      createView: (initialState?: any, appSettings?: AppSettings) => {
-        return new FloatingMetronomeView(appSettings);
+      defaultWidth: 260,
+      defaultHeight: 120,
+      createView: (_initialState?: any, _appSettings?: AppSettings) => {
+        const audioController = new AudioController(
+          document.querySelector("#intro-end-sound") as HTMLAudioElement,
+          document.querySelector("#interval-end-sound") as HTMLAudioElement,
+          document.querySelector("#metronome-sound") as HTMLAudioElement,
+          document.querySelector("#metronome-accent-sound") as HTMLAudioElement,
+        );
+        return new MetronomeView(120, audioController);
       },
     });
   }

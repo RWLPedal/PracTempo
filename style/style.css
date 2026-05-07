@@ -990,13 +990,8 @@ body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
 
 /* ─── Metronome View ─────────────────────────────────────────────────────── */
 .metronome-view {
-  max-width: 250px;
-  margin: 15px auto;
-  padding: 12px 15px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  box-shadow: 0 2px 4px var(--shadow);
-  background-color: var(--panel-bg);
+  width: 100%;
+  padding: 8px 10px;
   box-sizing: border-box;
 }
 
@@ -1041,28 +1036,41 @@ body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
 
 .play-pause-btn .material-icons { vertical-align: middle; }
 
-.metronome-controls {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-}
-.metronome-controls > div {
+.metronome-transport-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
+  margin-bottom: 4px;
 }
-.metronome-controls .left-controls,
-.metronome-controls .right-controls {
+.metronome-bpm-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 5px;
 }
-.metronome-controls .left-controls { flex-shrink: 0; }
-.metronome-controls .right-controls {
-  flex-grow: 1;
-  justify-content: flex-end;
+.metronome-progression {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.metronome-progression-input {
+  width: 40px;
+  padding: 1px 3px;
+  text-align: center;
+  font-size: 0.72rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--input-bg, var(--panel-bg));
+  color: var(--text);
+}
+.metronome-progression-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.metronome-progression-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .play-pause-btn {
@@ -1073,11 +1081,14 @@ body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
   line-height: 1.5;
 }
 .metronome-bpm-slider {
-  flex-grow: 1;
-  max-width: 100px;
-  min-width: 60px;
+  flex: 1 1 0;
+  min-width: 50px;
 }
-.metronome-bpm-display { min-width: 50px; }
+.metronome-bpm-display {
+  min-width: 32px;
+  font-size: 0.8rem;
+  text-align: right;
+}
 .metronome-mute-btn.is-warning {
   background-color: var(--clr-warning);
   color: rgba(0, 0, 0, 0.8);
@@ -1357,7 +1368,7 @@ body.dark-theme .color-swatch { border-color: rgba(255, 255, 255, 0.20); }
 .theme-swatch:hover { transform: scale(1.18); }
 .theme-swatch.is-active { outline-color: var(--text-primary); }
 .theme-swatch--warm   { background: #C4902A; border-color: #B07A18; }
-.theme-swatch--ink   { background: #CCCCCC; border-color: #CCCCCC; }
+.theme-swatch--moss   { background: #5a7a50; border-color: #5a7a50; }
 .theme-swatch--dark   { background: #C03820; border-color: #8A2010; }
 .theme-swatch--forest { background: #3D9E7A; border-color: #2A7A5C; }
 .theme-swatch--neon { background: #8b30ff; border-color: #8b30ff; }
