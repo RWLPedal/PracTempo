@@ -1,8 +1,8 @@
-import { View } from '../view';
+import { BaseView } from '../base_view';
 import { formatDuration, parseDurationString } from '../time_utils';
 import { Status } from '../display_controller';
 
-export class TimerView implements View {
+export class TimerView extends BaseView {
   private duration: number;
   private currentSeconds: number;
   private isRunning: boolean = false;
@@ -13,7 +13,6 @@ export class TimerView implements View {
   private static readonly RING_CIRCUMFERENCE = 2 * Math.PI * TimerView.RING_RADIUS;
 
   // DOM refs
-  private containerEl: HTMLElement | null = null;
   private titleEl: HTMLElement | null = null;
   private displayEl: HTMLElement | null = null;
   private progressRingEl: SVGCircleElement | null = null;
@@ -31,6 +30,7 @@ export class TimerView implements View {
     onReset?: () => void,
     onDurationEdit?: (seconds: number) => void
   ) {
+    super();
     this.duration = initialDuration;
     this.currentSeconds = initialDuration;
     this.onStartPauseCallback = onStartPause;
@@ -45,7 +45,7 @@ export class TimerView implements View {
   // ─── View interface ────────────────────────────────────────────────────────
 
   render(container: HTMLElement): void {
-    this.containerEl = container;
+    this.container = container;
     container.innerHTML = '';
 
     const wrapper = document.createElement('div');
@@ -137,11 +137,12 @@ export class TimerView implements View {
 
   destroy(): void {
     this.stopCountdown();
-    this.containerEl = null;
+    this.titleEl = null;
     this.displayEl = null;
     this.progressRingEl = null;
     this.startPauseBtn = null;
     this.resetBtn = null;
+    super.destroy();
   }
 
   // ─── External API (schedule-driven mode) ──────────────────────────────────
@@ -257,7 +258,7 @@ export class TimerView implements View {
       this.duration = clamped;
       this.currentSeconds = clamped;
       this.onDurationEditCallback?.(clamped);
-      this.containerEl?.dispatchEvent(new CustomEvent('feature-state-changed', {
+      this.container?.dispatchEvent(new CustomEvent('feature-state-changed', {
         bubbles: true,
         detail: { duration: clamped },
       }));

@@ -1,23 +1,20 @@
-import { View } from '../view';
+import { BaseView } from '../base_view';
 import { NoteName, NOTE_NAMES, SustainedNote } from '../sounds/note_sounds';
 import { DriveSignal, SignalKind } from '../floating_views/link_types';
 
 const DRONE_OCTAVE = 4;
 
-export class DroneView implements View {
+export class DroneView extends BaseView {
   private note: NoteName;
   private isPlaying = false;
   private drone = new SustainedNote();
 
-  private container: HTMLElement | null = null;
   private playBtn: HTMLButtonElement | null = null;
   private noteSelect: HTMLSelectElement | null = null;
   private drivenOption: HTMLOptionElement | null = null;
 
-  private driveSignalHandler: ((e: Event) => void) | null = null;
-  private linkStatusHandler: ((e: Event) => void) | null = null;
-
   constructor(initialState?: any) {
+    super();
     this.note = (initialState?.note as NoteName) ?? NoteName.A;
   }
 
@@ -61,7 +58,7 @@ export class DroneView implements View {
     wrapper.appendChild(controls);
     container.appendChild(wrapper);
 
-    this.driveSignalHandler = (e: Event) => {
+    this.listen(container, 'drive-signal', (e: Event) => {
       if (this.noteSelect?.value !== '__driven__') return;
       const { signal } = (e as CustomEvent<{ signal: DriveSignal }>).detail;
       if (signal.kind !== SignalKind.Chord) return;
@@ -71,10 +68,9 @@ export class DroneView implements View {
       if (this.drivenOption) this.drivenOption.textContent = `Driven (${rootNote})`;
       this.drone.setNote(this.note, DRONE_OCTAVE);
       this.dispatchTitle();
-    };
-    container.addEventListener('drive-signal', this.driveSignalHandler);
+    });
 
-    this.linkStatusHandler = (e: Event) => {
+    this.listen(container, 'link-status-changed', (e: Event) => {
       const { hasIncomingLinks } = (e as CustomEvent<{ hasIncomingLinks: boolean }>).detail;
       if (hasIncomingLinks) {
         if (!this.drivenOption) {
@@ -92,29 +88,19 @@ export class DroneView implements View {
         if (this.noteSelect) this.noteSelect.value = this.note;
         this.dispatchTitle();
       }
-    };
-    container.addEventListener('link-status-changed', this.linkStatusHandler);
+    });
 
     this.dispatchTitle();
     this.saveState();
   }
 
-  start(): void {}
-  stop(): void {}
-
   destroy(): void {
     this.drone.destroy();
     this.isPlaying = false;
-    if (this.container) {
-      if (this.driveSignalHandler) this.container.removeEventListener('drive-signal', this.driveSignalHandler);
-      if (this.linkStatusHandler) this.container.removeEventListener('link-status-changed', this.linkStatusHandler);
-    }
-    this.container = null;
     this.playBtn = null;
     this.noteSelect = null;
     this.drivenOption = null;
-    this.driveSignalHandler = null;
-    this.linkStatusHandler = null;
+    super.destroy();
   }
 
   private togglePlay(): void {

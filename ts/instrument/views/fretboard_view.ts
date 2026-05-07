@@ -1,4 +1,4 @@
-﻿import { View } from "../../view";
+﻿import { BaseView } from "../../base_view";
 import {
   Fretboard,
   FretboardConfig,
@@ -11,7 +11,7 @@ import { addCanvas, START_PX } from "../instrument_utils";
  * A View that wraps a Fretboard instance, sets up its canvas,
  * and delegates rendering and data updates to it.
  */
-export class FretboardView implements View {
+export class FretboardView extends BaseView {
   private fretboardConfig: FretboardConfig;
   private fretCount: number;
   private fretboard: Fretboard; // Internal Fretboard logic instance
@@ -28,6 +28,7 @@ export class FretboardView implements View {
    * @param fretCount - The number of frets to display.
    */
   constructor(fretboardConfig: FretboardConfig, fretCount: number) {
+    super();
     this.fretboardConfig = fretboardConfig;
     this.fretCount = fretCount > 0 ? fretCount : 12;
 
@@ -122,10 +123,6 @@ export class FretboardView implements View {
     return this.canvas;
   }
 
-  // --- View Lifecycle Methods ---
-  start(): void {} // No dynamic behavior
-  stop(): void {} // No dynamic behavior
-
   destroy(): void {
     this.fretboard.detachClickHandler();
     if (this.canvas && this.canvas.parentNode) {
@@ -134,5 +131,6 @@ export class FretboardView implements View {
     this.canvas = null;
     this.ctx = null;
     this.fretboard.clearMarkings();
+    super.destroy();
   }
 }

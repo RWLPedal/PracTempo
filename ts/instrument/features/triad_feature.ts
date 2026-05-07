@@ -5,7 +5,7 @@
   ArgType,
   UiComponentType,
 } from "../../feature";
-import { View } from "../../view";
+import { BaseView } from "../../base_view";
 import { InstrumentFeature } from "../instrument_base";
 import {
   FretboardConfig,
@@ -37,7 +37,7 @@ const STRING_GROUPS: [number, number, number][] = [
  * A dedicated View to render a single row for a given triad quality,
  * containing a header and four FretboardViews. This class is self-contained.
  */
-class TriadQualityRowView implements View {
+class TriadQualityRowView extends BaseView {
   private quality: TriadQuality;
   private rootNoteName: string;
   private fretboardConfig: FretboardConfig;
@@ -50,6 +50,7 @@ class TriadQualityRowView implements View {
     rootNoteName: string,
     fretboardConfig: FretboardConfig
   ) {
+    super();
     this.quality = quality;
     this.rootNoteName = rootNoteName;
     this.fretboardConfig = fretboardConfig;
@@ -107,15 +108,10 @@ class TriadQualityRowView implements View {
     }
   }
 
-  start() {
-    /* No-op */
-  }
-  stop() {
-    /* No-op */
-  }
   destroy() {
     this.fretboardViews.forEach((view) => view.destroy());
     this.rowContainer?.remove();
+    super.destroy();
   }
 }
 

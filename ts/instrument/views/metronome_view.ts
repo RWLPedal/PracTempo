@@ -1,5 +1,5 @@
 // ts/instrument/views/metronome_view.ts
-import { View } from "../../view";
+import { BaseView } from "../../base_view";
 import { AudioController } from "../../audio_controller";
 import { SignalKind, TempoSignal } from "../../floating_views/link_types";
 
@@ -24,10 +24,9 @@ const COMMON_TIME_SIGNATURES: TimeSignature[] = [
   { beats: 7, subdivision: 8, label: "7/8" },
 ];
 
-export class MetronomeView implements View {
+export class MetronomeView extends BaseView {
   private bpm: number;
   private intervalId: number | null = null;
-  private container: HTMLElement | null = null;
   private audioController: AudioController;
 
   public isRunning: boolean = false;
@@ -59,11 +58,8 @@ export class MetronomeView implements View {
   private progressionDeltaInput: HTMLInputElement | null = null;
   private progressionSecsInput: HTMLInputElement | null = null;
 
-  // Saved handlers for cleanup
-  private _driveSignalHandler: ((e: Event) => void) | null = null;
-  private _linkStatusHandler: ((e: Event) => void) | null = null;
-
   constructor(bpm: number, audioController: AudioController) {
+    super();
     this.bpm = bpm > 0 ? bpm : 60;
     this.audioController = audioController;
     this.updateNumberOfVisualBeats();
@@ -200,8 +196,7 @@ export class MetronomeView implements View {
     this.updateAllBeatStyles();
     this.applyTargetDisabledState();
 
-    // Attach drive signal and link status handlers on the container
-    this._driveSignalHandler = (e: Event) => {
+    this.listen(container, "drive-signal", (e: Event) => {
       const detail = (e as CustomEvent).detail;
       const signal = detail?.signal;
       if (!signal || signal.kind !== SignalKind.Tempo) return;
@@ -209,14 +204,12 @@ export class MetronomeView implements View {
       this._suppressTempoEvent = true;
       this.setBpm(tempo.bpm);
       this._suppressTempoEvent = false;
-    };
-    this._linkStatusHandler = (e: Event) => {
+    });
+    this.listen(container, "link-status-changed", (e: Event) => {
       const detail = (e as CustomEvent).detail;
       this.isTempoTarget = !!(detail?.hasIncomingLinks);
       this.applyTargetDisabledState();
-    };
-    this.container.addEventListener("drive-signal", this._driveSignalHandler);
-    this.container.addEventListener("link-status-changed", this._linkStatusHandler);
+    });
   }
 
   private rebuildVisualizer(): void {
@@ -275,14 +268,8 @@ export class MetronomeView implements View {
   destroy(): void {
     this.stopInterval();
     this.stopProgressionTimer();
-    if (this.container && this._driveSignalHandler) {
-      this.container.removeEventListener("drive-signal", this._driveSignalHandler);
-    }
-    if (this.container && this._linkStatusHandler) {
-      this.container.removeEventListener("link-status-changed", this._linkStatusHandler);
-    }
     this.cleanupVisuals();
-    this.container = null;
+    super.destroy();
   }
 
   setBpm(newBpm: number): void {

@@ -1,4 +1,4 @@
-﻿import { View } from "../../view";
+﻿import { BaseView } from "../../base_view";
 import { Chord } from "../chords";
 import { FretboardConfig, InstrumentName } from "../fretboard";
 import { ChordDiagramView } from "./chord_diagram_view";
@@ -10,7 +10,7 @@ import { clearAllChildren } from "../instrument_utils";
  * on the current mode. The "Moveable" checkbox lives in the owning Feature's
  * header row; call setIsMoveable() when it changes.
  */
-export class MoveableToggleView implements View {
+export class MoveableToggleView extends BaseView {
   private diagramDiv: HTMLElement | null = null;
   private isMoveable = false;
 
@@ -19,6 +19,7 @@ export class MoveableToggleView implements View {
   readonly hasMoveableShapes: boolean;
 
   constructor(chords: ReadonlyArray<Chord>, fretboardConfig: FretboardConfig, initialIsMoveable: boolean = false, instrumentName: InstrumentName = "Guitar") {
+    super();
     this.isMoveable = initialIsMoveable;
     this.staticViews = chords.map(
       (c) => new ChordDiagramView(c, c.name, fretboardConfig)
@@ -89,6 +90,7 @@ export class MoveableToggleView implements View {
       this.diagramDiv.parentNode.removeChild(this.diagramDiv);
     }
     this.diagramDiv = null;
+    super.destroy();
   }
 
   private _activeViews(): ChordDiagramView[] {

@@ -1,5 +1,5 @@
 ﻿// ts/views/backing_track_view.ts
-import { View } from '../view';
+import { BaseView } from '../base_view';
 import { KeyType, SignalKind, TempoSignal } from '../floating_views/link_types';
 import {
   DrumSoundId,
@@ -167,7 +167,7 @@ const PRESETS: DrumPreset[] = [
 
 // ─── View ──────────────────────────────────────────────────────────────────────
 
-export class BackingTrackView implements View {
+export class BackingTrackView extends BaseView {
   // Drum playback state
   private bpm: number = 120;
   private steps: number = 16;
@@ -189,11 +189,8 @@ export class BackingTrackView implements View {
 
   // Tempo target state
   private isTempoTarget: boolean = false;
-  private _driveSignalHandler: ((e: Event) => void) | null = null;
-  private _linkStatusHandler: ((e: Event) => void) | null = null;
 
   // DOM refs
-  private container: HTMLElement | null = null;
   private gridEl: HTMLElement | null = null;
   private cellEls: HTMLElement[][] = [];
   private bassCellEls: HTMLElement[] = [];
@@ -210,6 +207,7 @@ export class BackingTrackView implements View {
   private chordMeasureCellEls: HTMLElement[] = [];
 
   constructor(initialState?: any) {
+    super();
     this.bpm          = initialState?.bpm          ?? 120;
     this.steps        = initialState?.steps        ?? 16;
     this.progRootNote = initialState?.progRootNote ?? 'C';
@@ -246,8 +244,7 @@ export class BackingTrackView implements View {
     container.appendChild(wrapper);
     this.dispatchStateChange();
 
-    // Tempo target: receive drive-signal and link-status-changed on the container
-    this._driveSignalHandler = (e: Event) => {
+    this.listen(container, 'drive-signal', (e: Event) => {
       const signal = (e as CustomEvent).detail?.signal;
       if (!signal || signal.kind !== SignalKind.Tempo) return;
       const tempo = signal as TempoSignal;
@@ -257,17 +254,12 @@ export class BackingTrackView implements View {
       if (this.bpmSliderEl)  this.bpmSliderEl.value = String(clamped);
       if (this.bpmDisplayEl) this.bpmDisplayEl.textContent = String(clamped);
       if (this.isPlaying) { this.stopInterval(); this.startInterval(); }
-    };
-    this._linkStatusHandler = (e: Event) => {
+    });
+    this.listen(container, 'link-status-changed', (e: Event) => {
       this.isTempoTarget = !!((e as CustomEvent).detail?.hasIncomingLinks);
       this.applyTempoTargetState();
-    };
-    container.addEventListener('drive-signal', this._driveSignalHandler);
-    container.addEventListener('link-status-changed', this._linkStatusHandler);
+    });
   }
-
-  start(): void { /* no-op */ }
-  stop(): void  { /* no-op */ }
 
   private applyTempoTargetState(): void {
     if (this.bpmSliderEl) this.bpmSliderEl.disabled = this.isTempoTarget;
@@ -275,11 +267,6 @@ export class BackingTrackView implements View {
 
   destroy(): void {
     this.stopPlayback();
-    if (this.container && this._driveSignalHandler)
-      this.container.removeEventListener('drive-signal', this._driveSignalHandler);
-    if (this.container && this._linkStatusHandler)
-      this.container.removeEventListener('link-status-changed', this._linkStatusHandler);
-    this.container           = null;
     this.gridEl              = null;
     this.cellEls             = [];
     this.bassCellEls         = [];
@@ -294,6 +281,7 @@ export class BackingTrackView implements View {
     this.progRootSelectEl    = null;
     this.progKeyTypeBtn      = null;
     this.chordMeasureCellEls = [];
+    super.destroy();
   }
 
   // ─── Controls row ────────────────────────────────────────────────────────────

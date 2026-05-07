@@ -1,4 +1,4 @@
-﻿import { View } from "../../view";
+﻿import { BaseView } from "../../base_view";
 import { AppSettings } from "../../settings";
 import {
   InstrumentSettings,
@@ -6,12 +6,11 @@ import {
 } from "../instrument_settings";
 import { INTERVAL_COLORS, NOTE_COLORS } from "../colors"; // Import color maps
 
-export class ColorLegendView implements View {
-  private container: HTMLElement | null = null;
+export class ColorLegendView extends BaseView {
   private appSettings: AppSettings;
 
   constructor(appSettings?: AppSettings) {
-    // Need AppSettings to get the current guitar color scheme
+    super();
     if (!appSettings) {
       throw new Error("ColorLegendView requires AppSettings instance.");
     }
@@ -71,14 +70,10 @@ export class ColorLegendView implements View {
     }
   }
 
-  // --- View Lifecycle Methods (Simple for this static view) ---
-  start(): void {}
-  stop(): void {}
   destroy(): void {
-    // Cleanup if needed (remove listeners, etc.)
     if (this.container) {
       this.container.innerHTML = "";
     }
-    this.container = null;
+    super.destroy();
   }
 }

@@ -1,4 +1,4 @@
-﻿import { View } from "../../view";
+﻿import { BaseView } from "../../base_view";
 import { Chord } from "../chords";
 // Import Fretboard class and necessary types/enum from fretboard.ts
 import {
@@ -46,7 +46,7 @@ function getChordNotes(chord: Chord, config: FretboardConfig): string[] {
  * A View responsible for rendering a single chord diagram by configuring
  * and delegating to an internal Fretboard instance.
  */
-export class ChordDiagramView implements View {
+export class ChordDiagramView extends BaseView {
   private chord: Chord;
   private title: string;
   private fretboardConfig: FretboardConfig;
@@ -68,6 +68,7 @@ export class ChordDiagramView implements View {
     fretboardConfig: FretboardConfig,
     rootPosition?: { stringIndex: number; fret: number }
   ) {
+    super();
     this.chord = chord;
     this.title = title;
     this.fretboardConfig = fretboardConfig;
@@ -316,11 +317,6 @@ export class ChordDiagramView implements View {
     return null;
   }
 
-  // --- View Lifecycle Methods ---
-  start(): void {} // No active processes
-
-  stop(): void {} // No active processes
-
   destroy(): void {
     this.fretboard?.detachClickHandler();
     if (this.wrapperDiv && this.wrapperDiv.parentNode) {
@@ -330,5 +326,6 @@ export class ChordDiagramView implements View {
     this.canvas = null;
     this.ctx = null;
     this.fretboard?.clearMarkings();
+    super.destroy();
   }
 }

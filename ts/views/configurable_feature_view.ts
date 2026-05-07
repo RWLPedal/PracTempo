@@ -1,4 +1,4 @@
-﻿import { View } from "../view";
+﻿import { BaseView } from "../base_view";
 import { AppSettings } from "../settings";
 import { getCategory } from "../feature_registry";
 import { Feature, FeatureTypeDescriptor } from "../feature";
@@ -8,7 +8,7 @@ import { InstrumentIntervalSettings } from "../instrument/instrument_interval_se
 import { getDriveTargetSlots } from "../floating_views/drive_registry";
 import { DriveSignal } from "../floating_views/link_types";
 
-export class ConfigurableFeatureView implements View {
+export class ConfigurableFeatureView extends BaseView {
     private appSettings: AppSettings;
     private categoryName: string;
     private featureTypeName: string;
@@ -18,7 +18,6 @@ export class ConfigurableFeatureView implements View {
     private configCollapsed = false;
     private _lastConfigHeight = 0;
 
-    private container: HTMLElement | null = null;
     private configContainer!: HTMLElement;
     private featureContainer!: HTMLElement;
 
@@ -33,6 +32,7 @@ export class ConfigurableFeatureView implements View {
     private isDrivenUpdate = false;
 
     constructor(initialState: any, appSettings: AppSettings) {
+        super();
         this.appSettings = appSettings;
         this.initialState = initialState;
         this.categoryName = initialState?.categoryName ?? 'Instrument';
@@ -107,7 +107,7 @@ export class ConfigurableFeatureView implements View {
         }));
 
         // Handle user-triggered config toggle from the title-bar button.
-        container.addEventListener('config-visibility-toggle', () => {
+        this.listen(container, 'config-visibility-toggle', () => {
             const collapsing = !this.configCollapsed;
 
             if (collapsing) {
@@ -155,7 +155,7 @@ export class ConfigurableFeatureView implements View {
         });
 
         // React to incoming link notifications — show/hide "Driven" options
-        container.addEventListener('link-status-changed', (e: Event) => {
+        this.listen(container, 'link-status-changed', (e: Event) => {
             const { hasIncomingLinks } = (e as CustomEvent<{ hasIncomingLinks: boolean }>).detail;
             const slots = getDriveTargetSlots(this.featureTypeName);
             for (const slot of slots) {
@@ -170,7 +170,7 @@ export class ConfigurableFeatureView implements View {
         });
 
         // React to incoming drive signals
-        container.addEventListener('drive-signal', (e: Event) => {
+        this.listen(container, 'drive-signal', (e: Event) => {
             const detail = (e as CustomEvent<{ signal: DriveSignal; linkId: string }>).detail;
             const { signal } = detail;
             const slots = getDriveTargetSlots(this.featureTypeName);
@@ -298,7 +298,7 @@ export class ConfigurableFeatureView implements View {
         if (this.container) {
           this.container.innerHTML = "";
         }
-        this.container = null;
+        super.destroy();
     }
 
     start(): void {
