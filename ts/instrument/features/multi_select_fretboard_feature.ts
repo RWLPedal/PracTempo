@@ -1,11 +1,11 @@
-// ts/guitar/features/multi_select_fretboard_feature.ts
+﻿// ts/instrument/features/multi_select_fretboard_feature.ts
 
 import { Feature, ConfigurationSchema, ConfigurationSchemaArg } from "../../feature";
-import { GuitarFeature } from "../guitar_base";
+import { InstrumentFeature } from "../instrument_base";
 import { AppSettings } from "../../settings";
 import { AudioController } from "../../audio_controller";
 import { IntervalSettings } from "../../schedule/editor/interval/types";
-import { GuitarIntervalSettings } from "../guitar_interval_settings";
+import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import { NoteRenderData } from "../fretboard";
 import {
   MUSIC_NOTES,
@@ -14,7 +14,7 @@ import {
   OPEN_NOTE_RADIUS_FACTOR,
   addHeader,
   clearAllChildren,
-} from "../guitar_utils";
+} from "../instrument_utils";
 import { FretboardView } from "../views/fretboard_view";
 import { scale_names, scales } from "../scales";
 import { chord_tones_library } from "../chords";
@@ -106,7 +106,7 @@ function parseLayerString(layerStr: string): LayerSpec | null {
 
 // --- Feature Class ---
 
-export class MultiSelectFretboardFeature extends GuitarFeature {
+export class MultiSelectFretboardFeature extends InstrumentFeature {
   static readonly typeName = "MultiSelectFretboard";
   static readonly displayName = "Multi-Layer Fretboard";
   static readonly description =
@@ -125,7 +125,7 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
     config: ReadonlyArray<string>,
     layers: LayerSpec[],
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings,
+    intervalSettings: InstrumentIntervalSettings,
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
@@ -207,8 +207,8 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
     };
 
     return {
-      description: `Config: ${this.typeName}[,layer1][,layer2]...[,GuitarSettings]`,
-      args: [layersArg, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      description: `Config: ${this.typeName}[,layer1][,layer2]...[,InstrumentSettings]`,
+      args: [layersArg, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
@@ -229,7 +229,7 @@ export class MultiSelectFretboardFeature extends GuitarFeature {
       config,
       layers,
       settings,
-      intervalSettings as GuitarIntervalSettings,
+      intervalSettings as InstrumentIntervalSettings,
       audioController,
       maxCanvasHeight
     );

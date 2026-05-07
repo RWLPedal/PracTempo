@@ -1,11 +1,11 @@
-import { View } from "../../view";
+﻿import { View } from "../../view";
 import {
   Fretboard,
   FretboardConfig,
   NoteRenderData,
   LineData,
 } from "../fretboard"; // Import types from fretboard.ts
-import { addCanvas, START_PX } from "../guitar_utils";
+import { addCanvas, START_PX } from "../instrument_utils";
 
 /**
  * A View that wraps a Fretboard instance, sets up its canvas,

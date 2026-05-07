@@ -1,4 +1,4 @@
-// ts/guitar/guitar_category.ts
+﻿// ts/instrument/instrument_category.ts
 import { Category } from "../feature"; // Use Category from feature.ts
 import { FeatureTypeDescriptor, SettingsUISchemaItem } from "../feature";
 import {
@@ -23,11 +23,11 @@ import { AppSettings } from "../settings";
 import { AudioController } from "../audio_controller";
 
 // Import Guitar Settings related items
-import { DEFAULT_GUITAR_SETTINGS, GuitarSettings } from "./guitar_settings";
+import { DEFAULT_INSTRUMENT_SETTINGS, InstrumentSettings } from "./instrument_settings";
 import {
-  GuitarIntervalSettings,
-  GuitarIntervalSettingsJSON,
-} from "./guitar_interval_settings";
+  InstrumentIntervalSettings,
+  InstrumentIntervalSettingsJSON,
+} from "./instrument_interval_settings";
 
 // Helper function imports (for settings UI schema)
 import { INSTRUMENT_TUNINGS, InstrumentName } from "./fretboard";
@@ -36,7 +36,7 @@ import { CagedFeature } from "./features/caged_feature";
 import { MultiSelectFretboardFeature } from "./features/multi_select_fretboard_feature";
 
 // Helper function to generate UI Schema
-function getGuitarGlobalSettingsUISchema(): SettingsUISchemaItem[] {
+function getInstrumentGlobalSettingsUISchema(): SettingsUISchemaItem[] {
   const instrumentOptions: { value: InstrumentName; text: string }[] = [
     { value: "Guitar",          text: "Guitar" },
     { value: "Bass",            text: "Bass (4-string, EADG)" },
@@ -103,9 +103,9 @@ function getGuitarGlobalSettingsUISchema(): SettingsUISchemaItem[] {
   ];
 }
 
-export class GuitarCategory implements Category {
-  private readonly name = "Guitar";
-  private readonly displayName = "Guitar Tools";
+export class InstrumentCategory implements Category {
+  private readonly name = "Instrument";
+  private readonly displayName = "Instrument Tools";
   private readonly featureTypes: Map<string, FeatureTypeDescriptor>;
 
   constructor() {
@@ -135,7 +135,7 @@ export class GuitarCategory implements Category {
 
   private registerFloatingViews(): void {
     registerFloatingView({
-      viewId: "guitar_color_legend", // Unique ID
+      viewId: "instrument_color_legend", // Unique ID
       displayName: "Color Legend", // User-facing name
       categoryName: this.getName(), // Associate with Guitar category
       defaultWidth: 180, // Example default size
@@ -156,7 +156,7 @@ export class GuitarCategory implements Category {
     });
 
     registerFloatingView({
-      viewId: "configurable_guitar_feature", // New ID
+      viewId: "configurable_instrument_feature", // New ID
       displayName: "Configurable Feature",  // Generic name
       categoryName: this.getName(),
       defaultWidth: 420,
@@ -167,12 +167,12 @@ export class GuitarCategory implements Category {
       supportsRotate: true,
       supportsZoom: true,
       createView: (initialState, appSettings) => {
-        return new ConfigurableFeatureView(initialState, appSettings);
+        return new ConfigurableFeatureView({ categoryName: this.getName(), ...initialState }, appSettings!);
       },
     } as FretboardFloatingViewDescriptor);
 
     registerFloatingView({
-        viewId: "guitar_notes_reference",
+        viewId: "instrument_notes_reference",
         displayName: "Fretboard Notes",
         categoryName: this.getName(),
         defaultWidth: 340,
@@ -187,9 +187,9 @@ export class GuitarCategory implements Category {
               ['None'], // Config for showing all notes
               new AudioController(null,null,null,null),
               appSettings,
-              new GuitarIntervalSettings(),
+              new InstrumentIntervalSettings(),
               650,
-              'Guitar'
+              this.getName()
           );
   
           // We need a view object that wraps the feature.
@@ -208,7 +208,7 @@ export class GuitarCategory implements Category {
       } as FretboardFloatingViewDescriptor);
 
     registerFloatingView({
-      viewId: "guitar_chord_progression",
+      viewId: "instrument_chord_progression",
       displayName: "Chord Progression",
       categoryName: this.getName(),
       defaultWidth: 420,
@@ -220,14 +220,14 @@ export class GuitarCategory implements Category {
       supportsZoom: true,
       createView: (initialState, appSettings) => {
         return new ConfigurableFeatureView(
-          { ...initialState, featureTypeName: ChordProgressionFeature.typeName },
-          appSettings
+          { categoryName: this.getName(), featureTypeName: ChordProgressionFeature.typeName, ...initialState },
+          appSettings!
         );
       },
     } as FretboardFloatingViewDescriptor);
 
     registerFloatingView({
-      viewId: "guitar_floating_metronome",
+      viewId: "instrument_floating_metronome",
       displayName: "Metronome",
       categoryName: this.getName(),
       defaultWidth: 280,
@@ -250,29 +250,29 @@ export class GuitarCategory implements Category {
     return this.featureTypes;
   }
 
-  getDefaultGlobalSettings(): GuitarSettings {
+  getDefaultGlobalSettings(): InstrumentSettings {
     // Return a copy to prevent modification of the original default
-    return { ...DEFAULT_GUITAR_SETTINGS };
+    return { ...DEFAULT_INSTRUMENT_SETTINGS };
   }
 
-  getIntervalSettingsFactory(): () => GuitarIntervalSettings {
+  getIntervalSettingsFactory(): () => InstrumentIntervalSettings {
     // Return a function that creates a new default instance
-    return () => new GuitarIntervalSettings();
+    return () => new InstrumentIntervalSettings();
   }
 
   createIntervalSettingsFromJSON(
     json: IntervalSettingsJSON | undefined | null
-  ): GuitarIntervalSettings {
+  ): InstrumentIntervalSettings {
     // Use the static method on the specific class
     // Cast the input json; the registry ensures this method is called for the correct category.
-    return GuitarIntervalSettings.fromJSON(
-      json as GuitarIntervalSettingsJSON | undefined | null
+    return InstrumentIntervalSettings.fromJSON(
+      json as InstrumentIntervalSettingsJSON | undefined | null
     );
   }
 
   getGlobalSettingsUISchema(): SettingsUISchemaItem[] {
     // Return the schema for the Guitar category's global settings
-    return getGuitarGlobalSettingsUISchema();
+    return getInstrumentGlobalSettingsUISchema();
   }
 
   /** Returns a default set of intervals for a simple guitar schedule */

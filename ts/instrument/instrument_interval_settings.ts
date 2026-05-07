@@ -1,14 +1,14 @@
-/**
+﻿/**
  * Defines settings specific to a guitar feature within a single interval.
  */
 
 // Interface defining the structure for JSON representation
-export interface GuitarIntervalSettingsJSON {
+export interface InstrumentIntervalSettingsJSON {
   metronomeBpm?: number;
   // Add other potential interval-specific settings here
 }
 
-export class GuitarIntervalSettings {
+export class InstrumentIntervalSettings {
   public metronomeBpm: number;
 
   // Default settings for a guitar interval
@@ -19,19 +19,19 @@ export class GuitarIntervalSettings {
     this.metronomeBpm =
       metronomeBpm !== undefined && metronomeBpm >= 0
         ? metronomeBpm
-        : GuitarIntervalSettings.DEFAULT_METRONOME_BPM;
+        : InstrumentIntervalSettings.DEFAULT_METRONOME_BPM;
   }
 
   /**
-   * Creates a GuitarIntervalSettings instance from a JSON object.
+   * Creates a InstrumentIntervalSettings instance from a JSON object.
    * @param json - The JSON object (or undefined).
-   * @returns A new GuitarIntervalSettings instance.
+   * @returns A new InstrumentIntervalSettings instance.
    */
   public static fromJSON(
-    json: GuitarIntervalSettingsJSON | undefined | null
-  ): GuitarIntervalSettings {
+    json: InstrumentIntervalSettingsJSON | undefined | null
+  ): InstrumentIntervalSettings {
     // Create instance with defaults
-    const settings = new GuitarIntervalSettings();
+    const settings = new InstrumentIntervalSettings();
     if (json) {
       // Apply valid values from JSON
       if (json.metronomeBpm !== undefined && json.metronomeBpm >= 0) {
@@ -51,13 +51,13 @@ export class GuitarIntervalSettings {
    * Only includes non-default values.
    * @returns A JSON object or undefined if all settings are default.
    */
-  public toJSON(): GuitarIntervalSettingsJSON | undefined {
+  public toJSON(): InstrumentIntervalSettingsJSON | undefined {
     if (this.isDefault()) {
       return undefined; // Don't include settings object if it's all default
     }
 
-    const json: GuitarIntervalSettingsJSON = {};
-    if (this.metronomeBpm !== GuitarIntervalSettings.DEFAULT_METRONOME_BPM) {
+    const json: InstrumentIntervalSettingsJSON = {};
+    if (this.metronomeBpm !== InstrumentIntervalSettings.DEFAULT_METRONOME_BPM) {
       json.metronomeBpm = this.metronomeBpm;
     }
     // Add other non-default settings here
@@ -68,7 +68,7 @@ export class GuitarIntervalSettings {
 
   /** Returns true if the settings are default (currently just checks BPM). */
   public isDefault(): boolean {
-    return this.metronomeBpm === GuitarIntervalSettings.DEFAULT_METRONOME_BPM;
+    return this.metronomeBpm === InstrumentIntervalSettings.DEFAULT_METRONOME_BPM;
     // Add checks for other settings here: && this.otherSetting === DEFAULT_OTHER ...
   }
 }

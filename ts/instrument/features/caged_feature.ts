@@ -1,16 +1,16 @@
-/* ts/guitar/features/caged_feature.ts */
+﻿/* ts/instrument/features/caged_feature.ts */
 
 import {
   Feature,
   ConfigurationSchema,
   ConfigurationSchemaArg,
 } from "../../feature";
-import { GuitarFeature } from "../guitar_base";
+import { InstrumentFeature } from "../instrument_base";
 import { Scale, scales, scale_names } from "../scales";
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
 import { IntervalSettings } from "../../schedule/editor/interval/types";
-import { GuitarIntervalSettings } from "../guitar_interval_settings";
+import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import { NoteRenderData, FretboardConfig, Tuning } from "../fretboard";
 import {
   getKeyIndex,
@@ -19,7 +19,7 @@ import {
   OPEN_NOTE_RADIUS_FACTOR,
   addHeader,
   clearAllChildren,
-} from "../guitar_utils";
+} from "../instrument_utils";
 import { FretboardView } from "../views/fretboard_view";
 import { getColor as getColorFromScheme, NOTE_COLORS } from "../colors";
 import { volumeManager } from "../../sounds/volume_manager";
@@ -223,7 +223,7 @@ export function buildCagedLookup(
   return lookup;
 }
 
-export class CagedFeature extends GuitarFeature {
+export class CagedFeature extends InstrumentFeature {
   static readonly typeName = "CAGED";
   static readonly displayName = "CAGED Scale Shapes";
   static readonly requiredInstruments = ["Guitar"] as const;
@@ -257,7 +257,7 @@ export class CagedFeature extends GuitarFeature {
     fillDisplay: FillDisplayType,
     headerText: string,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings,
+    intervalSettings: InstrumentIntervalSettings,
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
@@ -322,8 +322,8 @@ export class CagedFeature extends GuitarFeature {
       },
     ];
     return {
-      description: `Config: ${this.typeName},Key,ScaleType,LabelDisplay,FillDisplay[,GuitarSettings]`,
-      args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      description: `Config: ${this.typeName},Key,ScaleType,LabelDisplay,FillDisplay[,InstrumentSettings]`,
+      args: [...specificArgs, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
@@ -370,7 +370,7 @@ export class CagedFeature extends GuitarFeature {
         ? labelDisplay
         : "Interval";
     const headerText = `${validRootName} ${scale.name} (${this.displayName})`;
-    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
+    const guitarIntervalSettings = intervalSettings as InstrumentIntervalSettings;
 
     return new CagedFeature(
       featureSpecificConfig,

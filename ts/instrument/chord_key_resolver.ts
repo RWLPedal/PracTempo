@@ -1,4 +1,4 @@
-// ts/guitar/chord_key_resolver.ts
+﻿// ts/instrument/chord_key_resolver.ts
 // Pure utility — shared by BackingTrackView and drive_slots.ts
 
 export const CHORD_ROOTS = ['A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];

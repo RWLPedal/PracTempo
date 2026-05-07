@@ -1,10 +1,10 @@
-import {
+﻿import {
   Feature,
   ConfigurationSchema,
   ConfigurationSchemaArg,
 } from "../../feature";
 import { View } from "../../view";
-import { GuitarFeature } from "../guitar_base";
+import { InstrumentFeature } from "../instrument_base";
 import {
   FretboardConfig,
   AVAILABLE_TUNINGS,
@@ -13,16 +13,16 @@ import {
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
 import { IntervalSettings } from "../../schedule/editor/interval/types";
-import { GuitarIntervalSettings } from "../guitar_interval_settings";
+import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import {
   MUSIC_NOTES,
   getKeyIndex,
   addHeader,
   clearAllChildren,
-} from "../guitar_utils";
+} from "../instrument_utils";
 import { TriadQuality, getTriadNotesAndLinesForGroup } from "../triads";
 import { FretboardView } from "../views/fretboard_view";
-import { DEFAULT_GUITAR_SETTINGS, GuitarSettings } from "../guitar_settings";
+import { DEFAULT_INSTRUMENT_SETTINGS, InstrumentSettings } from "../instrument_settings";
 
 const STRING_GROUPS: [number, number, number][] = [
   [0, 1, 2],
@@ -118,7 +118,7 @@ class TriadQualityRowView implements View {
 }
 
 /** Displays triad shapes across four 3-string groups for multiple qualities. */
-export class TriadFeature extends GuitarFeature {
+export class TriadFeature extends InstrumentFeature {
   static readonly typeName = "Triad Shapes";
   static readonly displayName = "Triad Shapes (3-String Sets)";
   static readonly requiredInstruments = ["Guitar"] as const;
@@ -136,13 +136,13 @@ export class TriadFeature extends GuitarFeature {
     qualities: TriadQuality[],
     mainHeaderText: string,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings,
+    intervalSettings: InstrumentIntervalSettings,
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
     const guitarGlobalSettings =
-      (settings.categorySettings["Guitar"] as GuitarSettings | undefined) ??
-      DEFAULT_GUITAR_SETTINGS;
+      (settings.categorySettings["Guitar"] as InstrumentSettings | undefined) ??
+      DEFAULT_INSTRUMENT_SETTINGS;
     const baseFretboardConfig = new FretboardConfig(
       AVAILABLE_TUNINGS[guitarGlobalSettings.tuning] ?? STANDARD_TUNING,
       guitarGlobalSettings.handedness,
@@ -205,8 +205,8 @@ export class TriadFeature extends GuitarFeature {
       },
     ];
     return {
-      description: `Config: ${this.typeName},RootNote,Quality1[,Quality2,...][,GuitarSettings]`,
-      args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      description: `Config: ${this.typeName},RootNote,Quality1[,Quality2,...][,InstrumentSettings]`,
+      args: [...specificArgs, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
@@ -238,7 +238,7 @@ export class TriadFeature extends GuitarFeature {
     }
 
     const mainHeaderText = `${validRootName} Triad Shapes`;
-    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
+    const guitarIntervalSettings = intervalSettings as InstrumentIntervalSettings;
 
     return new TriadFeature(
       config,

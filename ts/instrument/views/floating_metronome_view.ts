@@ -1,4 +1,4 @@
-// ts/guitar/views/floating_metronome_view.ts
+﻿// ts/instrument/views/floating_metronome_view.ts
 import { View } from "../../view";
 import { AppSettings } from "../../settings";
 import { AudioController } from "../../audio_controller";

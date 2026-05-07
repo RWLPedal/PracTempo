@@ -1,5 +1,5 @@
-import { FretboardConfig, Fretboard } from "./fretboard";
-import { MUSIC_NOTES, getKeyIndex, getIntervalLabel, START_PX } from "./guitar_utils";
+﻿import { FretboardConfig, Fretboard } from "./fretboard";
+import { MUSIC_NOTES, getKeyIndex, getIntervalLabel, START_PX } from "./instrument_utils";
 import { NoteRenderData, LineData } from "./fretboard";
 
 export type TriadQuality = "Major" | "Minor" | "Diminished" | "Augmented";

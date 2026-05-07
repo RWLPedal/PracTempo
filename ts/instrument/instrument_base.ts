@@ -1,4 +1,4 @@
-import { Feature, ConfigurationSchemaArg } from "../feature";
+﻿import { Feature, ConfigurationSchemaArg } from "../feature";
 import { View } from "../view";
 import { MetronomeView } from "./views/metronome_view";
 import {
@@ -8,25 +8,25 @@ import {
 } from "./fretboard";
 import { AppSettings, getCategorySettings } from "../settings";
 import {
-  GuitarSettings,
-  GUITAR_SETTINGS_KEY,
-  DEFAULT_GUITAR_SETTINGS,
-} from "./guitar_settings";
-import { GuitarIntervalSettings } from "./guitar_interval_settings";
+  InstrumentSettings,
+  INSTRUMENT_SETTINGS_KEY,
+  DEFAULT_INSTRUMENT_SETTINGS,
+} from "./instrument_settings";
+import { InstrumentIntervalSettings } from "./instrument_interval_settings";
 import { AudioController } from "../audio_controller";
 import {
   clearAllChildren,
   addHeader,
   addCanvas,
   START_PX,
-} from "./guitar_utils";
+} from "./instrument_utils";
 import { IntervalSettings } from "../schedule/editor/interval/types";
 
 /**
  * Base class for all Guitar-related features.
  * Handles common setup like FretboardConfig and conditional MetronomeView creation based on interval settings.
  */
-export abstract class GuitarFeature implements Feature {
+export abstract class InstrumentFeature implements Feature {
   abstract readonly typeName: string;
   readonly config: ReadonlyArray<string>;
   protected settings: AppSettings;
@@ -58,7 +58,7 @@ export abstract class GuitarFeature implements Feature {
   constructor(
     config: ReadonlyArray<string>,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings,
+    intervalSettings: InstrumentIntervalSettings,
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
@@ -68,8 +68,8 @@ export abstract class GuitarFeature implements Feature {
     this.audioController = audioController;
 
     const guitarGlobalSettings =
-      getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ??
-      DEFAULT_GUITAR_SETTINGS;
+      getCategorySettings<InstrumentSettings>(settings, INSTRUMENT_SETTINGS_KEY) ??
+      DEFAULT_INSTRUMENT_SETTINGS;
 
     const instrument: InstrumentName = guitarGlobalSettings.instrument ?? "Guitar";
     const tuningsForInstrument = INSTRUMENT_TUNINGS[instrument] ?? INSTRUMENT_TUNINGS["Guitar"];

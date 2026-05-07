@@ -1,4 +1,4 @@
-// ts/guitar/views/metronome_view.ts
+﻿// ts/instrument/views/metronome_view.ts
 import { View } from "../../view";
 import { AudioController } from "../../audio_controller";
 

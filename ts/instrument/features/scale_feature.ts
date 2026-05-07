@@ -1,14 +1,14 @@
-import {
+﻿import {
   Feature,
   ConfigurationSchema,
   ConfigurationSchemaArg,
 } from "../../feature";
-import { GuitarFeature } from "../guitar_base";
+import { InstrumentFeature } from "../instrument_base";
 import { Scale, scale_names, scales } from "../scales";
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
 import { IntervalSettings } from "../../schedule/editor/interval/types";
-import { GuitarIntervalSettings } from "../guitar_interval_settings";
+import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import { NoteIcon, NoteRenderData, FretboardConfig } from "../fretboard";
 import {
   getKeyIndex,
@@ -17,7 +17,7 @@ import {
   OPEN_NOTE_RADIUS_FACTOR,
   addHeader,
   clearAllChildren,
-} from "../guitar_utils"; // getNotesInScale removed
+} from "../instrument_utils"; // getNotesInScale removed
 import { FretboardView } from "../views/fretboard_view";
 // Color for non-highlighted scale notes when highlighting is active
 const NON_HIGHLIGHTED_SCALE_COLOR = "#CCCCCC"; // Lighter grey for contrast
@@ -26,7 +26,7 @@ const IN_SCALE_HIGHLIGHT_STROKE = "#333333"; // Dark grey/black for in-scale hig
 const DEFAULT_STROKE = "rgba(50, 50, 50, 0.7)"; // Subtle stroke for default interval view
 
 /** Displays scale diagrams on the fretboard using FretboardView. */
-export class ScaleFeature extends GuitarFeature {
+export class ScaleFeature extends InstrumentFeature {
   static readonly typeName = "Scale";
   static readonly displayName = "Scale Diagram";
   static readonly description =
@@ -49,7 +49,7 @@ export class ScaleFeature extends GuitarFeature {
     highlightNotes: Set<string>,
     headerText: string,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings,
+    intervalSettings: InstrumentIntervalSettings,
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
@@ -106,8 +106,8 @@ export class ScaleFeature extends GuitarFeature {
       },
     ];
     return {
-      description: `Config: ${this.typeName},ScaleName,RootNote[,HighlightNote1,...][,GuitarSettings]`,
-      args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      description: `Config: ${this.typeName},ScaleName,RootNote[,HighlightNote1,...][,InstrumentSettings]`,
+      args: [...specificArgs, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
@@ -148,7 +148,7 @@ export class ScaleFeature extends GuitarFeature {
     const validRootName = MUSIC_NOTES[keyIndex]?.[0] ?? rootNoteName;
 
     const headerText = `${validRootName} ${scale.name}`;
-    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
+    const guitarIntervalSettings = intervalSettings as InstrumentIntervalSettings;
     const featureSpecificConfig = [
       scaleNameOrAlias,
       rootNoteName,

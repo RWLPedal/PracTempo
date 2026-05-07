@@ -1,8 +1,8 @@
-import { InstrumentName } from "./fretboard";
+﻿import { InstrumentName } from "./fretboard";
 import { FretboardColorScheme } from './colors';
 
-/** Defines the settings specifically for the Guitar category. */
-export interface GuitarSettings {
+/** Defines the settings for the Instrument category. */
+export interface InstrumentSettings {
   /** The selected instrument type. Determines available tunings and features. */
   instrument: InstrumentName;
   handedness: "right" | "left";
@@ -14,8 +14,8 @@ export interface GuitarSettings {
   zoomMultiplier?: number;
 }
 
-/** Default values for Guitar settings. */
-export const DEFAULT_GUITAR_SETTINGS: GuitarSettings = {
+/** Default values for Instrument settings. */
+export const DEFAULT_INSTRUMENT_SETTINGS: InstrumentSettings = {
   instrument: "Guitar",
   handedness: "right",
   orientation: "vertical",
@@ -23,8 +23,5 @@ export const DEFAULT_GUITAR_SETTINGS: GuitarSettings = {
   colorScheme: "interval",
 };
 
-/**
- * Storage key for guitar-specific settings within AppSettings' categorySettings map.
- * Uses the string name of the category.
- */
-export const GUITAR_SETTINGS_KEY = "Guitar";
+/** Storage key for instrument settings within AppSettings' categorySettings map. */
+export const INSTRUMENT_SETTINGS_KEY = "Instrument";

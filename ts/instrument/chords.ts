@@ -1,4 +1,4 @@
-/** Specifies a barre across a contiguous range of strings at a given fret. */
+﻿/** Specifies a barre across a contiguous range of strings at a given fret. */
 export interface BarreSpec {
   fret: number;
   /** Lower string index (inclusive). */
@@ -225,7 +225,7 @@ export function getChordLibraryForInstrument(instrument: string): Record<string,
 // ---------------------------------------------------------------------------
 // Comprehensive chord tones library (dynamically generated)
 // ---------------------------------------------------------------------------
-// Note names indexed from A=0, matching MUSIC_NOTES order in guitar_utils.ts.
+// Note names indexed from A=0, matching MUSIC_NOTES order in instrument_utils.ts.
 // Uses a conventional mixed sharp/flat spelling: sharps for C#, F#, G#;
 // flats for Bb, Eb, Ab.
 const _TONE_NAMES = ['A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
@@ -281,7 +281,7 @@ const _ROOT_NOTES: _RootNoteSpec[] = [
 
 export interface ChordToneEntry {
   name: string;
-  tones: string[]; // note names (enharmonics match via MUSIC_NOTES in guitar_utils)
+  tones: string[]; // note names (enharmonics match via MUSIC_NOTES in instrument_utils)
 }
 
 /** Comprehensive chord tones library for all 12 roots × 19 chord types.

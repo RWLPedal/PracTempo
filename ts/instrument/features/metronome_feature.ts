@@ -1,21 +1,21 @@
-// ts/guitar/features/metronome_feature.ts
+﻿// ts/instrument/features/metronome_feature.ts
 import {
   Feature,
   // FeatureCategoryName removed
   ConfigurationSchema,
   ConfigurationSchemaArg,
 } from "../../feature";
-import { GuitarFeature } from "../guitar_base";
+import { InstrumentFeature } from "../instrument_base";
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
 // Import generic and specific interval settings types
 import { IntervalSettings } from "../../schedule/editor/interval/types";
-import { GuitarIntervalSettings } from "../guitar_interval_settings";
-import { addHeader, clearAllChildren } from "../guitar_utils";
+import { InstrumentIntervalSettings } from "../instrument_interval_settings";
+import { addHeader, clearAllChildren } from "../instrument_utils";
 import { View } from "../../view"; // Keep View import if used by base class logic
 
 /** A simple feature that only displays a MetronomeView (if BPM > 0). */
-export class MetronomeFeature extends GuitarFeature {
+export class MetronomeFeature extends InstrumentFeature {
   // Static properties (category removed, others unchanged)
   // static readonly category = FeatureCategoryName.Guitar; // Removed
   static readonly typeName = "Metronome";
@@ -28,8 +28,8 @@ export class MetronomeFeature extends GuitarFeature {
   static getConfigurationSchema(): ConfigurationSchema {
     // Unchanged
     return {
-      description: `Config: ${this.typeName}[,GuitarSettings]\nDisplays a metronome. BPM set via Guitar Settings.`,
-      args: [GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      description: `Config: ${this.typeName}[,InstrumentSettings]\nDisplays a metronome. BPM set via Guitar Settings.`,
+      args: [InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
@@ -43,7 +43,7 @@ export class MetronomeFeature extends GuitarFeature {
     categoryName: string // <<< ADDED: Accept category name string
   ): Feature {
     // --- Type Assertion for Constructor ---
-    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
+    const guitarIntervalSettings = intervalSettings as InstrumentIntervalSettings;
     // --- End Type Assertion ---
 
     // Metronome feature has no specific config args itself
@@ -62,7 +62,7 @@ export class MetronomeFeature extends GuitarFeature {
   constructor(
     config: ReadonlyArray<string>, // Expects empty array or potentially filtered settings args
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings, // Constructor expects specific type
+    intervalSettings: InstrumentIntervalSettings, // Constructor expects specific type
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {

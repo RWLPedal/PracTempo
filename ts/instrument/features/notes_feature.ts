@@ -1,4 +1,4 @@
-/* ts/guitar/features/notes_feature.ts */
+﻿/* ts/instrument/features/notes_feature.ts */
 
 import {
   Feature,
@@ -6,12 +6,12 @@ import {
   ConfigurationSchema,
   ConfigurationSchemaArg,
 } from "../../feature";
-import { GuitarFeature } from "../guitar_base";
+import { InstrumentFeature } from "../instrument_base";
 import { AppSettings } from "../../settings";
 import { AudioController } from "../../audio_controller";
 // Import generic and specific interval settings types
 import { IntervalSettings } from "../../schedule/editor/interval/types";
-import { GuitarIntervalSettings } from "../guitar_interval_settings";
+import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import { NoteRenderData, FretboardConfig } from "../fretboard"; // Import FretboardConfig
 import {
   MUSIC_NOTES,
@@ -20,12 +20,12 @@ import {
   OPEN_NOTE_RADIUS_FACTOR,
   addHeader,
   clearAllChildren,
-} from "../guitar_utils";
+} from "../instrument_utils";
 import { FretboardColorScheme } from "../colors";
 import { FretboardView } from "../views/fretboard_view";
 
 /** A guitar feature for displaying all notes on the fretboard using FretboardView. */
-export class NotesFeature extends GuitarFeature {
+export class NotesFeature extends InstrumentFeature {
   // Static properties (category removed, others unchanged)
   // static readonly category = FeatureCategoryName.Guitar; // Removed
   static readonly typeName = "Notes";
@@ -42,7 +42,7 @@ export class NotesFeature extends GuitarFeature {
     config: ReadonlyArray<string>, // Should be empty now for NotesFeature specific args
     settings: AppSettings,
     rootNoteName: string | null, // Pass the parsed rootNoteName
-    intervalSettings: GuitarIntervalSettings, // Constructor expects specific type
+    intervalSettings: InstrumentIntervalSettings, // Constructor expects specific type
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
@@ -75,8 +75,8 @@ export class NotesFeature extends GuitarFeature {
       },
     ];
     return {
-      description: `Config: ${this.typeName}[,RootNote][,GuitarSettings]`,
-      args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG], // Merge with base
+      description: `Config: ${this.typeName}[,RootNote][,InstrumentSettings]`,
+      args: [...specificArgs, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG], // Merge with base
     };
   }
 
@@ -114,7 +114,7 @@ export class NotesFeature extends GuitarFeature {
     }
 
     // --- Type Assertion for Constructor ---
-    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
+    const guitarIntervalSettings = intervalSettings as InstrumentIntervalSettings;
     // --- End Type Assertion ---
 
     return new NotesFeature(

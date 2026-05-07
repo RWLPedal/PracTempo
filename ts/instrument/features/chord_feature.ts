@@ -1,11 +1,11 @@
-// ts/guitar/features/chord_feature.ts
+﻿// ts/instrument/features/chord_feature.ts
 import {
   Feature,
   // FeatureCategoryName removed
   ConfigurationSchema,
   ConfigurationSchemaArg,
 } from "../../feature";
-import { GuitarFeature } from "../guitar_base";
+import { InstrumentFeature } from "../instrument_base";
 import {
   Chord,
   ChordType,
@@ -20,14 +20,14 @@ import { ChordDiagramView } from "../views/chord_diagram_view";
 import { MoveableToggleView } from "../views/moveable_toggle_view";
 import { MOVEABLE_CHORD_LIBRARIES, getEasiestMoveableShape } from "../moveable_shapes";
 import { AVAILABLE_TUNINGS, STANDARD_TUNING } from "../fretboard";
-import { addHeader, clearAllChildren } from "../guitar_utils";
-import { GuitarSettings, GUITAR_SETTINGS_KEY, DEFAULT_GUITAR_SETTINGS } from "../guitar_settings";
+import { addHeader, clearAllChildren } from "../instrument_utils";
+import { InstrumentSettings, INSTRUMENT_SETTINGS_KEY, DEFAULT_INSTRUMENT_SETTINGS } from "../instrument_settings";
 // Import generic and specific interval settings types
 import { IntervalSettings } from "../../schedule/editor/interval/types";
-import { GuitarIntervalSettings } from "../guitar_interval_settings";
+import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 
 /** A feature for displaying mulitple chord diagrams and a metronome. */
-export class ChordFeature extends GuitarFeature {
+export class ChordFeature extends InstrumentFeature {
   // Static properties (category removed, others unchanged)
   // static readonly category = FeatureCategoryName.Guitar; // Removed
   static readonly typeName = "Chord";
@@ -46,7 +46,7 @@ export class ChordFeature extends GuitarFeature {
     config: ReadonlyArray<string>, // Chord keys specific to this feature
     chords: ReadonlyArray<Chord>,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings, // Constructor still expects specific type from base class
+    intervalSettings: InstrumentIntervalSettings, // Constructor still expects specific type from base class
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
@@ -62,7 +62,7 @@ export class ChordFeature extends GuitarFeature {
     this.chords = chords;
     this.isMoveable = localStorage.getItem(ChordFeature.MOVEABLE_PREF_KEY) === "true";
 
-    const guitarSettings = getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ?? DEFAULT_GUITAR_SETTINGS;
+    const guitarSettings = getCategorySettings<InstrumentSettings>(settings, INSTRUMENT_SETTINGS_KEY) ?? DEFAULT_INSTRUMENT_SETTINGS;
 
     if (guitarSettings.instrument in MOVEABLE_CHORD_LIBRARIES) {
       this.moveableView = new MoveableToggleView(chords, this.fretboardConfig, this.isMoveable, guitarSettings.instrument);
@@ -106,8 +106,8 @@ export class ChordFeature extends GuitarFeature {
       },
     ];
     return {
-      description: `Config: ${this.typeName},Root,Type[,GuitarSettings]`,
-      args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      description: `Config: ${this.typeName},Root,Type[,InstrumentSettings]`,
+      args: [...specificArgs, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
@@ -127,7 +127,7 @@ export class ChordFeature extends GuitarFeature {
       throw new Error(`Invalid config for ${this.typeName}. Expected Root and Type.`);
     }
 
-    const guitarSettings = getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ?? DEFAULT_GUITAR_SETTINGS;
+    const guitarSettings = getCategorySettings<InstrumentSettings>(settings, INSTRUMENT_SETTINGS_KEY) ?? DEFAULT_INSTRUMENT_SETTINGS;
     const library = getChordLibraryForInstrument(guitarSettings.instrument);
     const chords: Chord[] = [];
 
@@ -177,7 +177,7 @@ export class ChordFeature extends GuitarFeature {
       throw new Error(`[${this.typeName}] No valid chord found in config: ${config.join(",")}`);
     }
 
-    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
+    const guitarIntervalSettings = intervalSettings as InstrumentIntervalSettings;
     return new ChordFeature(
       effectiveConfig,
       chords,

@@ -1,30 +1,30 @@
-// ts/guitar/features/chord_progression_feature.ts
+﻿// ts/instrument/features/chord_progression_feature.ts
 import {
   Feature,
   // FeatureCategoryName removed
   ConfigurationSchema,
   ConfigurationSchemaArg,
 } from "../../feature";
-import { GuitarFeature } from "../guitar_base";
+import { InstrumentFeature } from "../instrument_base";
 import { Chord, chord_library, getChordLibraryForInstrument } from "../chords";
 import { AppSettings, getCategorySettings } from "../../settings";
-import { GuitarSettings, GUITAR_SETTINGS_KEY, DEFAULT_GUITAR_SETTINGS } from "../guitar_settings";
+import { InstrumentSettings, INSTRUMENT_SETTINGS_KEY, DEFAULT_INSTRUMENT_SETTINGS } from "../instrument_settings";
 import { AudioController } from "../../audio_controller";
 // Import generic and specific interval settings types
 import { IntervalSettings } from "../../schedule/editor/interval/types";
-import { GuitarIntervalSettings } from "../guitar_interval_settings";
+import { InstrumentIntervalSettings } from "../instrument_interval_settings";
 import {
   MUSIC_NOTES,
   getKeyIndex,
   addHeader,
   clearAllChildren,
-} from "../guitar_utils";
+} from "../instrument_utils";
 import { KeyType, getChordInKey } from "../progressions";
 import { ChordDiagramView } from "../views/chord_diagram_view";
 import { getEasiestMoveableShape } from "../moveable_shapes";
 
 /** Displays chord diagrams for a Roman numeral progression in a given key. */
-export class ChordProgressionFeature extends GuitarFeature {
+export class ChordProgressionFeature extends InstrumentFeature {
   // Static properties (category removed, others unchanged)
   // static readonly category = FeatureCategoryName.Guitar; // Removed
   static readonly typeName = "Chord Progression";
@@ -46,7 +46,7 @@ export class ChordProgressionFeature extends GuitarFeature {
     headerText: string,
     keyType: KeyType,
     settings: AppSettings,
-    intervalSettings: GuitarIntervalSettings, // Constructor expects specific type
+    intervalSettings: InstrumentIntervalSettings, // Constructor expects specific type
     audioController?: AudioController,
     maxCanvasHeight?: number,
     chordLibrary: Record<string, Chord> = chord_library
@@ -65,7 +65,7 @@ export class ChordProgressionFeature extends GuitarFeature {
 
     // Create ChordDiagramViews (metronome view is handled by base constructor)
     const rootNoteIndex = getKeyIndex(this.rootNoteName);
-    const guitarSettings = getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ?? DEFAULT_GUITAR_SETTINGS;
+    const guitarSettings = getCategorySettings<InstrumentSettings>(settings, INSTRUMENT_SETTINGS_KEY) ?? DEFAULT_INSTRUMENT_SETTINGS;
 
     if (rootNoteIndex !== -1) {
       this.progression.forEach((numeral) => {
@@ -144,8 +144,8 @@ export class ChordProgressionFeature extends GuitarFeature {
       },
     ];
     return {
-      description: `Config: ${this.typeName},Root,Key,ProgNumerals...[,GuitarSettings]`,
-      args: [...specificArgs, GuitarFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      description: `Config: ${this.typeName},Root,Key,ProgNumerals...[,InstrumentSettings]`,
+      args: [...specificArgs, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
     };
   }
 
@@ -180,8 +180,8 @@ export class ChordProgressionFeature extends GuitarFeature {
     }
 
     const headerText = `${progressionNumerals.join("-")} in ${validRootName} ${keyType}`;
-    const guitarIntervalSettings = intervalSettings as GuitarIntervalSettings;
-    const guitarSettings = getCategorySettings<GuitarSettings>(settings, GUITAR_SETTINGS_KEY) ?? DEFAULT_GUITAR_SETTINGS;
+    const guitarIntervalSettings = intervalSettings as InstrumentIntervalSettings;
+    const guitarSettings = getCategorySettings<InstrumentSettings>(settings, INSTRUMENT_SETTINGS_KEY) ?? DEFAULT_INSTRUMENT_SETTINGS;
     const chordLibrary = getChordLibraryForInstrument(guitarSettings.instrument);
 
     return new ChordProgressionFeature(

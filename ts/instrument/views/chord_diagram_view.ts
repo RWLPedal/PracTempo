@@ -1,4 +1,4 @@
-import { View } from "../../view";
+﻿import { View } from "../../view";
 import { Chord } from "../chords";
 // Import Fretboard class and necessary types/enum from fretboard.ts
 import {
@@ -17,7 +17,7 @@ import {
   getIntervalLabel,
   addHeader, // Use for external title
   addCanvas,
-} from "../guitar_utils";
+} from "../instrument_utils";
 
 /**
  * Helper to get the notes in a chord.

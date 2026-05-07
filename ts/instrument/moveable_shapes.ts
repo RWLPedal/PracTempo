@@ -1,6 +1,6 @@
-import { Chord, ChordType, BarreSpec } from "./chords";
+﻿import { Chord, ChordType, BarreSpec } from "./chords";
 import { InstrumentName, Tuning } from "./fretboard";
-import { getKeyIndex } from "./guitar_utils";
+import { getKeyIndex } from "./instrument_utils";
 
 export interface MoveableChordTemplate {
   shapeName: string;

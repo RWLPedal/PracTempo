@@ -1,4 +1,4 @@
-import { MUSIC_NOTES, getKeyIndex } from "./guitar_utils";
+﻿import { MUSIC_NOTES, getKeyIndex } from "./instrument_utils";
 import { Chord, chord_library } from "./chords";
 
 /**
