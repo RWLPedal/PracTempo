@@ -1,8 +1,7 @@
 ﻿import { View } from "../../view";
-import { AppSettings, getCategorySettings } from "../../settings";
+import { AppSettings } from "../../settings";
 import {
   InstrumentSettings,
-  INSTRUMENT_SETTINGS_KEY,
   DEFAULT_INSTRUMENT_SETTINGS,
 } from "../instrument_settings";
 import { INTERVAL_COLORS, NOTE_COLORS } from "../colors"; // Import color maps
@@ -24,11 +23,7 @@ export class ColorLegendView implements View {
     this.container.innerHTML = ""; // Clear previous content
     this.container.classList.add("color-legend-view"); // For styling
 
-    const guitarSettings =
-      getCategorySettings<InstrumentSettings>(
-        this.appSettings,
-        INSTRUMENT_SETTINGS_KEY
-      ) ?? DEFAULT_INSTRUMENT_SETTINGS;
+    const guitarSettings = this.appSettings.instrumentSettings ?? DEFAULT_INSTRUMENT_SETTINGS;
     const currentScheme = guitarSettings.colorScheme;
 
     let colorMap: { [key: string]: string } = {};

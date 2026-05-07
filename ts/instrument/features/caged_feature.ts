@@ -323,7 +323,7 @@ export class CagedFeature extends InstrumentFeature {
     ];
     return {
       description: `Config: ${this.typeName},Key,ScaleType,LabelDisplay,FillDisplay[,InstrumentSettings]`,
-      args: [...specificArgs, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      args: [...specificArgs, InstrumentFeature.BASE_INSTRUMENT_SETTINGS_CONFIG_ARG],
     };
   }
 

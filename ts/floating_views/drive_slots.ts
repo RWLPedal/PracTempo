@@ -1,4 +1,4 @@
-// ts/floating_views/drive_slots.ts
+﻿// ts/floating_views/drive_slots.ts
 // Concrete drive source/target registrations. Import this file once at app startup
 // (reference_main.ts) to wire all signal translations.
 
@@ -10,7 +10,7 @@ import {
   isMajorChordSuffix,
   MAJOR_ROMANS,
   MINOR_ROMANS,
-} from '../guitar/chord_key_resolver';
+} from '../instrument/chord_key_resolver';
 
 // ─── BackingTrackView as source ───────────────────────────────────────────────
 // viewId must match the registered floating view id for the backing track.
@@ -59,7 +59,7 @@ registerDriveSource({
 // When the fretboard's config changes, emit one ChordSignal per chord layer.
 
 registerDriveSource({
-  viewId: 'configurable_guitar_feature',
+  viewId: 'configurable_instrument_feature',
   featureTypeName: 'MultiSelectFretboard',
   extractSignals(detail: any): ChordSignal[] {
     const config: string[] = detail?.config ?? [];

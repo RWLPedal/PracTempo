@@ -8,8 +8,7 @@ import {
   getAvailableFeatureTypes,
   getAvailableFeatureTypesForInstrument,
   getFeatureTypeDescriptor,
-  getIntervalSettingsFactory,
-  getCategory, // Import category getter
+  getCategory,
 } from "../../../feature_registry";
 // Import generic settings types
 import { IntervalSettings, IntervalRowData } from "./types";
@@ -57,7 +56,7 @@ export function buildIntervalRowElement(
   ) {
     settingsInstance = initialData.intervalSettings;
   } else {
-    const settingsFactory = getIntervalSettingsFactory(categoryName); // Use name string
+    const settingsFactory = getCategory(categoryName)?.getIntervalSettingsFactory();
     if (settingsFactory) {
       console.log(
         `Creating default interval settings using factory for category: ${categoryName}`

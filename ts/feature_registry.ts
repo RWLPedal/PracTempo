@@ -1,10 +1,5 @@
-import { FeatureTypeDescriptor, SettingsUISchemaItem } from "./feature";
-import { Category } from "./feature"; // Use Category instead of ICategory
-import { CategorySettingsMap } from "./settings";
-import {
-  IntervalSettings,
-  IntervalSettingsJSON,
-} from "./schedule/editor/interval/types";
+import { FeatureTypeDescriptor } from "./feature";
+import { Category } from "./feature";
 
 // --- Internal Registry Maps ---
 /** Stores registered Category instances, keyed by category name */
@@ -12,21 +7,6 @@ const categoryRegistry = new Map<string, Category>();
 
 /** Stores FeatureTypeDescriptors, keyed by categoryName/typeName for quick lookup */
 const featureTypeRegistry = new Map<string, FeatureTypeDescriptor>(); // Key: "CategoryName/TypeName"
-
-/** Stores default global settings data, keyed by category name */
-const defaultGlobalSettingsRegistry = new Map<string, any>();
-
-/** Stores interval settings factories, keyed by category name */
-const intervalSettingsFactoryRegistry = new Map<
-  string,
-  () => IntervalSettings
->();
-
-/** Stores interval settings JSON parsers, keyed by category name */
-const intervalSettingsParserRegistry = new Map<
-  string,
-  (json: IntervalSettingsJSON | undefined | null) => IntervalSettings
->();
 
 /**
  * Registers a feature category instance.
@@ -49,42 +29,6 @@ export function registerCategory(categoryInstance: Category): void {
   }
 
   categoryRegistry.set(categoryName, categoryInstance);
-
-  // Store settings and factories provided by the category instance
-  try {
-    defaultGlobalSettingsRegistry.set(
-      categoryName,
-      categoryInstance.getDefaultGlobalSettings()
-    );
-  } catch (e) {
-    console.error(
-      `Error getting default global settings for category "${categoryName}":`,
-      e
-    );
-  }
-  try {
-    intervalSettingsFactoryRegistry.set(
-      categoryName,
-      categoryInstance.getIntervalSettingsFactory()
-    );
-  } catch (e) {
-    console.error(
-      `Error getting interval settings factory for category "${categoryName}":`,
-      e
-    );
-  }
-  try {
-    // Bind the method to the instance to preserve 'this' context if needed inside the method
-    intervalSettingsParserRegistry.set(
-      categoryName,
-      categoryInstance.createIntervalSettingsFromJSON.bind(categoryInstance)
-    );
-  } catch (e) {
-    console.error(
-      `Error getting interval settings JSON parser for category "${categoryName}":`,
-      e
-    );
-  }
 
   // Register individual feature types for easy lookup
   let featureTypes: ReadonlyMap<string, FeatureTypeDescriptor> | null = null;
@@ -159,14 +103,6 @@ export function getFeatureTypeDescriptor(
 }
 
 /**
- * Retrieves all registered category instances.
- * @returns An array of all registered Category instances.
- */
-export function getAvailableCategories(): Category[] {
-  return Array.from(categoryRegistry.values());
-}
-
-/**
  * Retrieves all available feature type descriptors for a given category.
  * @param categoryName - The category name.
  * @returns An array of type descriptors, or empty if category not found.
@@ -192,42 +128,3 @@ export function getAvailableFeatureTypesForInstrument(
   );
 }
 
-/** Retrieves the default *global* settings *data* for a specific category name. */
-export function getDefaultGlobalSettingsForCategory<T>(
-  categoryName: string
-): T | undefined {
-  return defaultGlobalSettingsRegistry.get(categoryName) as T | undefined;
-}
-
-/** Constructs a map containing the default *global* settings *data* for all registered categories. */
-export function getAllDefaultGlobalSettings(): CategorySettingsMap {
-  const defaults: CategorySettingsMap = {};
-  defaultGlobalSettingsRegistry.forEach((settings, categoryName) => {
-    // Ensure settings is not null/undefined before assigning
-    if (settings !== undefined && settings !== null) {
-      defaults[categoryName] = settings;
-    } else {
-      console.warn(
-        `Default global settings for category "${categoryName}" are null or undefined.`
-      );
-      defaults[categoryName] = {}; // Assign empty object as fallback
-    }
-  });
-  return defaults;
-}
-
-/** Retrieves the factory function for creating a default *interval* settings instance for a category. */
-export function getIntervalSettingsFactory(
-  categoryName: string
-): (() => IntervalSettings) | undefined {
-  return intervalSettingsFactoryRegistry.get(categoryName);
-}
-
-/** Retrieves the parser function for creating an *interval* settings instance from JSON for a category. */
-export function getIntervalSettingsParser(
-  categoryName: string
-):
-  | ((json: IntervalSettingsJSON | undefined | null) => IntervalSettings)
-  | undefined {
-  return intervalSettingsParserRegistry.get(categoryName);
-}

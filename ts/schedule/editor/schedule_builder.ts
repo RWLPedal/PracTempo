@@ -6,7 +6,7 @@ import { Feature } from "../../feature";
 // Import registry functions for generic handling
 import {
   getFeatureTypeDescriptor,
-  getIntervalSettingsParser,
+  getCategory,
 } from "../../feature_registry";
 import { parseDurationString } from "../../time_utils";
 import { ErrorDisplay } from "./error_display";
@@ -102,21 +102,19 @@ export class ScheduleBuilder {
             );
           }
 
-          // 2. Instantiate Interval Settings Generically using Parser from Registry
-          const settingsParser = getIntervalSettingsParser(categoryName);
-          if (settingsParser) {
-            intervalSettings = settingsParser(intervalData.intervalSettings); // Use the parser
+          // 2. Instantiate Interval Settings
+          const category = getCategory(categoryName);
+          if (category) {
+            intervalSettings = category.createIntervalSettingsFromJSON(intervalData.intervalSettings);
           } else {
-            // Fallback or error if no parser is found for the category
             console.warn(
-              `[ScheduleBuilder] No interval settings parser found for category "${categoryName}". Using raw data or default fallback.`
+              `[ScheduleBuilder] No category found for "${categoryName}". Using raw data fallback.`
             );
-            // Create a basic object that satisfies the interface minimally
             intervalSettings = {
               toJSON: () => intervalData.intervalSettings || {},
             };
             if (intervalData.intervalSettings) {
-              Object.assign(intervalSettings, intervalData.intervalSettings); // Attempt generic assignment
+              Object.assign(intervalSettings, intervalData.intervalSettings);
             }
           }
 

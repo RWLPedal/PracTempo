@@ -3,17 +3,8 @@ import { AudioController } from "./audio_controller";
 import { DisplayController, Status } from "./display_controller";
 import { ScheduleEditor } from "./schedule/editor/schedule_editor";
 import {
-  registerCategory,
-  getCategory,
-  getAvailableCategories,
-  getDefaultGlobalSettingsForCategory,
-} from "./feature_registry";
-import { SettingsUISchemaItem, Feature } from "./feature";
-import { GuitarCategory } from "./guitar/guitar_category";
-import {
   AppSettings,
   loadSettings,
-  CategorySettingsMap,
   SETTINGS_STORAGE_KEY,
   LAST_RUN_SCHEDULE_JSON_KEY,
   RECENT_SCHEDULES_JSON_KEY,
@@ -23,16 +14,16 @@ import { ScheduleLoadModal } from "./schedule/schedule_load_modal";
 import { Schedule } from "./schedule/schedule";
 
 import { FloatingViewManager } from './floating_views/floating_view_manager';
-import { getAvailableFloatingViews, registerFloatingView } from './floating_views/floating_view_registry';
+import { getAvailableFloatingViews } from './floating_views/floating_view_registry';
 import { SettingsManager } from "./settings_manager";
 import { ThemeManager } from "./theme_manager";
 import { TimerView } from "./views/timer_view";
 import { ScheduleTimerView } from "./views/schedule_timer_view";
 import { SchedulePlaybackView } from "./views/schedule_playback_view";
+import { registerBuiltins } from "./app_bootstrap";
 
 // --- Constants ---
 const DEFAULT_MAX_CANVAS_HEIGHT = 650;
-const CATEGORY_SETTINGS_CONTAINER_ID = "category-settings-container";
 
 export class Main {
   currentSchedule: Schedule | null = null;
@@ -59,18 +50,7 @@ export class Main {
   constructor() {
     console.log("Initializing Main Application...");
 
-    // --- Register Categories ---
-    registerCategory(new GuitarCategory());
-
-    // Register floating timer view (standalone mode – no schedule callbacks)
-    registerFloatingView({
-      viewId: "floating_timer",
-      displayName: "Timer",
-      categoryName: "General",
-      defaultWidth: 300,
-      defaultHeight: 150,
-      createView: (initialState?: any) => new TimerView(initialState?.duration ?? 300),
-    });
+    registerBuiltins();
 
     // Load settings - uses the now-populated registry for defaults
     this.settings = loadSettings();

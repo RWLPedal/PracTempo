@@ -15,13 +15,13 @@ import {
   findChordByRootAndType,
 } from "../chords";
 import { AudioController } from "../../audio_controller";
-import { AppSettings, getCategorySettings } from "../../settings";
+import { AppSettings } from "../../settings";
 import { ChordDiagramView } from "../views/chord_diagram_view";
 import { MoveableToggleView } from "../views/moveable_toggle_view";
 import { MOVEABLE_CHORD_LIBRARIES, getEasiestMoveableShape } from "../moveable_shapes";
 import { AVAILABLE_TUNINGS, STANDARD_TUNING } from "../fretboard";
 import { addHeader, clearAllChildren } from "../instrument_utils";
-import { InstrumentSettings, INSTRUMENT_SETTINGS_KEY, DEFAULT_INSTRUMENT_SETTINGS } from "../instrument_settings";
+import { InstrumentSettings, DEFAULT_INSTRUMENT_SETTINGS } from "../instrument_settings";
 // Import generic and specific interval settings types
 import { IntervalSettings } from "../../schedule/editor/interval/types";
 import { InstrumentIntervalSettings } from "../instrument_interval_settings";
@@ -62,7 +62,7 @@ export class ChordFeature extends InstrumentFeature {
     this.chords = chords;
     this.isMoveable = localStorage.getItem(ChordFeature.MOVEABLE_PREF_KEY) === "true";
 
-    const guitarSettings = getCategorySettings<InstrumentSettings>(settings, INSTRUMENT_SETTINGS_KEY) ?? DEFAULT_INSTRUMENT_SETTINGS;
+    const guitarSettings = settings.instrumentSettings ?? DEFAULT_INSTRUMENT_SETTINGS;
 
     if (guitarSettings.instrument in MOVEABLE_CHORD_LIBRARIES) {
       this.moveableView = new MoveableToggleView(chords, this.fretboardConfig, this.isMoveable, guitarSettings.instrument);
@@ -107,7 +107,7 @@ export class ChordFeature extends InstrumentFeature {
     ];
     return {
       description: `Config: ${this.typeName},Root,Type[,InstrumentSettings]`,
-      args: [...specificArgs, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      args: [...specificArgs, InstrumentFeature.BASE_INSTRUMENT_SETTINGS_CONFIG_ARG],
     };
   }
 
@@ -127,7 +127,7 @@ export class ChordFeature extends InstrumentFeature {
       throw new Error(`Invalid config for ${this.typeName}. Expected Root and Type.`);
     }
 
-    const guitarSettings = getCategorySettings<InstrumentSettings>(settings, INSTRUMENT_SETTINGS_KEY) ?? DEFAULT_INSTRUMENT_SETTINGS;
+    const guitarSettings = settings.instrumentSettings ?? DEFAULT_INSTRUMENT_SETTINGS;
     const library = getChordLibraryForInstrument(guitarSettings.instrument);
     const chords: Chord[] = [];
 

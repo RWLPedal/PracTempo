@@ -1,5 +1,6 @@
 import { AppSettings } from "./settings";
-import { getAvailableCategories, getDefaultGlobalSettingsForCategory } from "./feature_registry";
+import { InstrumentCategory } from "./instrument/instrument_category";
+import { DEFAULT_INSTRUMENT_SETTINGS } from "./instrument/instrument_settings";
 import { Theme } from "./theme_manager";
 
 type PageType = 'practice' | 'reference';
@@ -129,27 +130,23 @@ export class SettingsManager {
         }
         container.innerHTML = "";
 
-        const categories = getAvailableCategories();
-        categories.forEach((categoryInstance) => {
-            if (typeof categoryInstance.getGlobalSettingsUISchema !== "function") return;
-            const schemaItems = categoryInstance.getGlobalSettingsUISchema();
-            const categoryName = categoryInstance.getName();
-            if (!schemaItems || schemaItems.length === 0) return;
+        const category = new InstrumentCategory();
+        const schemaItems = category.getGlobalSettingsUISchema();
+        const categoryName = category.getName();
+        if (!schemaItems || schemaItems.length === 0) return;
 
-            const initialDraft = this.getCategorySettings(categoryName);
+        const initialDraft = this.getInstrumentSettings();
 
-            const categoryHeader = document.createElement("h5");
-            categoryHeader.textContent = `${categoryInstance.getDisplayName()} Settings`;
-            categoryHeader.classList.add("title", "is-6", "category-settings-header", "mt-4");
-            container.appendChild(categoryHeader);
+        const categoryHeader = document.createElement("h5");
+        categoryHeader.textContent = `${category.getDisplayName()} Settings`;
+        categoryHeader.classList.add("title", "is-6", "category-settings-header", "mt-4");
+        container.appendChild(categoryHeader);
 
-            // Wrapper for this category's fields so we can re-render it in place.
-            const sectionEl = document.createElement("div");
-            sectionEl.dataset.categorySectionName = categoryName;
-            container.appendChild(sectionEl);
+        const sectionEl = document.createElement("div");
+        sectionEl.dataset.categorySectionName = categoryName;
+        container.appendChild(sectionEl);
 
-            this._renderCategorySection(sectionEl, schemaItems, categoryName, initialDraft);
-        });
+        this._renderCategorySection(sectionEl, schemaItems, categoryName, initialDraft);
     }
 
     /**
@@ -274,10 +271,8 @@ export class SettingsManager {
         return draft;
     }
 
-    private getCategorySettings(categoryName: string): any {
-        const defaults = getDefaultGlobalSettingsForCategory<any>(categoryName) ?? {};
-        const stored = this.settings.categorySettings?.[categoryName] ?? {};
-        return { ...defaults, ...stored };
+    private getInstrumentSettings(): Record<string, any> {
+        return { ...DEFAULT_INSTRUMENT_SETTINGS, ...this.settings.instrumentSettings };
     }
 
 
@@ -292,32 +287,24 @@ export class SettingsManager {
             newSettings.practice.warmupPeriod = Math.max(0, parseInt((this.modalEl.querySelector("#warmup-input") as HTMLInputElement).value, 10) || 0);
         }
 
-        // 3. Update Category Settings Dynamically
+        // 3. Update Instrument Settings
         const container = this.modalEl.querySelector<HTMLElement>(`#category-settings-container`);
         if (container) {
             const settingElements = container.querySelectorAll<HTMLInputElement | HTMLSelectElement>("input[data-setting], select[data-setting]");
             settingElements.forEach((element) => {
-            const categoryName = element.dataset.category;
-            const settingKey = element.dataset.setting;
-            if (categoryName && settingKey) {
-                if (!newSettings.categorySettings[categoryName]) {
-                const defaults = getDefaultGlobalSettingsForCategory<any>(categoryName) ?? {};
-                newSettings.categorySettings[categoryName] = { ...defaults };
-                }
+                const settingKey = element.dataset.setting;
+                if (!settingKey) return;
                 let value: string | number | boolean;
                 if (element.type === "checkbox") value = (element as HTMLInputElement).checked;
                 else if (element.type === "number") {
-                const numVal = parseFloat(element.value);
-                value = isNaN(numVal) ? 0 : numVal;
-                const min = element.getAttribute("min");
-                const max = element.getAttribute("max");
-                if (min !== null) value = Math.max(parseFloat(min), value);
-                if (max !== null) value = Math.min(parseFloat(max), value);
+                    const numVal = parseFloat(element.value);
+                    value = isNaN(numVal) ? 0 : numVal;
+                    const min = element.getAttribute("min");
+                    const max = element.getAttribute("max");
+                    if (min !== null) value = Math.max(parseFloat(min), value);
+                    if (max !== null) value = Math.min(parseFloat(max), value);
                 } else value = element.value;
-                newSettings.categorySettings[categoryName][settingKey] = value;
-            } else {
-                console.warn("Found settings input missing category or setting data attribute:", element);
-            }
+                (newSettings.instrumentSettings as any)[settingKey] = value;
             });
         } else {
             console.error("Category settings container not found during save operation!");

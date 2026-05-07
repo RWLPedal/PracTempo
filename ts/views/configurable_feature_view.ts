@@ -1,15 +1,16 @@
-import { View } from "../view";
+﻿import { View } from "../view";
 import { AppSettings } from "../settings";
 import { getCategory } from "../feature_registry";
 import { Feature, FeatureTypeDescriptor } from "../feature";
 import { ConfigView } from "./config_view";
 import { AudioController } from "../audio_controller";
-import { GuitarIntervalSettings } from "../guitar/guitar_interval_settings";
+import { InstrumentIntervalSettings } from "../instrument/instrument_interval_settings";
 import { getDriveTargetSlots } from "../floating_views/drive_registry";
 import { DriveSignal } from "../floating_views/link_types";
 
 export class ConfigurableFeatureView implements View {
     private appSettings: AppSettings;
+    private categoryName: string;
     private featureTypeName: string;
     private initialConfig: string[] | undefined;
     private initialState: any;
@@ -34,6 +35,7 @@ export class ConfigurableFeatureView implements View {
     constructor(initialState: any, appSettings: AppSettings) {
         this.appSettings = appSettings;
         this.initialState = initialState;
+        this.categoryName = initialState?.categoryName ?? 'Instrument';
         this.featureTypeName = initialState?.featureTypeName;
         this.initialConfig = Array.isArray(initialState?.config) ? initialState.config : undefined;
 
@@ -57,13 +59,13 @@ export class ConfigurableFeatureView implements View {
         this.container.appendChild(this.configContainer);
         this.container.appendChild(this.featureContainer);
 
-        const guitarCategory = getCategory('Guitar'); // Assuming Guitar for now
-        if (!guitarCategory) {
-            this.container.innerHTML = 'Error: Guitar category not found';
+        const category = getCategory(this.categoryName);
+        if (!category) {
+            this.container.innerHTML = `Error: Category '${this.categoryName}' not found`;
             return;
         }
 
-        const FeatureClass = guitarCategory.getFeatureTypes().get(this.featureTypeName);
+        const FeatureClass = category.getFeatureTypes().get(this.featureTypeName);
         if (!FeatureClass) {
             this.container.innerHTML = `Error: Feature '${this.featureTypeName}' not found in category.`;
             return;
@@ -257,14 +259,14 @@ export class ConfigurableFeatureView implements View {
         const maxCanvasHeight = 600;
 
         try {
-            const intervalSettings = new GuitarIntervalSettings(); // Placeholder
+            const intervalSettings = new InstrumentIntervalSettings(); // Placeholder
             this.feature = this.featureClass.createFeature(
                 finalConfig,
                 this.audioController,
                 this.appSettings,
                 intervalSettings,
                 maxCanvasHeight,
-                'Guitar'
+                this.categoryName
             );
 
             this.feature.render(this.featureContainer);

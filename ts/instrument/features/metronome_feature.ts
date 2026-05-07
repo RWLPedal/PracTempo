@@ -29,7 +29,7 @@ export class MetronomeFeature extends InstrumentFeature {
     // Unchanged
     return {
       description: `Config: ${this.typeName}[,InstrumentSettings]\nDisplays a metronome. BPM set via Guitar Settings.`,
-      args: [InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      args: [InstrumentFeature.BASE_INSTRUMENT_SETTINGS_CONFIG_ARG],
     };
   }
 

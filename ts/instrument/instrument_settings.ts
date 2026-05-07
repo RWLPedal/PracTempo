@@ -22,6 +22,3 @@ export const DEFAULT_INSTRUMENT_SETTINGS: InstrumentSettings = {
   tuning: "Standard",
   colorScheme: "interval",
 };
-
-/** Storage key for instrument settings within AppSettings' categorySettings map. */
-export const INSTRUMENT_SETTINGS_KEY = "Instrument";

@@ -1,4 +1,4 @@
-// ts/schedule/editor/clipboard_manager.ts
+﻿// ts/schedule/editor/clipboard_manager.ts
 import { RowManager } from "./row_manager";
 import {
   ScheduleRowJSONData,
@@ -11,10 +11,10 @@ import {
 } from "./interval/types";
 import { SelectionManager } from "./selection_manager";
 // Import registry functions for generic handling
-import { getIntervalSettingsParser, getCategory } from "../../feature_registry"; // Use getIntervalSettingsParser
+import { getCategory } from "../../feature_registry";
 // Import the builder for interval rows
 import { buildIntervalRowElement } from "./interval/interval_row_ui";
-// --- Removed direct import of GuitarIntervalSettings ---
+// --- Removed direct import of InstrumentIntervalSettings ---
 // --- Removed FeatureCategoryName import ---
 
 export class ClipboardManager {
@@ -96,25 +96,23 @@ export class ClipboardManager {
           }
 
           // --- Create Settings Instance using Parser ---
+          const pasteCategory = getCategory(categoryName);
           let settingsInstance: IntervalSettings;
-          const settingsParser = getIntervalSettingsParser(categoryName); // Get parser
           const settingsJsonData = intervalJsonData.intervalSettings;
 
-          if (settingsParser) {
+          if (pasteCategory) {
             try {
-              settingsInstance = settingsParser(settingsJsonData); // Use parser
+              settingsInstance = pasteCategory.createIntervalSettingsFromJSON(settingsJsonData);
             } catch (parseError) {
               console.error(
                 `Error parsing pasted interval settings for ${categoryName}. Using default.`,
                 parseError
               );
-              const factory =
-                this.rowManager["getIntervalSettingsFactory"](categoryName); // Access factory via RowManager or registry
-              settingsInstance = factory ? factory() : { toJSON: () => ({}) }; // Fallback
+              settingsInstance = pasteCategory.getIntervalSettingsFactory()();
             }
           } else {
             console.error(
-              `Cannot paste settings: No parser for category ${categoryName}. Using basic object.`
+              `Cannot paste settings: No category found for ${categoryName}. Using basic object.`
             );
             settingsInstance = { toJSON: () => settingsJsonData || {} };
             if (settingsJsonData) {

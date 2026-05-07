@@ -208,7 +208,7 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
 
     return {
       description: `Config: ${this.typeName}[,layer1][,layer2]...[,InstrumentSettings]`,
-      args: [layersArg, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      args: [layersArg, InstrumentFeature.BASE_INSTRUMENT_SETTINGS_CONFIG_ARG],
     };
   }
 

@@ -2,14 +2,13 @@ import { SidebarView } from "./sidebar_view";
 import { FloatingViewManager } from '../floating_views/floating_view_manager';
 import { AppSettings, loadSettings, SETTINGS_STORAGE_KEY } from "../settings";
 import { ThemeManager, Theme } from "../theme_manager";
-import { registerCategory, getCategory } from "../feature_registry";
-import { GuitarCategory } from "../guitar/guitar_category";
+import { getCategory } from "../feature_registry";
 import { SettingsManager } from "../settings_manager";
 import { registerFloatingView } from '../floating_views/floating_view_registry';
-import { TimerView } from '../views/timer_view';
 import { BackingTrackView } from '../views/backing_track_view';
 import { LinkManager } from '../floating_views/link_manager';
 import '../floating_views/drive_slots'; // registers all drive sources/targets as a side effect
+import { registerBuiltins } from '../app_bootstrap';
 
 class ReferencePage {
     private floatingViewManager: FloatingViewManager;
@@ -19,17 +18,7 @@ class ReferencePage {
     private themeManager: ThemeManager;
 
     constructor() {
-        registerCategory(new GuitarCategory());
-
-        // Register standalone timer floating view (no schedule callbacks → standalone mode)
-        registerFloatingView({
-            viewId: "floating_timer",
-            displayName: "Timer",
-            categoryName: "General",
-            defaultWidth: 300,
-            defaultHeight: 150,
-            createView: (initialState?: any) => new TimerView(initialState?.duration ?? 300),
-        });
+        registerBuiltins();
 
         // Register backing track floating view
         registerFloatingView({
@@ -89,7 +78,7 @@ class ReferencePage {
     }
 
     private handleFeatureClick(viewId: string, featureTypeName?: string): void {
-        const guitarCategory = getCategory('Guitar');
+        const guitarCategory = getCategory('Instrument');
         const featureDescriptor = featureTypeName ? guitarCategory?.getFeatureTypes().get(featureTypeName) : undefined;
         const title = featureTypeName
             ? (featureDescriptor?.displayName ?? featureTypeName)

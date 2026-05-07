@@ -1,8 +1,8 @@
-import { AudioController } from "../../audio_controller";
+﻿import { AudioController } from "../../audio_controller";
 import { DisplayController } from "../../display_controller";
 import { Schedule } from "../schedule";
-import { AppSettings, LAST_RUN_SCHEDULE_JSON_KEY, getCategorySettings } from "../../settings";
-import { GuitarSettings } from "../../guitar/guitar_settings";
+import { AppSettings, LAST_RUN_SCHEDULE_JSON_KEY } from "../../settings";
+import { InstrumentSettings } from "../../instrument/instrument_settings";
 // Use JSON serializer functions
 import {
   parseScheduleJSON,
@@ -28,7 +28,7 @@ import { ClipboardManager } from "./clipboard_manager";
 import { DragDropManager } from "./drag_drop_manager";
 import { KeyboardShortcutManager } from "./keyboard_shortcut_manager";
 import { ScheduleBuilder } from "./schedule_builder";
-import { getAvailableCategories } from "../../feature_registry"; // Import registry getter and Category type
+import { getCategory } from "../../feature_registry";
 
 // --- Removed FeatureCategoryName import ---
 
@@ -73,15 +73,14 @@ export class ScheduleEditor {
     this.appSettings = appSettings ?? null;
 
     // --- Determine Default Category ---
-    const availableCategories = getAvailableCategories();
-    if (availableCategories.length > 0) {
-      this.defaultCategoryName = availableCategories[0].getName();
+    const defaultCategory = getCategory('Instrument');
+    if (defaultCategory) {
+      this.defaultCategoryName = defaultCategory.getName();
       console.log(`Using default category: ${this.defaultCategoryName}`);
     } else {
       console.error(
         "CRITICAL: No categories registered. Cannot determine default category for editor."
       );
-      // Optionally disable parts of the editor UI
     }
     // --- End Determine Default Category ---
 
@@ -98,7 +97,7 @@ export class ScheduleEditor {
     this.rowManager = new RowManager(
       this.uiManager.configEntriesContainerEl,
       this.selectionManager,
-      () => getCategorySettings<GuitarSettings>(this.appSettings, 'Guitar')?.instrument ?? 'Guitar'
+      () => this.appSettings?.instrumentSettings?.instrument ?? 'Guitar'
     );
     this.clipboardManager = new ClipboardManager(
       this.selectionManager,
@@ -262,13 +261,12 @@ export class ScheduleEditor {
 
     if (!initialItems) {
       console.log("Loading default schedule from first registered category...");
-      const categories = getAvailableCategories();
-      if (categories.length > 0) {
-        const defaultCategory = categories[0];
-        if (typeof defaultCategory.getDefaultIntervals === "function") {
-          initialItems = defaultCategory.getDefaultIntervals();
+      const defaultCat = getCategory('Instrument');
+      if (defaultCat) {
+        if (typeof defaultCat.getDefaultIntervals === "function") {
+          initialItems = defaultCat.getDefaultIntervals();
         }
-        initialName = `${defaultCategory.getDisplayName()} Default`;
+        initialName = `${defaultCat.getDisplayName()} Default`;
       }
 
       if (!initialItems || initialItems.length === 0) {
@@ -345,7 +343,7 @@ export class ScheduleEditor {
         errorDiv.classList.add("schedule-row");
         return errorDiv;
       }
-      const instrument = getCategorySettings<GuitarSettings>(this.appSettings, 'Guitar')?.instrument ?? 'Guitar';
+      const instrument = this.appSettings?.instrumentSettings?.instrument ?? 'Guitar';
       return buildIntervalRowElement(intervalData, categoryName, instrument);
     }
     console.warn("Trying to build unknown row type:", rowData);

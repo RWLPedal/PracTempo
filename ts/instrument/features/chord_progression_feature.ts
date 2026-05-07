@@ -7,8 +7,8 @@ import {
 } from "../../feature";
 import { InstrumentFeature } from "../instrument_base";
 import { Chord, chord_library, getChordLibraryForInstrument } from "../chords";
-import { AppSettings, getCategorySettings } from "../../settings";
-import { InstrumentSettings, INSTRUMENT_SETTINGS_KEY, DEFAULT_INSTRUMENT_SETTINGS } from "../instrument_settings";
+import { AppSettings } from "../../settings";
+import { InstrumentSettings, DEFAULT_INSTRUMENT_SETTINGS } from "../instrument_settings";
 import { AudioController } from "../../audio_controller";
 // Import generic and specific interval settings types
 import { IntervalSettings } from "../../schedule/editor/interval/types";
@@ -65,7 +65,7 @@ export class ChordProgressionFeature extends InstrumentFeature {
 
     // Create ChordDiagramViews (metronome view is handled by base constructor)
     const rootNoteIndex = getKeyIndex(this.rootNoteName);
-    const guitarSettings = getCategorySettings<InstrumentSettings>(settings, INSTRUMENT_SETTINGS_KEY) ?? DEFAULT_INSTRUMENT_SETTINGS;
+    const guitarSettings = settings.instrumentSettings ?? DEFAULT_INSTRUMENT_SETTINGS;
 
     if (rootNoteIndex !== -1) {
       this.progression.forEach((numeral) => {
@@ -145,7 +145,7 @@ export class ChordProgressionFeature extends InstrumentFeature {
     ];
     return {
       description: `Config: ${this.typeName},Root,Key,ProgNumerals...[,InstrumentSettings]`,
-      args: [...specificArgs, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      args: [...specificArgs, InstrumentFeature.BASE_INSTRUMENT_SETTINGS_CONFIG_ARG],
     };
   }
 
@@ -181,7 +181,7 @@ export class ChordProgressionFeature extends InstrumentFeature {
 
     const headerText = `${progressionNumerals.join("-")} in ${validRootName} ${keyType}`;
     const guitarIntervalSettings = intervalSettings as InstrumentIntervalSettings;
-    const guitarSettings = getCategorySettings<InstrumentSettings>(settings, INSTRUMENT_SETTINGS_KEY) ?? DEFAULT_INSTRUMENT_SETTINGS;
+    const guitarSettings = settings.instrumentSettings ?? DEFAULT_INSTRUMENT_SETTINGS;
     const chordLibrary = getChordLibraryForInstrument(guitarSettings.instrument);
 
     return new ChordProgressionFeature(

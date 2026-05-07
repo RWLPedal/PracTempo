@@ -1,10 +1,10 @@
-import { View } from "../view";
+﻿import { View } from "../view";
 import { AppSettings } from "../settings";
 import { LinkRecord } from "./link_types";
 
 // Describes a registered type of floating view
 export interface FloatingViewDescriptor {
-  viewId: string; // Unique identifier (e.g., "guitar_color_legend")
+  viewId: string; // Unique identifier (e.g., "instrument_color_legend")
   displayName: string; // User-friendly name (e.g., "Color Legend (Guitar)")
   categoryName: string; // Category it belongs to (e.g., "Guitar")
   defaultWidth?: number; // Optional default width

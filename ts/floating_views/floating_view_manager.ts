@@ -1,4 +1,4 @@
-// ts/floating_views/floating_view_manager.ts
+﻿// ts/floating_views/floating_view_manager.ts
 import { FloatingViewWrapper } from "./floating_view_wrapper";
 import {
   FloatingViewDescriptor,
@@ -163,7 +163,7 @@ export class FloatingViewManager {
 
           // Apply any saved orientation/zoom overrides when recreating the view.
           const globalOrientation =
-            (this.appSettings.categorySettings?.["Guitar"] as any)?.orientation ?? "vertical";
+            (this.appSettings.instrumentSettings as any)?.orientation ?? "vertical";
           const effectiveOrientation: "vertical" | "horizontal" =
             state.orientationOverride ?? globalOrientation;
           const zoomMultiplier = this._zoomMultiplierFor(
@@ -242,7 +242,7 @@ export class FloatingViewManager {
 
     // Toggle orientation: if currently vertical (or no override) → horizontal, and vice versa.
     const globalOrientation =
-      (this.appSettings.categorySettings?.["Guitar"] as any)?.orientation ?? "vertical";
+      (this.appSettings.instrumentSettings as any)?.orientation ?? "vertical";
     const currentEffective: "vertical" | "horizontal" =
       state.orientationOverride ?? globalOrientation;
     const newOverride: "vertical" | "horizontal" =
@@ -280,7 +280,7 @@ export class FloatingViewManager {
     state.zoomActive = !state.zoomActive;
 
     const globalOrientation =
-      (this.appSettings.categorySettings?.["Guitar"] as any)?.orientation ?? "vertical";
+      (this.appSettings.instrumentSettings as any)?.orientation ?? "vertical";
     const effectiveOrientation: "vertical" | "horizontal" =
       state.orientationOverride ?? globalOrientation;
     const zoomMultiplier = this._zoomMultiplierFor(effectiveOrientation, state.zoomActive);
@@ -313,7 +313,7 @@ export class FloatingViewManager {
   }
 
   /**
-   * Returns a shallow copy of appSettings with Guitar orientation and/or zoom
+   * Returns a shallow copy of appSettings with Instrument orientation and/or zoom
    * multiplier overridden. Pass undefined to leave a value unchanged.
    */
   private _buildOverriddenSettings(
@@ -322,13 +322,10 @@ export class FloatingViewManager {
   ): AppSettings {
     return {
       ...this.appSettings,
-      categorySettings: {
-        ...this.appSettings.categorySettings,
-        Guitar: {
-          ...(this.appSettings.categorySettings?.["Guitar"] ?? {}),
-          ...(orientationOverride !== undefined ? { orientation: orientationOverride } : {}),
-          zoomMultiplier,
-        },
+      instrumentSettings: {
+        ...this.appSettings.instrumentSettings,
+        ...(orientationOverride !== undefined ? { orientation: orientationOverride } : {}),
+        zoomMultiplier,
       },
     };
   }
@@ -345,10 +342,10 @@ export class FloatingViewManager {
    * - Per-instance zoom state is preserved across settings changes.
    */
   public applySettingsChange(newSettings: AppSettings): void {
-    const oldGuitarSettings = this.appSettings.categorySettings?.["Guitar"];
-    const newGuitarSettings = newSettings.categorySettings?.["Guitar"];
+    const oldInstrumentSettings = this.appSettings.instrumentSettings;
+    const newInstrumentSettings = newSettings.instrumentSettings;
     const guitarSettingsChanged =
-      JSON.stringify(oldGuitarSettings) !== JSON.stringify(newGuitarSettings);
+      JSON.stringify(oldInstrumentSettings) !== JSON.stringify(newInstrumentSettings);
     const themeChanged = this.appSettings.theme !== newSettings.theme;
 
     this.appSettings = newSettings;
@@ -356,18 +353,18 @@ export class FloatingViewManager {
     if (!guitarSettingsChanged && !themeChanged) return;
 
     // Views that manage their own runtime state should not be re-created.
-    const SKIP_VIEW_IDS = new Set(["guitar_floating_metronome", "floating_timer"]);
+    const SKIP_VIEW_IDS = new Set(["instrument_floating_metronome", "floating_timer"]);
 
     this.activeViews.forEach((wrapper, instanceId) => {
       const state = wrapper["state"] as FloatingViewInstanceState;
       if (SKIP_VIEW_IDS.has(state.viewId)) return;
 
       const descriptor = getFloatingViewDescriptor(state.viewId);
-      if (!descriptor || descriptor.categoryName !== "Guitar") return;
+      if (!descriptor || descriptor.categoryName !== "Instrument") return;
 
       // Determine effective orientation and preserved zoom.
       const globalOrientation =
-        (newSettings.categorySettings?.["Guitar"] as any)?.orientation ?? "vertical";
+        (newSettings.instrumentSettings as any)?.orientation ?? "vertical";
       const effectiveOrientation: "vertical" | "horizontal" =
         state.orientationOverride ?? globalOrientation;
       const zoomMultiplier = this._zoomMultiplierFor(

@@ -220,7 +220,7 @@ export class InstrumentCategory implements Category {
       supportsZoom: true,
       createView: (initialState, appSettings) => {
         return new ConfigurableFeatureView(
-          { categoryName: this.getName(), featureTypeName: ChordProgressionFeature.typeName, ...initialState },
+          { ...initialState, categoryName: this.getName(), featureTypeName: ChordProgressionFeature.typeName },
           appSettings!
         );
       },

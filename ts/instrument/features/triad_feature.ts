@@ -141,7 +141,7 @@ export class TriadFeature extends InstrumentFeature {
     maxCanvasHeight?: number
   ) {
     const guitarGlobalSettings =
-      (settings.categorySettings["Guitar"] as InstrumentSettings | undefined) ??
+      (settings.instrumentSettings as InstrumentSettings | undefined) ??
       DEFAULT_INSTRUMENT_SETTINGS;
     const baseFretboardConfig = new FretboardConfig(
       AVAILABLE_TUNINGS[guitarGlobalSettings.tuning] ?? STANDARD_TUNING,
@@ -206,7 +206,7 @@ export class TriadFeature extends InstrumentFeature {
     ];
     return {
       description: `Config: ${this.typeName},RootNote,Quality1[,Quality2,...][,InstrumentSettings]`,
-      args: [...specificArgs, InstrumentFeature.BASE_GUITAR_SETTINGS_CONFIG_ARG],
+      args: [...specificArgs, InstrumentFeature.BASE_INSTRUMENT_SETTINGS_CONFIG_ARG],
     };
   }
 

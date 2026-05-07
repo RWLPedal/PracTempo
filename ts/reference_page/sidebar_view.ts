@@ -1,7 +1,7 @@
-import { FloatingViewManager } from '../floating_views/floating_view_manager';
+﻿import { FloatingViewManager } from '../floating_views/floating_view_manager';
 import { VolumeControl } from '../views/volume_control';
-import { AppSettings, getCategorySettings } from '../settings';
-import { GuitarSettings } from '../guitar/guitar_settings';
+import { AppSettings } from '../settings';
+import { InstrumentSettings } from '../instrument/instrument_settings';
 import { Theme, themeNames } from '../theme_manager';
 
 interface NavButton {
@@ -22,19 +22,19 @@ const NAV_SECTIONS: NavSection[] = [
     {
         label: 'Reference',
         buttons: [
-            { id: 'notes-feature',             icon: 'music_note',      label: 'Notes',        viewId: 'configurable_guitar_feature', featureTypeName: 'Notes' },
-            { id: 'scales-feature',            icon: 'show_chart',      label: 'Scales',       viewId: 'configurable_guitar_feature', featureTypeName: 'Scale' },
-            { id: 'chords-feature',            icon: 'grid_on',         label: 'Chords',       viewId: 'configurable_guitar_feature', featureTypeName: 'Chord',           requiredInstruments: ['Guitar', 'Ukulele', 'Mandolin', 'Mandola'] },
-            { id: 'triads-feature',            icon: 'change_history',  label: 'Triads',       viewId: 'configurable_guitar_feature', featureTypeName: 'Triad Shapes',    requiredInstruments: ['Guitar'] },
-            { id: 'chord-progression-feature', icon: 'arrow_forward',   label: 'Progression',  viewId: 'guitar_chord_progression',                                        requiredInstruments: ['Guitar', 'Mandolin', 'Mandola'] },
-            { id: 'caged-feature',             icon: 'grid_view',       label: 'CAGED',        viewId: 'configurable_guitar_feature', featureTypeName: 'CAGED',           requiredInstruments: ['Guitar'] },
-            { id: 'multifret-feature',         icon: 'layers',          label: 'MultiFret',    viewId: 'configurable_guitar_feature', featureTypeName: 'MultiSelectFretboard' },
+            { id: 'notes-feature',             icon: 'music_note',      label: 'Notes',        viewId: 'configurable_instrument_feature', featureTypeName: 'Notes' },
+            { id: 'scales-feature',            icon: 'show_chart',      label: 'Scales',       viewId: 'configurable_instrument_feature', featureTypeName: 'Scale' },
+            { id: 'chords-feature',            icon: 'grid_on',         label: 'Chords',       viewId: 'configurable_instrument_feature', featureTypeName: 'Chord',           requiredInstruments: ['Guitar', 'Ukulele', 'Mandolin', 'Mandola'] },
+            { id: 'triads-feature',            icon: 'change_history',  label: 'Triads',       viewId: 'configurable_instrument_feature', featureTypeName: 'Triad Shapes',    requiredInstruments: ['Guitar'] },
+            { id: 'chord-progression-feature', icon: 'arrow_forward',   label: 'Progression',  viewId: 'instrument_chord_progression',                                        requiredInstruments: ['Guitar', 'Mandolin', 'Mandola'] },
+            { id: 'caged-feature',             icon: 'grid_view',       label: 'CAGED',        viewId: 'configurable_instrument_feature', featureTypeName: 'CAGED',           requiredInstruments: ['Guitar'] },
+            { id: 'multifret-feature',         icon: 'layers',          label: 'MultiFret',    viewId: 'configurable_instrument_feature', featureTypeName: 'MultiSelectFretboard' },
         ],
     },
     {
         label: 'Practice',
         buttons: [
-            { id: 'metronome-feature',    icon: 'timer',       label: 'Metronome',     viewId: 'guitar_floating_metronome' },
+            { id: 'metronome-feature',    icon: 'timer',       label: 'Metronome',     viewId: 'instrument_floating_metronome' },
             { id: 'timer-feature',        icon: 'alarm',       label: 'Timer',         viewId: 'floating_timer' },
             { id: 'drum-machine-feature', icon: 'queue_music', label: 'Backing Track', viewId: 'drum_machine' },
         ],
@@ -42,7 +42,7 @@ const NAV_SECTIONS: NavSection[] = [
     {
         label: 'Tools',
         buttons: [
-            { id: 'legend-feature', icon: 'palette', label: 'Legend', viewId: 'guitar_color_legend' },
+            { id: 'legend-feature', icon: 'palette', label: 'Legend', viewId: 'instrument_color_legend' },
         ],
     },
 ];
@@ -71,7 +71,7 @@ export class SidebarView {
 
     private getActiveInstrument(): string {
         if (!this.appSettings) return 'Guitar';
-        return getCategorySettings<GuitarSettings>(this.appSettings, 'Guitar')?.instrument ?? 'Guitar';
+        return this.appSettings?.instrumentSettings?.instrument ?? 'Guitar';
     }
 
     private getCurrentTheme(): Theme {

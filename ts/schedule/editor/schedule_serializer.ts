@@ -1,15 +1,7 @@
-// ts/schedule/editor/schedule_serializer.ts
-import { Category } from "../../feature";
-// Import registry functions for generic handling
-import {
-  getIntervalSettingsParser,
-  getCategory,
-  getIntervalSettingsFactory,
-} from "../../feature_registry";
-// Import generic interval settings types
+﻿// ts/schedule/editor/schedule_serializer.ts
+import { getCategory } from "../../feature_registry";
 import {
   IntervalSettings,
-  IntervalSettingsJSON,
   IntervalRowData,
   GroupRowData,
   ScheduleRowData,
@@ -17,7 +9,7 @@ import {
   IntervalDataJSON,
   ScheduleRowJSONData,
 } from "./interval/types";
-// --- REMOVED direct import of GuitarIntervalSettings ---
+// --- REMOVED direct import of InstrumentIntervalSettings ---
 
 /** Defines the top-level structure of a saved schedule JSON document. */
 export interface ScheduleDocument {
@@ -88,12 +80,13 @@ export function parseScheduleJSON(jsonString: string): {
       const categoryName = item.categoryName; // Already validated by type guard
 
       // Check if category exists in registry
-      if (!getCategory(categoryName)) {
+      const category = getCategory(categoryName);
+      if (!category) {
         console.warn(
           `Skipping interval at index ${index}: Category "${categoryName}" is not registered.`,
           item
         );
-        return; // Skip if category not registered
+        return;
       }
 
       const featureTypeName =
@@ -104,33 +97,18 @@ export function parseScheduleJSON(jsonString: string): {
         ? item.featureArgsList.map((arg) => String(arg ?? ""))
         : [];
 
-      // ---- Create IntervalSettings Instance using Factory/Parser from Registry ----
+      // ---- Create IntervalSettings Instance ----
       let intervalSettings: IntervalSettings;
-      const settingsParser = getIntervalSettingsParser(categoryName);
       const settingsData = item.intervalSettings;
-
-      if (settingsParser) {
-        try {
-          intervalSettings = settingsParser(settingsData);
-        } catch (parseError: any) {
-          console.error(
-            `Error parsing interval settings for category "${categoryName}" at index ${index}:`,
-            parseError,
-            settingsData
-          );
-          const defaultFactory = getIntervalSettingsFactory(categoryName);
-          intervalSettings = defaultFactory
-            ? defaultFactory()
-            : { toJSON: () => ({}) };
-        }
-      } else {
-        console.warn(
-          `No settings parser registered for category "${categoryName}". Creating basic settings object.`
+      try {
+        intervalSettings = category.createIntervalSettingsFromJSON(settingsData);
+      } catch (parseError: any) {
+        console.error(
+          `Error parsing interval settings for category "${categoryName}" at index ${index}:`,
+          parseError,
+          settingsData
         );
-        intervalSettings = { toJSON: () => settingsData || {} };
-        if (settingsData) {
-          Object.assign(intervalSettings, settingsData);
-        }
+        intervalSettings = category.getIntervalSettingsFactory()();
       }
       // ---- End IntervalSettings Instance Creation ----
 

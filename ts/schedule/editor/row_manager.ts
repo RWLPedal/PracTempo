@@ -11,7 +11,6 @@ import { buildIntervalRowElement } from "./interval/interval_row_ui";
 import { SelectionManager } from "./selection_manager";
 import { applyIndentation, extractLayerListValues } from "./interval/common_ui_elements";
 import {
-  getIntervalSettingsFactory,
   getFeatureTypeDescriptor,
   getCategory,
 } from "../../feature_registry";
@@ -40,12 +39,13 @@ export class RowManager {
   public createEmptyIntervalUIData(
     categoryName: string
   ): IntervalRowData | null {
-    const settingsFactory = getIntervalSettingsFactory(categoryName);
+    const category = getCategory(categoryName);
+    const settingsFactory = category?.getIntervalSettingsFactory();
     if (!settingsFactory) {
       console.error(
         `Cannot create empty row data: No IntervalSettings factory found for category "${categoryName}".`
       );
-      return null; // Indicate failure
+      return null;
     }
     const defaultSettings: IntervalSettings = settingsFactory();
 
@@ -364,10 +364,4 @@ export class RowManager {
     });
   }
 
-  /** Helper to get IntervalSettingsFactory for a category */
-  private getIntervalSettingsFactory(
-    categoryName: string
-  ): (() => IntervalSettings) | undefined {
-    return getIntervalSettingsFactory(categoryName);
-  }
 }

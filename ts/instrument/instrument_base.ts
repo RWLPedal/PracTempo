@@ -6,10 +6,9 @@ import {
   INSTRUMENT_TUNINGS,
   InstrumentName,
 } from "./fretboard";
-import { AppSettings, getCategorySettings } from "../settings";
+import { AppSettings } from "../settings";
 import {
   InstrumentSettings,
-  INSTRUMENT_SETTINGS_KEY,
   DEFAULT_INSTRUMENT_SETTINGS,
 } from "./instrument_settings";
 import { InstrumentIntervalSettings } from "./instrument_interval_settings";
@@ -41,7 +40,7 @@ export abstract class InstrumentFeature implements Feature {
   }
   protected metronomeBpm: number = 0;
 
-  static readonly BASE_GUITAR_SETTINGS_CONFIG_ARG: ConfigurationSchemaArg = {
+  static readonly BASE_INSTRUMENT_SETTINGS_CONFIG_ARG: ConfigurationSchemaArg = {
     name: "",
     type: "ellipsis",
     uiComponentType: "ellipsis",
@@ -67,9 +66,7 @@ export abstract class InstrumentFeature implements Feature {
     this.maxCanvasHeight = maxCanvasHeight;
     this.audioController = audioController;
 
-    const guitarGlobalSettings =
-      getCategorySettings<InstrumentSettings>(settings, INSTRUMENT_SETTINGS_KEY) ??
-      DEFAULT_INSTRUMENT_SETTINGS;
+    const guitarGlobalSettings = settings.instrumentSettings ?? DEFAULT_INSTRUMENT_SETTINGS;
 
     const instrument: InstrumentName = guitarGlobalSettings.instrument ?? "Guitar";
     const tuningsForInstrument = INSTRUMENT_TUNINGS[instrument] ?? INSTRUMENT_TUNINGS["Guitar"];

@@ -1,4 +1,4 @@
-// ts/views/backing_track_view.ts
+﻿// ts/views/backing_track_view.ts
 import { View } from '../view';
 import {
   DrumSoundId,
@@ -6,7 +6,7 @@ import {
   ALL_DRUM_SOUND_IDS,
   playDrumSound,
 } from '../sounds/drum_sounds';
-import { chord_tones_library } from '../guitar/chords';
+import { chord_tones_library } from '../instrument/chords';
 import { volumeManager } from '../sounds/volume_manager';
 import {
   CHORD_ROOTS,
@@ -15,7 +15,7 @@ import {
   RomanEntry,
   resolveAbsoluteChordKey,
   isMajorChordSuffix,
-} from '../guitar/chord_key_resolver';
+} from '../instrument/chord_key_resolver';
 
 // ─── Data types ────────────────────────────────────────────────────────────────
 
