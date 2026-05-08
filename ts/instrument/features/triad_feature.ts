@@ -175,6 +175,14 @@ export class TriadFeature extends InstrumentFeature {
     });
   }
 
+  static getTitle(partialConfig: readonly string[]): string {
+    if (partialConfig.length === 0) return "Triads";
+    const rootNote = partialConfig[0];
+    const qualities = partialConfig.slice(1);
+    const base = `${rootNote} Triad Shapes`;
+    return qualities.length > 0 ? `${base} (${qualities.join(', ')})` : base;
+  }
+
   static getConfigurationSchema(): ConfigurationSchema {
     const availableKeys = NOTE_NAMES_FROM_A as string[];
     const qualities: TriadQuality[] = [
@@ -235,7 +243,7 @@ export class TriadFeature extends InstrumentFeature {
       );
     }
 
-    const mainHeaderText = `${validRootName} Triad Shapes`;
+    const mainHeaderText = `${validRootName} Triad Shapes (${qualities.join(', ')})`;
     const guitarIntervalSettings = intervalSettings as InstrumentIntervalSettings;
 
     return new TriadFeature(

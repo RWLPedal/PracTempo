@@ -452,15 +452,112 @@ const LAYER_TYPE_LABELS: Record<UiLayerType, string> = {
   [LayerType.Notes]: "Notes",
 };
 
-const LAYER_COLOR_VARS: Record<UiLayerType, string> = {
-  [LayerType.Scale]: '--layer-scale',
-  [LayerType.Chord]: '--layer-chord',
-  [LayerType.Notes]: '--layer-notes',
+const LAYER_DEFAULT_COLOR_VARS: Record<UiLayerType, string> = {
+  [LayerType.Scale]: 'var(--dm-palette-3)',
+  [LayerType.Chord]: 'var(--dm-palette-2)',
+  [LayerType.Notes]: 'var(--dm-palette-1)',
 };
 
+const PALETTE_VARS = [
+  'var(--dm-palette-1)',
+  'var(--dm-palette-2)',
+  'var(--dm-palette-3)',
+  'var(--dm-palette-4)',
+  'var(--dm-palette-5)',
+  'var(--dm-palette-6)',
+  'var(--dm-palette-7)',
+];
+
 function getDefaultLayerColor(type: UiLayerType): string {
-  return getComputedStyle(document.documentElement)
-    .getPropertyValue(LAYER_COLOR_VARS[type]).trim();
+  return LAYER_DEFAULT_COLOR_VARS[type];
+}
+
+function createPaletteColorPicker(initialColor: string, onChange?: () => void): HTMLElement {
+  const wrap = document.createElement("div");
+  wrap.classList.add("layer-palette-picker-wrap");
+
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.classList.add("layer-palette-btn");
+  btn.title = "Layer color";
+  btn.dataset.colorVar = initialColor;
+
+  const preview = document.createElement("span");
+  preview.classList.add("layer-palette-swatch-preview");
+  preview.style.background = initialColor;
+  btn.appendChild(preview);
+  wrap.appendChild(btn);
+
+  // Popover is portalled into body so it can't be clipped by parent overflow or
+  // buried under canvas stacking contexts.
+  const popover = document.createElement("div");
+  popover.classList.add("layer-palette-popover");
+  popover.hidden = true;
+  document.body.appendChild(popover);
+
+  PALETTE_VARS.forEach((varStr) => {
+    const paletteBtn = document.createElement("button");
+    paletteBtn.type = "button";
+    paletteBtn.classList.add("palette-swatch");
+    paletteBtn.dataset.var = varStr;
+    paletteBtn.style.background = varStr;
+    paletteBtn.title = varStr;
+    if (varStr === initialColor) paletteBtn.classList.add("is-active");
+    paletteBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      btn.dataset.colorVar = varStr;
+      preview.style.background = varStr;
+      popover.querySelectorAll<HTMLElement>(".palette-swatch").forEach(s =>
+        s.classList.toggle("is-active", s.dataset.var === varStr)
+      );
+      popover.hidden = true;
+      onChange?.();
+    });
+    popover.appendChild(paletteBtn);
+  });
+
+  function openPopover(): void {
+    // Close any other open palette popovers
+    document.querySelectorAll<HTMLElement>(".layer-palette-popover:not([hidden])").forEach(p => {
+      if (p !== popover) p.hidden = true;
+    });
+    // Position below the button using fixed coords
+    const rect = btn.getBoundingClientRect();
+    popover.style.position = "fixed";
+    popover.style.top = `${rect.bottom + 4}px`;
+    popover.style.left = `${rect.left + rect.width / 2}px`;
+    popover.style.transform = "translateX(-50%)";
+    popover.hidden = false;
+  }
+
+  btn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    if (!popover.hidden) {
+      popover.hidden = true;
+    } else {
+      openPopover();
+    }
+  });
+
+  document.addEventListener("click", () => { popover.hidden = true; });
+
+  // Clean up body-appended popover when the wrap is removed from the DOM
+  new MutationObserver(() => {
+    if (!wrap.isConnected) {
+      popover.remove();
+    }
+  }).observe(document.body, { childList: true, subtree: true });
+
+  // Expose a setter so the layer type change handler can reset the color
+  (wrap as any)._setColor = (color: string) => {
+    btn.dataset.colorVar = color;
+    preview.style.background = color;
+    popover.querySelectorAll<HTMLElement>(".palette-swatch").forEach(s =>
+      s.classList.toggle("is-active", s.dataset.var === color)
+    );
+  };
+
+  return wrap;
 }
 
 /** Parses a layer encoded string back into its parts for pre-populating the UI */
@@ -611,8 +708,9 @@ export function createLayerListInput(
   const listContainer = document.createElement("div");
   listContainer.classList.add("layer-list-container");
   listContainer.style.display = "flex";
-  listContainer.style.flexDirection = "column";
-  listContainer.style.gap = "4px";
+  listContainer.style.flexDirection = "row";
+  listContainer.style.alignItems = "flex-start";
+  listContainer.style.gap = "6px";
   listContainer.style.width = "100%";
 
   // Rows container (the ordered list of layer rows)
@@ -621,6 +719,8 @@ export function createLayerListInput(
   rowsContainer.style.display = "flex";
   rowsContainer.style.flexDirection = "column";
   rowsContainer.style.gap = "4px";
+  rowsContainer.style.flex = "1 1 0";
+  rowsContainer.style.minWidth = "0";
 
   // Tracks whether an incoming link is active so new rows and type-changes get the Driven option.
   let isLinked = false;
@@ -695,7 +795,7 @@ export function createLayerListInput(
     row.style.display = "flex";
     row.style.alignItems = "center";
     row.style.gap = "5px";
-    row.style.padding = "3px 4px";
+    row.style.padding = "2px 4px";
     row.style.border = "1px solid var(--border)";
     row.style.borderRadius = "4px";
     row.style.background = "var(--input-bg)";
@@ -707,6 +807,7 @@ export function createLayerListInput(
     dragHandle.style.cursor = "grab";
     dragHandle.style.color = "var(--clr-text-subtle, #aaa)";
     dragHandle.style.flexShrink = "0";
+    dragHandle.style.fontSize = "0.72rem";
     row.appendChild(dragHandle);
 
     // Layer type dropdown
@@ -734,36 +835,22 @@ export function createLayerListInput(
     row.appendChild(fieldsContainer);
 
     // Color picker
-    const colorInput = document.createElement("input");
-    colorInput.type = "color";
-    colorInput.classList.add("layer-color-input");
-    colorInput.value = color;
-    colorInput.style.width = "32px";
-    colorInput.style.height = "28px";
-    colorInput.style.border = "none";
-    colorInput.style.padding = "1px";
-    colorInput.style.cursor = "pointer";
-    colorInput.style.flexShrink = "0";
-    colorInput.title = "Layer color";
-    row.appendChild(colorInput);
+    const colorPicker = createPaletteColorPicker(color, onChange);
+    row.appendChild(colorPicker);
 
     // Remove button
     const removeBtn = document.createElement("button");
     removeBtn.type = "button";
-    removeBtn.classList.add("button", "is-small", "is-danger", "is-outlined");
-    removeBtn.innerHTML = "&#10005;";
+    removeBtn.classList.add("layer-remove-btn");
+    removeBtn.innerHTML = `<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><line x1="1" y1="1" x2="8" y2="8"/><line x1="8" y1="1" x2="1" y2="8"/></svg>`;
     removeBtn.title = "Remove layer";
-    removeBtn.style.flexShrink = "0";
     removeBtn.onclick = () => { row.remove(); onChange?.(); };
     row.appendChild(removeBtn);
-
-    // Color change — use "input" so it fires live as the picker moves, not just on close
-    colorInput.addEventListener("input", () => onChange?.());
 
     // Re-build fields when layer type changes
     typeSelect.addEventListener("change", () => {
       const newType = typeSelect.value as UiLayerType;
-      colorInput.value = getDefaultLayerColor(newType);
+      (colorPicker as any)._setColor?.(getDefaultLayerColor(newType));
       buildLayerFields(fieldsContainer, newType, data, [], onChange);
       if (isLinked) applyLinkedToRow(row);
       onChange?.();
@@ -787,10 +874,8 @@ export function createLayerListInput(
   // "Add Layer" button
   const addBtn = document.createElement("button");
   addBtn.type = "button";
-  addBtn.classList.add("button", "is-small", "is-info", "is-outlined", "add-layer-btn");
-  addBtn.textContent = "+ Add Layer";
-  addBtn.style.alignSelf = "flex-start";
-  addBtn.style.marginTop = "4px";
+  addBtn.classList.add("add-layer-btn");
+  addBtn.innerHTML = '<span class="material-icons">add</span>';
   addBtn.onclick = () => {
     addLayerRow(LayerType.Scale, [], getDefaultLayerColor(LayerType.Scale));
     if (isLinked) {
@@ -843,7 +928,7 @@ export function extractLayerListValues(container: HTMLElement): string[] {
   const rows = container.querySelectorAll<HTMLElement>(".layer-list-row");
   rows.forEach((row) => {
     const type = row.querySelector<HTMLSelectElement>(".layer-type-select")?.value as LayerType | undefined;
-    const color = row.querySelector<HTMLInputElement>(".layer-color-input")?.value ?? "#4a90d9";
+    const color = row.querySelector<HTMLElement>(".layer-palette-btn")?.dataset.colorVar ?? 'var(--dm-palette-1)';
     if (!type) return;
 
     let encoded = "";

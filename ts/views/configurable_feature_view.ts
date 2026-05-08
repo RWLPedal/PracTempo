@@ -30,6 +30,8 @@ export class ConfigurableFeatureView extends BaseView {
     private drivenValues = new Map<string, string>();
     // When true, createAndRenderFeature emits feature-state-drive instead of feature-state-changed
     private isDrivenUpdate = false;
+    // Suppresses feature-auto-size during saved-state restore so user's saved size is preserved
+    private _isRestoringFromSaved = false;
 
     constructor(initialState: any, appSettings: AppSettings) {
         super();
@@ -82,7 +84,9 @@ export class ConfigurableFeatureView extends BaseView {
 
         if (this.initialConfig?.length) {
             // Restore saved config — setConfig fires the callback which creates the feature.
+            this._isRestoringFromSaved = true;
             this.configView.setConfig(this.initialConfig);
+            this._isRestoringFromSaved = false;
         } else {
             this.createAndRenderFeature(this.configView.currentConfig);
         }
@@ -242,6 +246,22 @@ export class ConfigurableFeatureView extends BaseView {
             ? this.buildDrivenConfig(config)
             : config.filter(c => c !== null && c !== '__driven__') as string[];
 
+        // Dispatch a partial/full title for features that implement getTitle, even before
+        // the feature can fully render (e.g. only root note selected, no quality yet).
+        const titleFn = (this.featureClass as any).getTitle;
+        if (typeof titleFn === 'function') {
+            const partialTitle = titleFn(finalConfig) as string | null;
+            if (partialTitle) {
+                this.featureContainer.dispatchEvent(new CustomEvent<{ title: string }>('feature-title-changed', {
+                    bubbles: true,
+                    detail: { title: partialTitle },
+                }));
+            }
+        }
+
+        // True only on the very first successful render (feature was null and not a restore).
+        const isFirstRender = !this.feature && !this._isRestoringFromSaved;
+
         // A bit of a hack: some features expect a minimum number of args.
         // We check the schema for required args to guess.
         const requiredArgs = (typeof this.featureClass.getConfigurationSchema() !== 'string')
@@ -279,6 +299,11 @@ export class ConfigurableFeatureView extends BaseView {
                     bubbles: true,
                     detail: { title: mainTitleEl.textContent },
                 }));
+            }
+
+            // Auto-size the wrapper the first time a feature renders (tile was empty before).
+            if (isFirstRender) {
+                this.featureContainer.dispatchEvent(new CustomEvent('feature-auto-size', { bubbles: true }));
             }
 
             // Persist current config (skip during driven real-time updates to avoid flooding localStorage)

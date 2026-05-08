@@ -93,6 +93,14 @@ function parseLayerString(layerStr: string): LayerSpec | null {
   return null;
 }
 
+function resolveCssColor(color: string): string {
+  if (color.startsWith('var(--')) {
+    const varName = color.slice(4, -1);
+    return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || color;
+  }
+  return color;
+}
+
 // --- Feature Class ---
 
 export class MultiSelectFretboardFeature extends InstrumentFeature {
@@ -304,7 +312,7 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
           noteName,
           intervalLabel,
           displayLabel: intervalLabel,
-          fillColor: layer.color,
+          fillColor: resolveCssColor(layer.color),
           strokeColor: isRoot ? "#333" : "rgba(50,50,50,0.7)",
           strokeWidth: isRoot ? 2.0 : 1,
           radiusOverride:
@@ -348,7 +356,7 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
           noteName,
           intervalLabel: noteName,
           displayLabel: noteName,
-          fillColor: color,
+          fillColor: resolveCssColor(color),
           strokeColor: "rgba(50,50,50,0.7)",
           strokeWidth: 1.5,
           radiusOverride:

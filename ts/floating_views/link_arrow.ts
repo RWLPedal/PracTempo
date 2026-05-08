@@ -18,7 +18,8 @@ export interface ArrowMeta {
 // ─── SVG helpers (module-private) ────────────────────────────────────────────
 
 function controlPoint(pt: { x: number; y: number }, side: HandleSide): { x: number; y: number } {
-  const offset = 80;
+  // The lower the offset, the straighter the curve.
+  const offset = 35;
   if (side === 'left')  return { x: pt.x - offset, y: pt.y };
   if (side === 'right') return { x: pt.x + offset, y: pt.y };
   if (side === 'top')   return { x: pt.x, y: pt.y - offset };

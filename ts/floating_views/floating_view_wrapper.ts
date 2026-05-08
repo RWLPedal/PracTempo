@@ -232,6 +232,11 @@ export class FloatingViewWrapper {
       }
     });
 
+    // Auto-size when a feature renders for the first time (tile was empty/unconfigured before).
+    this.contentElement.addEventListener('feature-auto-size', () => {
+      requestAnimationFrame(() => this._autoSizeToContent(true));
+    });
+
     // React to config collapse/expand: sync button state; resize wrapper after transition.
     this.contentElement.addEventListener('config-collapse-changed', (e: Event) => {
       const { collapsed, isInitial, delta } = (e as CustomEvent<{ collapsed: boolean; isInitial: boolean; delta?: number }>).detail;
