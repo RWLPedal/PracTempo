@@ -51,6 +51,7 @@ const NAV_SECTIONS: NavSection[] = [
 export class SidebarView {
     private container: HTMLElement;
     private isCollapsed = false;
+    private isZenMode = false;
 
     constructor(
         container: HTMLElement,
@@ -126,9 +127,6 @@ export class SidebarView {
                     ${swatchesHtml}
                 </div>
                 <div class="sidebar-tools-bar">
-                    <button id="sidebar-collapse-btn" class="topbar-icon-button" title="${collapseTitle}">
-                        <span class="material-icons">${collapseIcon}</span>
-                    </button>
                     <button id="save-layout-button" class="topbar-icon-button" title="Save window layout">
                         <span class="material-icons">save</span>
                     </button>
@@ -139,12 +137,19 @@ export class SidebarView {
                     <button id="settings-button" class="topbar-icon-button" title="Settings">
                         <span class="material-icons">settings</span>
                     </button>
+                    <button id="zen-mode-btn" class="topbar-icon-button${this.isZenMode ? ' is-active' : ''}" title="${this.isZenMode ? 'Exit Zen Mode' : 'Enter Zen Mode'}">
+                        <span class="material-icons">self_improvement</span>
+                    </button>
+                    <button id="sidebar-collapse-btn" class="topbar-icon-button sidebar-collapse-btn--far-right" title="${collapseTitle}">
+                        <span class="material-icons">${collapseIcon}</span>
+                    </button>
                 </div>
             </div>
         `;
 
         this.container.innerHTML = html;
         this.applyCollapsedState();
+        this.applyZenMode();
 
         // Wire collapse toggle
         const collapseBtn = document.getElementById('sidebar-collapse-btn');
@@ -155,6 +160,17 @@ export class SidebarView {
                 const icon = collapseBtn.querySelector<HTMLElement>('.material-icons');
                 if (icon) icon.textContent = this.isCollapsed ? 'chevron_right' : 'chevron_left';
                 collapseBtn.title = this.isCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
+            });
+        }
+
+        // Wire zen mode toggle
+        const zenBtn = document.getElementById('zen-mode-btn');
+        if (zenBtn) {
+            zenBtn.addEventListener('click', () => {
+                this.isZenMode = !this.isZenMode;
+                this.applyZenMode();
+                zenBtn.classList.toggle('is-active', this.isZenMode);
+                zenBtn.title = this.isZenMode ? 'Exit Zen Mode' : 'Enter Zen Mode';
             });
         }
 
@@ -188,6 +204,10 @@ export class SidebarView {
 
     private applyCollapsedState(): void {
         this.container.classList.toggle('is-collapsed', this.isCollapsed);
+    }
+
+    private applyZenMode(): void {
+        document.body.classList.toggle('is-zen-mode', this.isZenMode);
     }
 
     private addBottomBarListeners(): void {

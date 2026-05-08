@@ -1344,6 +1344,7 @@ body.dark-theme .color-swatch { border-color: rgba(255, 255, 255, 0.20); }
 /* Footer: theme picker + tools bar */
 .sidebar-footer {
   flex-shrink: 0;
+  margin-top: auto;
   border-top: 1px solid var(--border);
 }
 .sidebar-theme-picker {
@@ -1384,14 +1385,17 @@ body.dark-theme .color-swatch { border-color: rgba(255, 255, 255, 0.20); }
 .sidebar-tools-bar {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 2px;
   padding: 5px 8px 8px;
 }
+.sidebar-collapse-btn--far-right {
+  margin-left: auto;
+}
 .sidebar-tools-bar .topbar-icon-button,
 .sidebar-tools-bar #settings-button {
-  font-size: 1.1rem;
-  padding: 3px 5px;
+  font-size: 1rem;
+  padding: 2px 3px;
 }
 
 /* ─── Sidebar collapsed state ────────────────────────────────────────────── */
@@ -1424,9 +1428,29 @@ body.dark-theme .color-swatch { border-color: rgba(255, 255, 255, 0.20); }
 .side-bar-container.is-collapsed .sidebar-tools-bar > *:not(#sidebar-collapse-btn) {
   display: none;
 }
-.side-bar-container.is-collapsed .sidebar-tools-bar {
-  justify-content: center;
+
+/* ─── Zen Mode ───────────────────────────────────────────────────────────── */
+body.is-zen-mode .sidebar-nav { display: none; }
+body.is-zen-mode .sidebar-header { border-bottom: none; }
+body.is-zen-mode #sidebar-collapse-btn { display: none; }
+body.is-zen-mode .link-arrow-group { display: none; }
+body.is-zen-mode .link-handle-group { display: none; }
+body.is-zen-mode .floating-view-button-group { display: none; }
+body.is-zen-mode #floating-view-area { background-image: none; }
+body.is-zen-mode .side-bar-container {
+  border-right: none;
+  background-color: var(--bg);
 }
+body.is-zen-mode .config-compact {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom-width: 0;
+  overflow: hidden;
+  transition: none;
+}
+#zen-mode-btn.is-active .material-icons { color: var(--accent); }
 
 /* ─── DroneView ──────────────────────────────────────────────────────────── */
 .drone-view {

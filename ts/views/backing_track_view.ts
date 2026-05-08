@@ -473,6 +473,7 @@ export class BackingTrackView extends BaseView {
       this.progKeyType = this.progKeyType === KeyType.Major ? KeyType.Minor : KeyType.Major;
       this.progKeyTypeBtn!.textContent = this.progKeyType;
       this.selectedChord = null;
+      this.measureChords = new Array(this.numMeasures).fill(null);
       this.rebuildChordToolOptions();
       this.dispatchStateChange();
     });
