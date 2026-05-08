@@ -12,6 +12,7 @@ export interface AppSettings {
   practice: PracticeSettings;
   reference: ReferenceSettings;
   instrumentSettings: InstrumentSettings;
+  showGrid: boolean;
 }
 
 export const SETTINGS_STORAGE_KEY = "categoryTimerAppSettings";
@@ -26,6 +27,7 @@ export function loadSettings(): AppSettings {
     practice: { ...DEFAULT_PRACTICE_SETTINGS },
     reference: { ...DEFAULT_REFERENCE_SETTINGS },
     instrumentSettings: { ...DEFAULT_INSTRUMENT_SETTINGS },
+    showGrid: false,
   };
 
   try {
@@ -39,6 +41,7 @@ export function loadSettings(): AppSettings {
         ...(stored.practice  ? { practice:  { ...defaults.practice,  ...stored.practice  } }        : {}),
         ...(stored.reference ? { reference: { ...defaults.reference, ...stored.reference } }        : {}),
         instrumentSettings:    { ...defaults.instrumentSettings, ...(stored.instrumentSettings ?? {}) },
+        ...(stored.showGrid !== undefined ? { showGrid: stored.showGrid } : {}),
       };
     }
   } catch (e) {

@@ -1,6 +1,19 @@
 import { View } from "../view";
 import { FloatingViewInstanceState } from "./floating_view_types";
 
+// --- Grid Snap ---
+let moduleGridSize: number | null = null;
+
+export function setFloatingViewGridSize(size: number | null): void {
+  moduleGridSize = size;
+}
+
+function snapToGrid(v: number): number {
+  if (!moduleGridSize) return v;
+  return Math.round(v / moduleGridSize) * moduleGridSize;
+}
+// --- End Grid Snap ---
+
 // Basic Dragging Logic (can be enhanced or use a library)
 let dragOffsetX = 0;
 let dragOffsetY = 0;
@@ -26,8 +39,8 @@ function doDrag(e: MouseEvent) {
   const parentRect = parent.getBoundingClientRect();
   const elemRect = draggedElement.getBoundingClientRect();
 
-  newX = Math.max(0, Math.min(newX, parentRect.width - elemRect.width));
-  newY = Math.max(0, Math.min(newY, parentRect.height - elemRect.height));
+  newX = snapToGrid(Math.max(0, Math.min(newX, parentRect.width - elemRect.width)));
+  newY = snapToGrid(Math.max(0, Math.min(newY, parentRect.height - elemRect.height)));
 
   draggedElement.style.left = `${newX}px`;
   draggedElement.style.top = `${newY}px`;
@@ -69,6 +82,9 @@ export class FloatingViewWrapper {
   private configToggleButtonEl: HTMLButtonElement | null = null;
   private resizeObserver: ResizeObserver | null = null;
   private _resizeSaveTimer: ReturnType<typeof setTimeout> | null = null;
+  /** True while _autoSizeToContent or _adjustHeightToContent is setting element styles,
+   *  so the ResizeObserver skips grid snapping for programmatic resizes. */
+  private _isProgrammaticResize = false;
   /** Minimum wrapper width (px) — the descriptor's defaultWidth. Used as a floor
    *  when resizing after rotation so the config UI is never clipped. */
   private readonly defaultWidth: number;
@@ -249,11 +265,27 @@ export class FloatingViewWrapper {
       const w = bo ? Math.round(bo.inlineSize) : Math.round(entry.contentRect.width);
       const h = bo ? Math.round(bo.blockSize) : Math.round(entry.contentRect.height);
       if (w <= 0 || h <= 0) return;
+
+      const wasProgrammatic = this._isProgrammaticResize;
+      this._isProgrammaticResize = false;
       this.state.size = { width: w, height: h };
-      // Debounce to avoid flooding localStorage during manual CSS resize drags
+
+      // Debounce to avoid flooding localStorage during manual CSS resize drags.
+      // Snap is applied here (not in the observer) so we never resize the element
+      // from inside the observer callback, which causes glitchy feedback loops.
       if (this._resizeSaveTimer !== null) clearTimeout(this._resizeSaveTimer);
       this._resizeSaveTimer = setTimeout(() => {
         this._resizeSaveTimer = null;
+        if (!wasProgrammatic && moduleGridSize && this.state.size) {
+          const sw = snapToGrid(this.state.size.width);
+          const sh = snapToGrid(this.state.size.height);
+          if (sw !== this.state.size.width || sh !== this.state.size.height) {
+            this._isProgrammaticResize = true;
+            this.element.style.width = `${sw}px`;
+            this.element.style.height = `${sh}px`;
+            this.state.size = { width: sw, height: sh };
+          }
+        }
         this.onSaveCallback();
       }, 150);
     });
@@ -336,6 +368,7 @@ export class FloatingViewWrapper {
     // is resolved at the correct width before we read scrollHeight for the height.
     // If we read scrollHeight before changing the width, it reflects the old layout
     // (e.g. the wider zoomed state) and produces an incorrect — too-short — height.
+    this._isProgrammaticResize = true;
     this.element.style.width = `${newWidth}px`;
 
     // Clear any explicit height so scrollHeight reflects the natural content height
@@ -368,6 +401,7 @@ export class FloatingViewWrapper {
   private _adjustHeightToContent(delta: number): void {
     const currentH = this.state.size?.height ?? parseFloat(this.element.style.height || "0");
     const newHeight = Math.max(currentH + delta, 50);
+    this._isProgrammaticResize = true;
     this.element.style.height = `${newHeight}px`;
     const currentWidth = this.state.size?.width ?? parseFloat(this.element.style.width || "0");
     this.state.size = { width: currentWidth, height: newHeight };

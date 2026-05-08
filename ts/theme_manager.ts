@@ -2,14 +2,14 @@ export enum Theme {
   WARM = "warm",
   MOSS = "moss",
   DARK = "dark",
-  FOREST = "forest",
+  SIGIL = "sigil",
   NEON = "neon",
 }
 export const themeNames: { key: Theme; title: string }[] = [
   { key: Theme.WARM, title: "Warm" },
   { key: Theme.MOSS, title: "Moss" },
   { key: Theme.DARK, title: "Dark" },
-  { key: Theme.FOREST, title: "Forest" },
+  { key: Theme.SIGIL, title: "Sigil" },
   { key: Theme.NEON, title: "Neon" },
 ];
 

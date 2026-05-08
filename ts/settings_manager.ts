@@ -42,10 +42,17 @@ const GLOBAL_SETTINGS_HTML = `
   <div class="field-body"><div class="field"><div class="control">
       <div class="select is-fullwidth"><select id="theme-select">
           <option value="warm">Warm</option>
+          <option value="moss">Moss</option>
           <option value="dark">Dark</option>
-          <option value="forest">Forest</option>
+          <option value="sigil">Sigil</option>
           <option value="neon">Neon</option>
       </select></div>
+  </div></div></div>
+</div>
+<div class="field is-horizontal">
+  <div class="field-label is-normal"><label class="label" for="show-grid-checkbox">Show Grid</label></div>
+  <div class="field-body"><div class="field"><div class="control">
+      <label class="checkbox" style="padding-top:calc(0.5em - 1px)"><input type="checkbox" id="show-grid-checkbox"></label>
   </div></div></div>
 </div>
 <hr>
@@ -100,6 +107,8 @@ export class SettingsManager {
         if (this.isOpen()) {
             const themeSelect = this.modalEl?.querySelector('#theme-select') as HTMLSelectElement | null;
             if (themeSelect) themeSelect.value = settings.theme;
+            const showGridEl = this.modalEl?.querySelector('#show-grid-checkbox') as HTMLInputElement | null;
+            if (showGridEl) showGridEl.checked = !!settings.showGrid;
         }
     }
 
@@ -116,6 +125,7 @@ export class SettingsManager {
         
         // Populate fields
         (body.querySelector("#theme-select") as HTMLSelectElement).value = this.settings.theme;
+        (body.querySelector("#show-grid-checkbox") as HTMLInputElement).checked = !!this.settings.showGrid;
         if (this.pageType === 'practice') {
             (body.querySelector("#warmup-input") as HTMLInputElement).value = String(this.settings.practice.warmupPeriod);
         }
@@ -279,8 +289,9 @@ export class SettingsManager {
     private save(): void {
         const newSettings: AppSettings = JSON.parse(JSON.stringify(this.settings));
 
-        // 1. Update global settings (Theme)
+        // 1. Update global settings (Theme + Grid)
         newSettings.theme = (this.modalEl.querySelector("#theme-select") as HTMLSelectElement).value as Theme;
+        newSettings.showGrid = (this.modalEl.querySelector("#show-grid-checkbox") as HTMLInputElement).checked;
 
         // 2. Update page-specific settings
         if (this.pageType === 'practice') {

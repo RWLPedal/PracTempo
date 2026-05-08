@@ -98,95 +98,82 @@
    DARK — Near-black · Crimson · Amber Gold
    ─────────────────────────────────────── */
 [data-theme="dark"] {
-  --bg:           #18160F;
-  --panel-bg:     #221F17;
-  --sidebar-bg:   #1A180F;
-  --settings-bg:  #2A2720;
-  --input-bg:     #2A2720;
-  --pad-off:      #2E2B22;
-
-  --border:       #38342A;
-  --shadow:       0 2px 12px rgba(0, 0, 0, 0.40);
-  --shadow-panel: 0 4px 20px rgba(0, 0, 0, 0.50);
-  --clr-shadow:   rgba(0, 0, 0, 0.40);
-
-  --text-primary: #F0EBE0;
-  --text-muted:   #7A7265;
-  --text-sidebar: #BEB4A8;
-
-  --accent:       oklch(0.55 0.22 25);
-  --accent-dim:   oklch(0.45 0.16 25);
-  --accent-warm:  oklch(0.72 0.22 65);
-
-  --note-root:    oklch(0.50 0.22 25);
-  --note-third:   oklch(0.72 0.22 65);
-  --note-fifth:   oklch(0.65 0.17 95);
-  --note-alt:     #7A7265;
-
-  /* Layer default colors */
-  --layer-scale:  #6AAA20;   /* note-fifth feel: bright yellow-green */
-  --layer-chord:  #A84020;   /* note-root feel: crimson-rust */
-  --layer-notes:  #C89028;   /* note-third feel: amber-gold */
-  --layer-driven: #7A7265;   /* note-alt: muted grey */
-
-  /* Drum-machine palette */
-  --dm-palette-1: #4870C0;   /* bright blue   (kick / root) */
-  --dm-palette-2: #C05020;   /* orange-red    (snare / 2) */
-  --dm-palette-3: #40A850;   /* bright green  (hihat / 3) */
-  --dm-palette-4: #8048C0;   /* purple        (open-hihat / 4) */
-  --dm-palette-5: #28A0A8;   /* teal          (crash / 5) */
-  --dm-palette-6: #A07828;   /* gold          (tom / 6) */
-  --dm-palette-7: #C03060;   /* crimson       (shaker / 7) */
+--bg: #1A1614;
+  --panel-bg: #241E1B;
+  --sidebar-bg: #161210;
+  --settings-bg: #2C2420;
+  --input-bg: #2C2420;
+  --border: #3C3028;
+  --text-primary: #F0E8E0;
+  --text-muted: #7A6A5A;
+  --text-sidebar: #C0A890;
+  --accent: oklch(0.62 0.18 48);        /* copper-amber */
+  --accent-dim: oklch(0.48 0.13 48);
+  --accent-warm: oklch(0.68 0.20 30);   /* ember orange */
+  --note-root:   oklch(0.62 0.18 48);   /* copper — root */
+  --note-third:  oklch(0.68 0.20 30);   /* ember orange — thirds */
+  --note-fifth:  oklch(0.60 0.14 80);   /* warm olive — fifths */
+  --note-alt:    oklch(0.55 0.10 15);   /* rust — alterations */
+  --pad-off: #302820;
+  --shadow: 0 2px 14px rgba(0,0,0,0.50);
+  --shadow-panel: 0 4px 28px rgba(0,0,0,0.60);
+  /* multifret layer fills */
+  --layer-scale:  oklch(0.42 0.04 48  / 0.55);  /* smoky bronze — base scale */
+  --layer-chord:  oklch(0.62 0.18 48  / 0.70);  /* copper — chord */
+  --layer-notes:  oklch(0.68 0.20 30  / 0.80);  /* ember orange — notes */
+  --layer-driven: oklch(0.72 0.20 75  / 0.85);  /* gold flame — driven */
+  /* drum machine palette */
+  --dm-palette-1: oklch(0.62 0.18 48);   /* copper */
+  --dm-palette-2: oklch(0.68 0.20 30);   /* ember */
+  --dm-palette-3: oklch(0.60 0.14 80);   /* warm olive */
+  --dm-palette-4: oklch(0.55 0.10 15);   /* rust */
+  --dm-palette-5: oklch(0.72 0.16 95);   /* hay yellow */
+  --dm-palette-6: oklch(0.50 0.13 350);  /* dusk plum */
+  --dm-palette-7: oklch(0.58 0.12 200);  /* cool slate (contrast) */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='200' height='200' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
 }
 
 
 /* ───────────────────────────────────────
-   FOREST — Pacific NW · Pine Teal · Cedar
+   SIGIL — Navy · Gold
    ─────────────────────────────────────── */
-[data-theme="forest"] {
-  --bg:           #141C1F;
-  --panel-bg:     #1C2830;
-  --sidebar-bg:   #101820;
-  --settings-bg:  #1E2E38;
-  --input-bg:     #1E2E38;
-  --pad-off:      #243038;
-
-  --border:       #2A3C48;
-  --shadow:       0 2px 12px rgba(0, 0, 0, 0.45);
-  --shadow-panel: 0 4px 24px rgba(0, 0, 0, 0.55);
-  --clr-shadow:   rgba(0, 0, 0, 0.45);
-
-  --text-primary: #E8E0D4;
-  --text-muted:   #607A82;
-  --text-sidebar: #A0B4BC;
-
-  --accent:       oklch(0.60 0.13 168);
-  --accent-dim:   oklch(0.48 0.10 168);
-  --accent-warm:  oklch(0.70 0.14 52);
-
-  --note-root:    oklch(0.6 0.13 168);
-  --note-third:   oklch(0.7 0.14 52);
-  --note-fifth:   oklch(0.62 0.14 230);
-  --note-alt:     #607A82;
-
-  /* Layer default colors */
-  --layer-scale:  #28A080;   /* note-root feel: pine teal */
-  --layer-chord:  #B08030;   /* note-third feel: cedar amber */
-  --layer-notes:  #3080A8;   /* note-fifth feel: cerulean */
-  --layer-driven: #607A82;   /* note-alt: slate mist */
-
-  /* Drum-machine palette */
-  --dm-palette-1: #2870A0;   /* deep teal-blue (kick / root) */
-  --dm-palette-2: #806030;   /* cedar amber    (snare / 2) */
-  --dm-palette-3: #287858;   /* forest green   (hihat / 3) */
-  --dm-palette-4: #604898;   /* indigo         (open-hihat / 4) */
-  --dm-palette-5: #288878;   /* moss teal      (crash / 5) */
-  --dm-palette-6: #684A28;   /* bark           (tom / 6) */
-  --dm-palette-7: #804058;   /* berry          (shaker / 7) */
+[data-theme="sigil"] {--bg: #0D1220;
+  --panel-bg: #141B2E;
+  --sidebar-bg: #0A0F1C;
+  --settings-bg: #1A2238;
+  --input-bg: #1A2238;
+  --border: #263050;
+  --text-primary: #EAE6D8;
+  --text-muted: #5A6880;
+  --text-sidebar: #9AAAC4;
+  --accent: oklch(0.72 0.16 82);        /* warm gold */
+  --accent-dim: oklch(0.55 0.12 82);
+  --accent-warm: oklch(0.65 0.18 55);   /* amber-gold */
+  --note-root:   oklch(0.72 0.16 82);   /* gold — root */
+  --note-third:  oklch(0.65 0.18 55);   /* amber — thirds */
+  --note-fifth:  oklch(0.60 0.14 210);  /* cool blue — fifths */
+  --note-alt:    oklch(0.62 0.12 170);  /* seafoam — alterations */
+  --pad-off: #1E2840;
+  --shadow: 0 2px 14px rgba(0,0,0,0.55);
+  --shadow-panel: 0 6px 32px rgba(0,0,0,0.65);
+  /* multifret layer fills */
+  --layer-scale:  oklch(0.55 0.05 230 / 0.45);  /* deep navy mist — base scale */
+  --layer-chord:  oklch(0.72 0.16 82  / 0.70);  /* gold — chord */
+  --layer-notes:  oklch(0.65 0.18 55  / 0.75);  /* amber — notes */
+  --layer-driven: oklch(0.65 0.16 210 / 0.80);  /* cool blue — driven */
+  /* drum machine palette */
+  --dm-palette-1: oklch(0.72 0.16 82);   /* gold */
+  --dm-palette-2: oklch(0.65 0.18 55);   /* amber */
+  --dm-palette-3: oklch(0.65 0.16 210);  /* cool blue */
+  --dm-palette-4: oklch(0.62 0.12 170);  /* seafoam */
+  --dm-palette-5: oklch(0.60 0.16 320);  /* orchid */
+  --dm-palette-6: oklch(0.58 0.16 25);   /* coral red */
+  --dm-palette-7: oklch(0.68 0.13 130);  /* moonlit lime */
+  --grain: none;
 }
 
 /* ───────────────────────────────────────
-   FOREST — Pacific NW · Pine Teal · Cedar
+   NEON
    ─────────────────────────────────────── */
 [data-theme="neon"] {
 

@@ -9,6 +9,7 @@ import { BackingTrackView } from '../views/backing_track_view';
 import { LinkManager } from '../floating_views/link_manager';
 import '../floating_views/drive_slots'; // registers all drive sources/targets as a side effect
 import { registerBuiltins } from '../app_bootstrap';
+import { setFloatingViewGridSize } from '../floating_views/floating_view_wrapper';
 
 class ReferencePage {
     private floatingViewManager: FloatingViewManager;
@@ -119,6 +120,15 @@ class ReferencePage {
 
     private applySettings(): void {
         this.themeManager.apply(this.settings.theme);
+        this._applyGrid();
+    }
+
+    private _applyGrid(): void {
+        const viewAreaEl = document.getElementById('floating-view-area');
+        if (!viewAreaEl) return;
+        const enabled = !!this.settings.showGrid;
+        viewAreaEl.classList.toggle('grid-active', enabled);
+        setFloatingViewGridSize(enabled ? 12 : null);
     }
 }
 
