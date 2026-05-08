@@ -494,17 +494,25 @@ function buildLayerFields(
   fieldsContainer.innerHTML = "";
 
   if (layerType === "scale") {
-    // Scale name dropdown
+    // Scale name dropdown — value may be "driven" when restored from a linked save
     const scaleNames = data.scaleNames ?? [];
     const scaleWrapper = document.createElement("div");
     scaleWrapper.classList.add("select", "is-small");
     const scaleSelect = document.createElement("select");
     scaleSelect.dataset.field = "scaleName";
+    if (initialFields[0] === "driven") {
+      const drivenOpt = document.createElement("option");
+      drivenOpt.value = "driven";
+      drivenOpt.text = "⟳ Driven";
+      drivenOpt.style.fontStyle = "italic";
+      scaleSelect.appendChild(drivenOpt);
+    }
     scaleNames.forEach((name) => {
       const opt = new Option(name, name);
-      if (name === (initialFields[0] ?? "")) opt.selected = true;
+      if (name === (initialFields[0] ?? "") && initialFields[0] !== "driven") opt.selected = true;
       scaleSelect.appendChild(opt);
     });
+    if (initialFields[0] === "driven") scaleSelect.value = "driven";
     scaleSelect.addEventListener("change", () => onChange?.());
     scaleWrapper.appendChild(scaleSelect);
     fieldsContainer.appendChild(scaleWrapper);
@@ -613,6 +621,25 @@ export function createLayerListInput(
   rowsContainer.style.display = "flex";
   rowsContainer.style.flexDirection = "column";
   rowsContainer.style.gap = "4px";
+
+  // Tracks whether an incoming link is active so new rows and type-changes get the Driven option.
+  let isLinked = false;
+
+  /** Adds the "⟳ Driven" option (and auto-selects it) to all driven-eligible selects in a row. */
+  function applyLinkedToRow(row: HTMLElement): void {
+    row.querySelectorAll<HTMLSelectElement>(
+      "[data-field='rootNote'], [data-field='chordKey'], [data-field='scaleName']"
+    ).forEach(select => {
+      if (!select.querySelector<HTMLOptionElement>('option[value="driven"]')) {
+        const opt = document.createElement("option");
+        opt.value = "driven";
+        opt.text = "⟳ Driven";
+        opt.style.fontStyle = "italic";
+        select.insertBefore(opt, select.firstChild);
+      }
+      select.value = "driven";
+    });
+  }
 
   // --- Drag-and-drop state ---
   let dragSrcEl: HTMLElement | null = null;
@@ -738,6 +765,7 @@ export function createLayerListInput(
       const newType = typeSelect.value as UiLayerType;
       colorInput.value = getDefaultLayerColor(newType);
       buildLayerFields(fieldsContainer, newType, data, [], onChange);
+      if (isLinked) applyLinkedToRow(row);
       onChange?.();
     });
 
@@ -765,6 +793,10 @@ export function createLayerListInput(
   addBtn.style.marginTop = "4px";
   addBtn.onclick = () => {
     addLayerRow(LayerType.Scale, [], getDefaultLayerColor(LayerType.Scale));
+    if (isLinked) {
+      const lastRow = rowsContainer.lastElementChild as HTMLElement | null;
+      if (lastRow) applyLinkedToRow(lastRow);
+    }
     onChange?.();
   };
   listContainer.appendChild(addBtn);
@@ -773,8 +805,9 @@ export function createLayerListInput(
   // linked=true  → add "driven" option to rootNote and chordKey selects; autoSelect=true also selects it.
   // linked=false → remove "driven" option (reset to first real option if currently selected).
   (container as any)._setLinked = (linked: boolean, autoSelect: boolean) => {
+    isLinked = linked;
     let needsNotify = false;
-    rowsContainer.querySelectorAll<HTMLSelectElement>("[data-field='rootNote'], [data-field='chordKey']").forEach(select => {
+    rowsContainer.querySelectorAll<HTMLSelectElement>("[data-field='rootNote'], [data-field='chordKey'], [data-field='scaleName']").forEach(select => {
       const existing = select.querySelector<HTMLOptionElement>('option[value="driven"]');
       if (linked) {
         if (!existing) {

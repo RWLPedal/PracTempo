@@ -155,7 +155,8 @@ export class FloatingViewManager {
   }
 
   public restoreViewsFromState(): void {
-    if (!this.viewAreaElement) return;
+    const viewArea = this.viewAreaElement;
+    if (!viewArea) return;
     console.log("Restoring floating views from state...");
     const savedState = this.loadState();
     if (savedState && savedState.openViews) {
@@ -203,7 +204,7 @@ export class FloatingViewManager {
             descriptor.supportsConfigToggle ? () => this.handleConfigToggleRequest(state.instanceId) : undefined
           );
           this.activeViews.set(state.instanceId, wrapper);
-          this.viewAreaElement.appendChild(wrapper.element);
+          viewArea.appendChild(wrapper.element);
           this.linkManager?.onWindowSpawned(state.instanceId, wrapper.element);
         } catch (e) {
           console.error(`Error recreating view instance ${state.instanceId} (${state.viewId}):`, e);
@@ -274,6 +275,7 @@ export class FloatingViewManager {
       const overriddenSettings = this._buildOverriddenSettings(newOverride, zoomMultiplier);
       const newViewInstance = descriptor.createView(state.viewState, overriddenSettings);
       wrapper.replaceViewContent(newViewInstance);
+      this.linkManager?.refreshForInstance(instanceId);
     } catch (e) {
       console.error(`Error recreating view with orientation override for ${instanceId}:`, e);
     }
@@ -309,6 +311,7 @@ export class FloatingViewManager {
       const newViewInstance = descriptor.createView(state.viewState, overriddenSettings);
       wrapper.replaceViewContent(newViewInstance);
       wrapper.updateZoomButtonState(state.zoomActive);
+      this.linkManager?.refreshForInstance(instanceId);
     } catch (e) {
       console.error(`Error recreating view with zoom override for ${instanceId}:`, e);
     }
@@ -396,6 +399,7 @@ export class FloatingViewManager {
       try {
         const newViewInstance = descriptor.createView(state.viewState, settingsToUse);
         wrapper.replaceViewContent(newViewInstance);
+        this.linkManager?.refreshForInstance(instanceId);
       } catch (e) {
         console.error(`Error updating view ${instanceId} after settings change:`, e);
       }

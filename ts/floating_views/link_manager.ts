@@ -122,6 +122,20 @@ export class LinkManager {
 
   // ─── Window lifecycle ──────────────────────────────────────────────────────
 
+  /**
+   * Re-notifies a view of its current link status and re-delivers any cached
+   * signals from connected sources. Call this after replacing a view's content
+   * (zoom, rotate, settings change) so the new render reflects the live state.
+   */
+  public refreshForInstance(instanceId: string): void {
+    this.notifyLinkStatus(instanceId);
+    const incomingLinks = this.links.filter(l => l.targetInstanceId === instanceId);
+    incomingLinks.forEach(link => {
+      const cached = this.lastSourceSignals.get(link.sourceInstanceId);
+      if (cached?.length) this.routeSignalsToTarget(link, cached);
+    });
+  }
+
   public onWindowSpawned(instanceId: string, wrapperEl: HTMLElement): void {
     this.wrapperToInstanceId.set(wrapperEl, instanceId);
     this.overlay.registerWrapper(instanceId, wrapperEl);

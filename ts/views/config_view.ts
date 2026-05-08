@@ -14,6 +14,8 @@ export class ConfigView {
     private argValues: Map<number, string | string[] | null> = new Map();
     // Containers for layer_list args — values extracted from DOM at read time.
     private layerListContainers: Map<number, HTMLElement> = new Map();
+    // Tracks whether any LayerList arg is currently in linked/driven state.
+    private _isLinked = false;
 
     constructor(schema: ConfigurationSchema, container: HTMLElement, callback: ConfigChangeCallback) {
         this.schema = schema;
@@ -36,7 +38,22 @@ export class ConfigView {
         let configIndex = 0;
         this.schema.args.forEach((arg, argIndex) => {
             if (arg.uiComponentType === UiComponentType.Checkbox || arg.uiComponentType === UiComponentType.Ellipsis) return;
-            if (arg.uiComponentType === UiComponentType.LayerList) return;
+            if (arg.uiComponentType === UiComponentType.LayerList) {
+                // LayerList is variadic — consume all remaining config values and repopulate
+                // the list so saved layers survive zoom, rotate, and page refresh.
+                const layerValues = config.slice(configIndex);
+                configIndex = config.length;
+                const listEl = this.layerListContainers.get(argIndex);
+                if (listEl && layerValues.length > 0) {
+                    listEl.innerHTML = '';
+                    createLayerListInput(listEl, arg, layerValues, () => this.notifyChange());
+                    if (this._isLinked) {
+                        const fn = (listEl as any)._setLinked;
+                        if (typeof fn === 'function') fn(true, false);
+                    }
+                }
+                return;
+            }
             if (configIndex >= config.length) return;
 
             if (arg.isVariadic && arg.uiComponentType === UiComponentType.ToggleButtonSelector) {
@@ -116,7 +133,8 @@ export class ConfigView {
             }
             return;
         }
-        // LayerList arg: delegate to the container's _setLinked hook
+        // LayerList arg: track state and delegate to the container's _setLinked hook
+        this._isLinked = visible;
         this._callLayerListLinked(argName, visible, false);
     }
 
@@ -141,6 +159,7 @@ export class ConfigView {
             return;
         }
         // LayerList arg: show driven options and auto-select them
+        this._isLinked = true;
         this._callLayerListLinked(argName, true, true);
     }
 

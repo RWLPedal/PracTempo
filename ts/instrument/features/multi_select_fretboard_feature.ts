@@ -140,18 +140,23 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
     // Listen for drive-signal events forwarded by ConfigurableFeatureView
     this.driveSignalHandler = (e: Event) => {
       const { signal } = (e as CustomEvent<{ signal: DriveSignal; linkId: string }>).detail;
-      const hasDrivenScale = this.layers.some(l => l.type === LayerType.Scale && (l as ScaleLayer).rootNote === 'driven');
+      const hasDrivenRootNote = this.layers.some(l => l.type === LayerType.Scale && (l as ScaleLayer).rootNote === 'driven');
+      const hasDrivenScaleName = this.layers.some(l => l.type === LayerType.Scale && (l as ScaleLayer).scaleName === 'driven');
       const hasDrivenChord = this.layers.some(l => l.type === LayerType.Chord && (l as ChordLayer).chordKey === 'driven');
-      if (!hasDrivenScale && !hasDrivenChord) return;
+      if (!hasDrivenRootNote && !hasDrivenScaleName && !hasDrivenChord) return;
 
       let changed = false;
       if (signal.kind === SignalKind.Chord) {
-        this.lastChordSignal = signal as ChordSignal;
-        this.lastRootSignal = signal;
-        changed = true;
-      } else if (signal.kind === SignalKind.Key && hasDrivenScale) {
-        this.lastRootSignal = signal;
-        changed = true;
+        if (hasDrivenChord || hasDrivenRootNote) {
+          this.lastChordSignal = signal as ChordSignal;
+          this.lastRootSignal = signal;
+          changed = true;
+        }
+      } else if (signal.kind === SignalKind.Key) {
+        if (hasDrivenRootNote || hasDrivenScaleName) {
+          this.lastRootSignal = signal;
+          changed = true;
+        }
       }
       if (changed) {
         this.calculateAndSetNotes();
@@ -265,9 +270,15 @@ export class MultiSelectFretboardFeature extends InstrumentFeature {
       : layer.rootNote;
     if (!rootNote) return [];
 
+    let resolvedScaleName = layer.scaleName;
+    if (resolvedScaleName === 'driven') {
+      if (!this.lastRootSignal) return [];
+      resolvedScaleName = this.lastRootSignal.keyType === 'Minor' ? 'Natural Minor' : 'Major';
+    }
+
     const scaleKey =
-      scale_names[layer.scaleName as keyof typeof scale_names] ??
-      layer.scaleName.toUpperCase().replace(/ /g, "_");
+      scale_names[resolvedScaleName as keyof typeof scale_names] ??
+      resolvedScaleName.toUpperCase().replace(/ /g, "_");
     const scale = scales[scaleKey as keyof typeof scales];
     if (!scale) return [];
 
