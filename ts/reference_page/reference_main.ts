@@ -36,7 +36,7 @@ class ReferencePage {
             viewId: "capo_view",
             displayName: "Capo",
             categoryName: "General",
-            defaultWidth: 280,
+            defaultWidth: 240,
             defaultHeight: 350,
             createView: (initialState?: any) => new CapoView(this.settings),
         });

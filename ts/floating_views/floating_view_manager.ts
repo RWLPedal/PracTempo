@@ -94,8 +94,8 @@ export class FloatingViewManager {
       const sidebarEl = document.querySelector('.side-bar-container');
       const sidebarWidth = sidebarEl ? sidebarEl.getBoundingClientRect().width : 0;
       return {
-        x: sidebarWidth + 50 + ((this.activeViews.size * 20) % 300),
-        y: 50 + ((this.activeViews.size * 20) % 400),
+        x: sidebarWidth + 48 + ((this.activeViews.size * 20) % 300),
+        y: 48 + ((this.activeViews.size * 20) % 400),
       };
     })();
 
