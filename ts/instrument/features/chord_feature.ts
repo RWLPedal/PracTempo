@@ -17,6 +17,7 @@ import {
   findChordByRootAndType,
 } from "../chords";
 import { AudioController } from "../../audio_controller";
+import type { NoteName } from "../music_types";
 import { AppSettings } from "../../settings";
 import { ChordDiagramView } from "../views/chord_diagram_view";
 import { MoveableToggleView } from "../views/moveable_toggle_view";
@@ -146,7 +147,7 @@ export class ChordFeature extends InstrumentFeature {
         : [typeName as ChordType];
 
       for (const t of typesToFind) {
-        let chord = findChordByRootAndType(library, rootNote, t);
+        let chord = findChordByRootAndType(library, rootNote as NoteName, t);
         if (!chord) {
           const tuning = AVAILABLE_TUNINGS[guitarSettings.tuning] ?? STANDARD_TUNING;
           const result = getEasiestMoveableShape(

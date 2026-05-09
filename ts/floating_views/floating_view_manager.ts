@@ -89,13 +89,20 @@ export class FloatingViewManager {
     const instanceId = `fv-${this.nextInstanceId++}`;
     this.currentMaxZIndex++;
 
+    // Compute default spawn position, offset by sidebar width if present
+    const defaultPosition = (() => {
+      const sidebarEl = document.querySelector('.side-bar-container');
+      const sidebarWidth = sidebarEl ? sidebarEl.getBoundingClientRect().width : 0;
+      return {
+        x: sidebarWidth + 50 + ((this.activeViews.size * 20) % 300),
+        y: 50 + ((this.activeViews.size * 20) % 400),
+      };
+    })();
+
     const state: FloatingViewInstanceState = {
       instanceId: instanceId,
       viewId: viewId,
-      position: options?.position ?? {
-        x: 50 + ((this.activeViews.size * 20) % 300),
-        y: 50 + ((this.activeViews.size * 20) % 400),
-      },
+      position: options?.position ?? defaultPosition,
       size: options?.size,
       zIndex: this.currentMaxZIndex,
       viewState: options?.viewState,

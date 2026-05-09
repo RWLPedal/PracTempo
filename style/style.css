@@ -2119,3 +2119,107 @@ body.dark-theme .link-arrow-group:hover .link-arrow-head { fill: var(--clr-sky-3
 body.dark-theme .link-handle { fill: var(--clr-navy-300, #4E7FBA); }
 body.dark-theme .link-delete-btn { background: #1A1F2E; }
 body.dark-theme .link-delete-btn:hover { background: var(--clr-danger, #C0392B); color: #fff; }
+
+/* ─── Capo View ──────────────────────────────────────────────────────────── */
+.capo-view {
+  font-size: 13px;
+  padding: 4px 8px;
+  min-width: 200px;
+}
+
+.capo-view-capo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.capo-view-label {
+  font-weight: 500;
+  font-size: 12px;
+  color: var(--clr-grey-700, #334155);
+}
+
+.capo-view-select {
+  flex: 1;
+  padding: 3px 6px;
+  border: 1px solid var(--clr-grey-300, #CBD5E1);
+  border-radius: 4px;
+  background: var(--clr-grey-50, #F8F9FA);
+  font-size: 12px;
+  color: var(--clr-grey-900, #1A1A2E);
+}
+
+.capo-view-header-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 10px;
+  margin-bottom: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--clr-grey-500, #64748B);
+}
+
+.capo-view-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.capo-view-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 20px;
+  background: var(--clr-grey-100, #F1F4F8);
+  font-size: 13px;
+  transition: background 0.15s;
+}
+
+.capo-view-row:hover {
+  background: var(--clr-grey-200, #E2E8F0);
+}
+
+.capo-view-row-left {
+  font-weight: 500;
+  color: var(--clr-grey-900, #1A1A2E);
+}
+
+.capo-view-row-right {
+  font-weight: 400;
+  color: var(--clr-navy-500, #2C4A7C);
+}
+
+/* Dark theme adjustments */
+body.dark-theme .capo-view-label {
+  color: var(--clr-grey-300, #CBD5E1);
+}
+
+body.dark-theme .capo-view-select {
+  background: var(--clr-dark-bg, #1A1F2E);
+  border-color: var(--clr-grey-700, #334155);
+  color: var(--clr-grey-100, #F1F4F8);
+}
+
+body.dark-theme .capo-view-header-row {
+  color: var(--clr-grey-500, #64748B);
+}
+
+body.dark-theme .capo-view-row {
+  background: var(--clr-dark-bg, #1A1F2E);
+}
+
+body.dark-theme .capo-view-row:hover {
+  background: #2A3040;
+}
+
+body.dark-theme .capo-view-row-left {
+  color: var(--clr-grey-100, #F1F4F8);
+}
+
+body.dark-theme .capo-view-row-right {
+  color: var(--clr-navy-300, #4E7FBA);
+}

@@ -1,6 +1,7 @@
 ﻿import { Chord, ChordType, BarreSpec } from "./chords";
 import { InstrumentName, Tuning } from "./fretboard";
 import { getKeyIndex } from "./instrument_utils";
+import type { NoteName } from "./music_types";
 
 export interface MoveableChordTemplate {
   shapeName: string;
@@ -276,7 +277,7 @@ export function getMoveableShapes(
     const title = `${rootNoteName} ${effectiveType as string} (${template.shapeName})`;
 
     results.push({
-      chord: new Chord(title, strings, [...template.fingers], barreSpecs, effectiveType, rootNoteName),
+      chord: new Chord(title, strings, [...template.fingers], barreSpecs, effectiveType, rootNoteName as NoteName),
       shapeName: template.shapeName,
       title,
       rootFret,

@@ -31,22 +31,24 @@ export const CHORD_TYPE_SORT_ORDER: ChordType[] = [
   ChordType.ADD9,
 ];
 
+import { NoteName, CHORD_TONE_NAMES_FROM_A, ROOT_NOTE_SPECS } from "./music_types";
+
 export class Chord {
   name: string;
   strings: Array<number>; // Fret number per string: -1 muted, 0 open, >0 fretted
   fingers: Array<number>; // Finger number: 0 open/muted, 1 index, 2 middle, 3 ring, 4 pinky
   barre?: BarreSpec[];
   readonly chordType: ChordType;
-  /** Root note name, e.g. "A", "Bb", "F#". */
-  readonly rootKey: string;
+  /** Root note name, e.g. NoteName.A, NoteName.Bb, NoteName.FSharp. */
+  readonly rootKey: NoteName;
 
   constructor(
     name: string,
     strings: Array<number>,
     fingers: Array<number>,
-    barre?: BarreSpec[],
+    barre: BarreSpec[] | undefined,
     chordType: ChordType = ChordType.OTHER,
-    rootKey: string = ""
+    rootKey: NoteName
   ) {
     if (strings.length !== fingers.length) {
       throw new Error(
@@ -68,7 +70,7 @@ export class Chord {
  */
 export function findChordByRootAndType(
   library: Record<string, Chord>,
-  rootKey: string,
+  rootKey: NoteName,
   chordType: ChordType
 ): Chord | undefined {
   return Object.values(library).find(
@@ -79,46 +81,48 @@ export function findChordByRootAndType(
 // Short alias used only within this file for chord definitions.
 const CT = ChordType;
 
+const N = NoteName;
+
 export const chord_library = {
   // --- Major ---
-  A_MAJOR: new Chord("A Major", [-1, 0, 2, 2, 2, 0], [-1, 0, 2, 1, 3, 0], undefined, CT.MAJOR, "A"),
-  C_MAJOR: new Chord("C Major", [-1, 3, 2, 0, 1, 0], [-1, 3, 2, 0, 1, 0], undefined, CT.MAJOR, "C"),
-  D_MAJOR: new Chord("D Major", [-1, -1, 0, 2, 3, 2], [-1, -1, 0, 1, 3, 2], undefined, CT.MAJOR, "D"),
-  E_MAJOR: new Chord("E Major", [0, 2, 2, 1, 0, 0], [0, 2, 3, 1, 0, 0], undefined, CT.MAJOR, "E"),
-  G_MAJOR: new Chord("G Major", [3, 2, 0, 0, 0, 3], [2, 1, 0, 0, 0, 3], undefined, CT.MAJOR, "G"),
+  A_MAJOR: new Chord("A", [-1, 0, 2, 2, 2, 0], [-1, 0, 2, 1, 3, 0], undefined, CT.MAJOR, N.A),
+  C_MAJOR: new Chord("C", [-1, 3, 2, 0, 1, 0], [-1, 3, 2, 0, 1, 0], undefined, CT.MAJOR, N.C),
+  D_MAJOR: new Chord("D", [-1, -1, 0, 2, 3, 2], [-1, -1, 0, 1, 3, 2], undefined, CT.MAJOR, N.D),
+  E_MAJOR: new Chord("E", [0, 2, 2, 1, 0, 0], [0, 2, 3, 1, 0, 0], undefined, CT.MAJOR, N.E),
+  G_MAJOR: new Chord("G", [3, 2, 0, 0, 0, 3], [2, 1, 0, 0, 0, 3], undefined, CT.MAJOR, N.G),
 
   // --- Minor ---
-  A_MINOR: new Chord("A Minor", [-1, 0, 2, 2, 1, 0], [-1, 0, 2, 3, 1, 0], undefined, CT.MINOR, "A"),
-  D_MINOR: new Chord("D Minor", [-1, -1, 0, 2, 3, 1], [-1, -1, 0, 2, 3, 1], undefined, CT.MINOR, "D"),
-  E_MINOR: new Chord("E Minor", [0, 2, 2, 0, 0, 0], [0, 2, 3, 0, 0, 0], undefined, CT.MINOR, "E"),
+  A_MINOR: new Chord("Am", [-1, 0, 2, 2, 1, 0], [-1, 0, 2, 3, 1, 0], undefined, CT.MINOR, N.A),
+  D_MINOR: new Chord("Dm", [-1, -1, 0, 2, 3, 1], [-1, -1, 0, 2, 3, 1], undefined, CT.MINOR, N.D),
+  E_MINOR: new Chord("Em", [0, 2, 2, 0, 0, 0], [0, 2, 3, 0, 0, 0], undefined, CT.MINOR, N.E),
 
   // --- Dominant 7th ---
-  A7: new Chord("A7", [-1, 0, 2, 0, 2, 0], [-1, 0, 2, 0, 3, 0], undefined, CT.DOM7, "A"),
-  B7: new Chord("B7", [-1, 2, 1, 2, 0, 2], [-1, 2, 1, 3, 0, 4], undefined, CT.DOM7, "B"),
-  C7: new Chord("C7", [-1, 3, 2, 3, 1, 0], [-1, 3, 2, 4, 1, 0], undefined, CT.DOM7, "C"),
-  D7: new Chord("D7", [-1, -1, 0, 2, 1, 2], [-1, -1, 0, 2, 1, 3], undefined, CT.DOM7, "D"),
-  E7: new Chord("E7", [0, 2, 0, 1, 0, 0], [0, 2, 0, 1, 0, 0], undefined, CT.DOM7, "E"),
-  F7: new Chord("F7", [1, 3, 1, 2, 1, 1], [1, 3, 1, 2, 1, 1], undefined, CT.DOM7, "F"),
-  G7: new Chord("G7", [3, 2, 0, 0, 0, 1], [3, 2, 0, 0, 0, 1], undefined, CT.DOM7, "G"),
+  A7: new Chord("A7", [-1, 0, 2, 0, 2, 0], [-1, 0, 2, 0, 3, 0], undefined, CT.DOM7, N.A),
+  B7: new Chord("B7", [-1, 2, 1, 2, 0, 2], [-1, 2, 1, 3, 0, 4], undefined, CT.DOM7, N.B),
+  C7: new Chord("C7", [-1, 3, 2, 3, 1, 0], [-1, 3, 2, 4, 1, 0], undefined, CT.DOM7, N.C),
+  D7: new Chord("D7", [-1, -1, 0, 2, 1, 2], [-1, -1, 0, 2, 1, 3], undefined, CT.DOM7, N.D),
+  E7: new Chord("E7", [0, 2, 0, 1, 0, 0], [0, 2, 0, 1, 0, 0], undefined, CT.DOM7, N.E),
+  F7: new Chord("F7", [1, 3, 1, 2, 1, 1], [1, 3, 1, 2, 1, 1], undefined, CT.DOM7, N.F),
+  G7: new Chord("G7", [3, 2, 0, 0, 0, 1], [3, 2, 0, 0, 0, 1], undefined, CT.DOM7, N.G),
 
   // --- Major 7th ---
-  AMAJ7: new Chord("A Major 7", [-1, 0, 2, 1, 2, 0], [-1, 0, 2, 1, 3, 0], undefined, CT.MAJ7, "A"),
-  CMAJ7: new Chord("C Major 7", [-1, 3, 2, 0, 0, 0], [-1, 3, 2, 0, 0, 0], undefined, CT.MAJ7, "C"),
-  DMAJ7: new Chord("D Major 7", [-1, -1, 0, 2, 2, 2], [-1, -1, 0, 1, 2, 3], undefined, CT.MAJ7, "D"),
-  FMAJ7: new Chord("F Major 7", [-1, -1, 3, 2, 1, 0], [-1, -1, 3, 2, 1, 0], undefined, CT.MAJ7, "F"),
-  GMAJ7: new Chord("G Major 7", [3, 2, 0, 0, 0, 2], [2, 1, 0, 0, 0, 3], undefined, CT.MAJ7, "G"),
+  AMAJ7: new Chord("A Major 7", [-1, 0, 2, 1, 2, 0], [-1, 0, 2, 1, 3, 0], undefined, CT.MAJ7, N.A),
+  CMAJ7: new Chord("C Major 7", [-1, 3, 2, 0, 0, 0], [-1, 3, 2, 0, 0, 0], undefined, CT.MAJ7, N.C),
+  DMAJ7: new Chord("D Major 7", [-1, -1, 0, 2, 2, 2], [-1, -1, 0, 1, 2, 3], undefined, CT.MAJ7, N.D),
+  FMAJ7: new Chord("F Major 7", [-1, -1, 3, 2, 1, 0], [-1, -1, 3, 2, 1, 0], undefined, CT.MAJ7, N.F),
+  GMAJ7: new Chord("G Major 7", [3, 2, 0, 0, 0, 2], [2, 1, 0, 0, 0, 3], undefined, CT.MAJ7, N.G),
 
   // --- Minor 7th ---
-  AM7: new Chord("A Minor 7", [-1, 0, 2, 0, 1, 0], [-1, 0, 2, 0, 1, 0], undefined, CT.MIN7, "A"),
-  DM7: new Chord("D Minor 7", [-1, -1, 0, 2, 1, 1], [-1, -1, 0, 2, 1, 1], undefined, CT.MIN7, "D"),
-  EM7: new Chord("E Minor 7", [0, 2, 0, 0, 0, 0], [0, 2, 0, 0, 0, 0], undefined, CT.MIN7, "E"),
+  AM7: new Chord("A Minor 7", [-1, 0, 2, 0, 1, 0], [-1, 0, 2, 0, 1, 0], undefined, CT.MIN7, N.A),
+  DM7: new Chord("D Minor 7", [-1, -1, 0, 2, 1, 1], [-1, -1, 0, 2, 1, 1], undefined, CT.MIN7, N.D),
+  EM7: new Chord("E Minor 7", [0, 2, 0, 0, 0, 0], [0, 2, 0, 0, 0, 0], undefined, CT.MIN7, N.E),
 
   // --- Suspended ---
-  ASUS2: new Chord("Asus2",  [-1, 0, 2, 2, 0, 0], [-1, 0, 2, 3, 0, 0], undefined, CT.SUS2, "A"),
-  DSUS2: new Chord("Dsus2",  [-1, -1, 0, 2, 3, 0], [-1, -1, 0, 1, 3, 0], undefined, CT.SUS2, "D"),
-  ASUS4: new Chord("Asus4",  [-1, 0, 2, 2, 3, 0], [-1, 0, 1, 2, 4, 0], undefined, CT.SUS4, "A"),
-  DSUS4: new Chord("Dsus4",  [-1, -1, 0, 2, 3, 3], [-1, -1, 0, 1, 2, 3], undefined, CT.SUS4, "D"),
-  ESUS4: new Chord("Esus4",  [0, 2, 2, 2, 0, 0], [0, 1, 2, 3, 0, 0], undefined, CT.SUS4, "E"),
+  ASUS2: new Chord("Asus2",  [-1, 0, 2, 2, 0, 0], [-1, 0, 2, 3, 0, 0], undefined, CT.SUS2, N.A),
+  DSUS2: new Chord("Dsus2",  [-1, -1, 0, 2, 3, 0], [-1, -1, 0, 1, 3, 0], undefined, CT.SUS2, N.D),
+  ASUS4: new Chord("Asus4",  [-1, 0, 2, 2, 3, 0], [-1, 0, 1, 2, 4, 0], undefined, CT.SUS4, N.A),
+  DSUS4: new Chord("Dsus4",  [-1, -1, 0, 2, 3, 3], [-1, -1, 0, 1, 2, 3], undefined, CT.SUS4, N.D),
+  ESUS4: new Chord("Esus4",  [0, 2, 2, 2, 0, 0], [0, 1, 2, 3, 0, 0], undefined, CT.SUS4, N.E),
 };
 
 // ---------------------------------------------------------------------------
@@ -126,36 +130,36 @@ export const chord_library = {
 // ---------------------------------------------------------------------------
 export const ukulele_chord_library: Record<string, Chord> = {
   // --- Major ---
-  A_MAJOR: new Chord("A Major", [2, 1, 0, 0], [2, 1, 0, 0], undefined, CT.MAJOR, "A"),
-  B_MAJOR: new Chord("B Major", [4, 3, 2, 2], [3, 2, 1, 1],
-    [{ fret: 2, stringStart: 2, stringEnd: 3 }], CT.MAJOR, "B"),
-  C_MAJOR: new Chord("C Major", [0, 0, 0, 3], [0, 0, 0, 3], undefined, CT.MAJOR, "C"),
-  D_MAJOR: new Chord("D Major", [2, 2, 2, 0], [1, 2, 3, 0], undefined, CT.MAJOR, "D"),
-  E_MAJOR: new Chord("E Major", [4, 4, 4, 2], [4, 3, 2, 1], undefined, CT.MAJOR, "E"),
-  F_MAJOR: new Chord("F Major", [2, 0, 1, 0], [2, 0, 1, 0], undefined, CT.MAJOR, "F"),
-  G_MAJOR: new Chord("G Major", [0, 2, 3, 2], [0, 1, 3, 2], undefined, CT.MAJOR, "G"),
+  A_MAJOR: new Chord("A", [2, 1, 0, 0], [2, 1, 0, 0], undefined, CT.MAJOR, N.A),
+  B_MAJOR: new Chord("B", [4, 3, 2, 2], [3, 2, 1, 1],
+    [{ fret: 2, stringStart: 2, stringEnd: 3 }], CT.MAJOR, N.B),
+  C_MAJOR: new Chord("C", [0, 0, 0, 3], [0, 0, 0, 3], undefined, CT.MAJOR, N.C),
+  D_MAJOR: new Chord("D", [2, 2, 2, 0], [1, 2, 3, 0], undefined, CT.MAJOR, N.D),
+  E_MAJOR: new Chord("E", [4, 4, 4, 2], [4, 3, 2, 1], undefined, CT.MAJOR, N.E),
+  F_MAJOR: new Chord("F", [2, 0, 1, 0], [2, 0, 1, 0], undefined, CT.MAJOR, N.F),
+  G_MAJOR: new Chord("G", [0, 2, 3, 2], [0, 1, 3, 2], undefined, CT.MAJOR, N.G),
 
   // --- Minor ---
-  A_MINOR: new Chord("A Minor", [2, 0, 0, 0], [2, 0, 0, 0], undefined, CT.MINOR, "A"),
-  B_MINOR: new Chord("B Minor", [4, 2, 2, 2], [3, 1, 1, 1],
-    [{ fret: 2, stringStart: 1, stringEnd: 3 }], CT.MINOR, "B"),
-  C_MINOR: new Chord("C Minor", [0, 3, 3, 3], [0, 1, 1, 1],
-    [{ fret: 3, stringStart: 1, stringEnd: 3 }], CT.MINOR, "C"),
-  D_MINOR: new Chord("D Minor", [2, 2, 1, 0], [2, 3, 1, 0], undefined, CT.MINOR, "D"),
-  E_MINOR: new Chord("E Minor", [0, 4, 3, 2], [0, 3, 2, 1], undefined, CT.MINOR, "E"),
-  F_MINOR: new Chord("F Minor", [1, 0, 1, 3], [1, 0, 2, 4], undefined, CT.MINOR, "F"),
-  G_MINOR: new Chord("G Minor", [0, 2, 3, 1], [0, 2, 3, 1], undefined, CT.MINOR, "G"),
+  A_MINOR: new Chord("Am", [2, 0, 0, 0], [2, 0, 0, 0], undefined, CT.MINOR, N.A),
+  B_MINOR: new Chord("Bm", [4, 2, 2, 2], [3, 1, 1, 1],
+    [{ fret: 2, stringStart: 1, stringEnd: 3 }], CT.MINOR, N.B),
+  C_MINOR: new Chord("Cm", [0, 3, 3, 3], [0, 1, 1, 1],
+    [{ fret: 3, stringStart: 1, stringEnd: 3 }], CT.MINOR, N.C),
+  D_MINOR: new Chord("Dm", [2, 2, 1, 0], [2, 3, 1, 0], undefined, CT.MINOR, N.D),
+  E_MINOR: new Chord("Em", [0, 4, 3, 2], [0, 3, 2, 1], undefined, CT.MINOR, N.E),
+  F_MINOR: new Chord("Fm", [1, 0, 1, 3], [1, 0, 2, 4], undefined, CT.MINOR, N.F),
+  G_MINOR: new Chord("Gm", [0, 2, 3, 1], [0, 2, 3, 1], undefined, CT.MINOR, N.G),
 
   // --- Dominant 7th ---
-  A7: new Chord("A7", [0, 1, 0, 0], [0, 1, 0, 0], undefined, CT.DOM7, "A"),
+  A7: new Chord("A7", [0, 1, 0, 0], [0, 1, 0, 0], undefined, CT.DOM7, N.A),
   B7: new Chord("B7", [2, 3, 2, 2], [1, 2, 1, 1],
-    [{ fret: 2, stringStart: 0, stringEnd: 3 }], CT.DOM7, "B"),
-  C7: new Chord("C7", [0, 0, 0, 1], [0, 0, 0, 1], undefined, CT.DOM7, "C"),
+    [{ fret: 2, stringStart: 0, stringEnd: 3 }], CT.DOM7, N.B),
+  C7: new Chord("C7", [0, 0, 0, 1], [0, 0, 0, 1], undefined, CT.DOM7, N.C),
   D7: new Chord("D7", [2, 2, 2, 3], [1, 1, 1, 2],
-    [{ fret: 2, stringStart: 0, stringEnd: 2 }], CT.DOM7, "D"),
-  E7: new Chord("E7", [1, 2, 0, 2], [1, 2, 0, 3], undefined, CT.DOM7, "E"),
-  F7: new Chord("F7", [2, 3, 1, 3], [2, 4, 1, 3], undefined, CT.DOM7, "F"),
-  G7: new Chord("G7", [0, 2, 1, 2], [0, 2, 1, 3], undefined, CT.DOM7, "G"),
+    [{ fret: 2, stringStart: 0, stringEnd: 2 }], CT.DOM7, N.D),
+  E7: new Chord("E7", [1, 2, 0, 2], [1, 2, 0, 3], undefined, CT.DOM7, N.E),
+  F7: new Chord("F7", [2, 3, 1, 3], [2, 4, 1, 3], undefined, CT.DOM7, N.F),
+  G7: new Chord("G7", [0, 2, 1, 2], [0, 2, 1, 3], undefined, CT.DOM7, N.G),
 };
 
 // ---------------------------------------------------------------------------
@@ -163,23 +167,23 @@ export const ukulele_chord_library: Record<string, Chord> = {
 // ---------------------------------------------------------------------------
 export const mandolin_chord_library: Record<string, Chord> = {
   // --- Major ---
-  A_MAJOR: new Chord("A Major", [2, 2, 4, 0], [1, 1, 3, 0], undefined, CT.MAJOR, "A"),
-  C_MAJOR: new Chord("C Major", [0, 2, 3, 3], [0, 1, 2, 3], undefined, CT.MAJOR, "C"),
-  D_MAJOR: new Chord("D Major", [0, 0, 0, 2], [0, 0, 0, 1], undefined, CT.MAJOR, "D"),
-  E_MAJOR: new Chord("E Major", [1, 2, 2, 0], [1, 3, 2, 0], undefined, CT.MAJOR, "E"),
-  G_MAJOR: new Chord("G Major", [0, 0, 2, 3], [0, 0, 1, 3], undefined, CT.MAJOR, "G"),
+  A_MAJOR: new Chord("A", [2, 2, 4, 0], [1, 1, 3, 0], undefined, CT.MAJOR, N.A),
+  C_MAJOR: new Chord("C", [0, 2, 3, 3], [0, 1, 2, 3], undefined, CT.MAJOR, N.C),
+  D_MAJOR: new Chord("D", [0, 0, 0, 2], [0, 0, 0, 1], undefined, CT.MAJOR, N.D),
+  E_MAJOR: new Chord("E", [1, 2, 2, 0], [1, 3, 2, 0], undefined, CT.MAJOR, N.E),
+  G_MAJOR: new Chord("G", [0, 0, 2, 3], [0, 0, 1, 3], undefined, CT.MAJOR, N.G),
 
   // --- Minor ---
-  A_MINOR: new Chord("A Minor", [2, 2, 3, 0], [1, 2, 3, 0], undefined, CT.MINOR, "A"),
-  D_MINOR: new Chord("D Minor", [-1, 0, 0, 1], [-1, 0, 0, 1], undefined, CT.MINOR, "D"),
-  E_MINOR: new Chord("E Minor", [0, 2, 2, 0], [0, 1, 2, 0], undefined, CT.MINOR, "E"),
-  G_MINOR: new Chord("G Minor", [0, 0, 1, 3], [0, 0, 1, 3], undefined, CT.MINOR, "G"),
+  A_MINOR: new Chord("A", [2, 2, 3, 0], [1, 2, 3, 0], undefined, CT.MINOR, N.A),
+  D_MINOR: new Chord("D", [-1, 0, 0, 1], [-1, 0, 0, 1], undefined, CT.MINOR, N.D),
+  E_MINOR: new Chord("E", [0, 2, 2, 0], [0, 1, 2, 0], undefined, CT.MINOR, N.E),
+  G_MINOR: new Chord("G", [0, 0, 1, 3], [0, 0, 1, 3], undefined, CT.MINOR, N.G),
 
   // --- Dominant 7th ---
-  A7: new Chord("A7", [2, 2, 4, 3], [1, 1, 3, 2], undefined, CT.DOM7, "A"),
-  D7: new Chord("D7", [2, 0, 3, 2], [2, 0, 3, 1], undefined, CT.DOM7, "D"),
-  E7: new Chord("E7", [1, 0, 2, 0], [1, 0, 2, 0], undefined, CT.DOM7, "E"),
-  G7: new Chord("G7", [0, 0, 2, 1], [0, 0, 2, 1], undefined, CT.DOM7, "G"),
+  A7: new Chord("A7", [2, 2, 4, 3], [1, 1, 3, 2], undefined, CT.DOM7, N.A),
+  D7: new Chord("D7", [2, 0, 3, 2], [2, 0, 3, 1], undefined, CT.DOM7, N.D),
+  E7: new Chord("E7", [1, 0, 2, 0], [1, 0, 2, 0], undefined, CT.DOM7, N.E),
+  G7: new Chord("G7", [0, 0, 2, 1], [0, 0, 2, 1], undefined, CT.DOM7, N.G),
 };
 
 // ---------------------------------------------------------------------------
@@ -189,23 +193,23 @@ export const mandolin_chord_library: Record<string, Chord> = {
 // ---------------------------------------------------------------------------
 export const mandola_chord_library: Record<string, Chord> = {
   // --- Major ---
-  A_MAJOR: new Chord("A Major", [1, 2, 2, 0], [1, 3, 2, 0], undefined, CT.MAJOR, "A"),
-  C_MAJOR: new Chord("C Major", [0, 0, 2, 3], [0, 0, 1, 3], undefined, CT.MAJOR, "C"),
-  D_MAJOR: new Chord("D Major", [2, 2, 4, 0], [1, 1, 3, 0], undefined, CT.MAJOR, "D"),
-  F_MAJOR: new Chord("F Major", [0, 2, 3, 3], [0, 1, 2, 3], undefined, CT.MAJOR, "F"),
-  G_MAJOR: new Chord("G Major", [0, 0, 0, 2], [0, 0, 0, 1], undefined, CT.MAJOR, "G"),
+  A_MAJOR: new Chord("A", [1, 2, 2, 0], [1, 3, 2, 0], undefined, CT.MAJOR, N.A),
+  C_MAJOR: new Chord("C", [0, 0, 2, 3], [0, 0, 1, 3], undefined, CT.MAJOR, N.C),
+  D_MAJOR: new Chord("D", [2, 2, 4, 0], [1, 1, 3, 0], undefined, CT.MAJOR, N.D),
+  F_MAJOR: new Chord("F", [0, 2, 3, 3], [0, 1, 2, 3], undefined, CT.MAJOR, N.F),
+  G_MAJOR: new Chord("G", [0, 0, 0, 2], [0, 0, 0, 1], undefined, CT.MAJOR, N.G),
 
   // --- Minor ---
-  A_MINOR: new Chord("A Minor", [0, 2, 2, 0], [0, 1, 2, 0], undefined, CT.MINOR, "A"),
-  C_MINOR: new Chord("C Minor", [0, 0, 1, 3], [0, 0, 1, 3], undefined, CT.MINOR, "C"),
-  D_MINOR: new Chord("D Minor", [2, 2, 3, 0], [1, 2, 3, 0], undefined, CT.MINOR, "D"),
-  G_MINOR: new Chord("G Minor", [-1, 0, 0, 1], [-1, 0, 0, 1], undefined, CT.MINOR, "G"),
+  A_MINOR: new Chord("Am", [0, 2, 2, 0], [0, 1, 2, 0], undefined, CT.MINOR, N.A),
+  C_MINOR: new Chord("Cm", [0, 0, 1, 3], [0, 0, 1, 3], undefined, CT.MINOR, N.C),
+  D_MINOR: new Chord("Dm", [2, 2, 3, 0], [1, 2, 3, 0], undefined, CT.MINOR, N.D),
+  G_MINOR: new Chord("Gm", [-1, 0, 0, 1], [-1, 0, 0, 1], undefined, CT.MINOR, N.G),
 
   // --- Dominant 7th ---
-  A7: new Chord("A7", [1, 0, 2, 0], [1, 0, 2, 0], undefined, CT.DOM7, "A"),
-  C7: new Chord("C7", [0, 0, 2, 1], [0, 0, 2, 1], undefined, CT.DOM7, "C"),
-  D7: new Chord("D7", [2, 2, 4, 3], [1, 1, 3, 2], undefined, CT.DOM7, "D"),
-  G7: new Chord("G7", [2, 0, 3, 2], [2, 0, 3, 1], undefined, CT.DOM7, "G"),
+  A7: new Chord("A7", [1, 0, 2, 0], [1, 0, 2, 0], undefined, CT.DOM7, N.A),
+  C7: new Chord("C7", [0, 0, 2, 1], [0, 0, 2, 1], undefined, CT.DOM7, N.C),
+  D7: new Chord("D7", [2, 2, 4, 3], [1, 1, 3, 2], undefined, CT.DOM7, N.D),
+  G7: new Chord("G7", [2, 0, 3, 2], [2, 0, 3, 1], undefined, CT.DOM7, N.G),
 };
 
 import type { InstrumentName } from "./fretboard";
@@ -225,10 +229,6 @@ export function getChordLibraryForInstrument(instrument: InstrumentName): Record
 // ---------------------------------------------------------------------------
 // Comprehensive chord tones library (dynamically generated)
 // ---------------------------------------------------------------------------
-// Note names indexed from A=0, matching NOTE_NAMES_FROM_A order in instrument_utils.ts.
-// Uses a conventional mixed sharp/flat spelling: sharps for C#, F#, G#;
-// flats for Bb, Eb, Ab.
-const _TONE_NAMES = ['A', 'Bb', 'B', 'C', 'C#', 'D', 'Eb', 'E', 'F', 'F#', 'G', 'Ab'];
 
 interface _ChordTypeSpec {
   key: string;
@@ -258,41 +258,20 @@ const _CHORD_TYPES: _ChordTypeSpec[] = [
   //{ key: 'MIN6',    name: 'Minor 6',       intervals: [0, 3, 7, 9] },
 ];
 
-interface _RootNoteSpec {
-  key: string;    // used in library key  (e.g. "C#")
-  name: string;   // display name          (e.g. "C#")
-  noteIndex: number; // index into _TONE_NAMES (A=0)
-}
-
-const _ROOT_NOTES: _RootNoteSpec[] = [
-  { key: 'A',  name: 'A',  noteIndex: 0  },
-  { key: 'Bb', name: 'Bb', noteIndex: 1  },
-  { key: 'B',  name: 'B',  noteIndex: 2  },
-  { key: 'C',  name: 'C',  noteIndex: 3  },
-  { key: 'C#', name: 'C#', noteIndex: 4  },
-  { key: 'D',  name: 'D',  noteIndex: 5  },
-  { key: 'Eb', name: 'Eb', noteIndex: 6  },
-  { key: 'E',  name: 'E',  noteIndex: 7  },
-  { key: 'F',  name: 'F',  noteIndex: 8  },
-  { key: 'F#', name: 'F#', noteIndex: 9  },
-  { key: 'G',  name: 'G',  noteIndex: 10 },
-  { key: 'Ab', name: 'Ab', noteIndex: 11 },
-];
-
 export interface ChordToneEntry {
   name: string;
   tones: string[]; // note names (enharmonics matched via NOTE_FLAT_ALIAS_FROM_A in instrument_utils)
 }
 
-/** Comprehensive chord tones library for all 12 roots × 19 chord types.
- *  Keys have the form "{Root}_{TYPE}", e.g. "C#_DOM7", "Eb_MIN7". */
+/** Comprehensive chord tones library for all 12 roots × 7 chord types.
+ *  Keys have the form "{Root}_{TYPE}", e.g. "C#_MAJ", "Eb_MIN7". */
 export const chord_tones_library: Record<string, ChordToneEntry> = (() => {
   const lib: Record<string, ChordToneEntry> = {};
-  for (const root of _ROOT_NOTES) {
+  for (const root of ROOT_NOTE_SPECS) {
     for (const type of _CHORD_TYPES) {
       const key = `${root.key}_${type.key}`;
       const tones = type.intervals.map(
-        interval => _TONE_NAMES[(root.noteIndex + interval) % 12]
+        interval => CHORD_TONE_NAMES_FROM_A[(root.noteIndex + interval) % 12]
       );
       lib[key] = { name: `${root.name} ${type.name}`, tones };
     }

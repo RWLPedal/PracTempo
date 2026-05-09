@@ -29,6 +29,7 @@ const NAV_SECTIONS: NavSection[] = [
             { id: 'chord-progression-feature', icon: 'arrow_forward',   label: 'Progression',  viewId: 'instrument_chord_progression',                                        requiredInstruments: ['Guitar', 'Mandolin', 'Mandola'] },
             { id: 'caged-feature',             icon: 'grid_view',       label: 'CAGED',        viewId: 'configurable_instrument_feature', featureTypeName: 'CAGED',           requiredInstruments: ['Guitar'] },
             { id: 'multifret-feature',         icon: 'layers',          label: 'MultiFret',    viewId: 'configurable_instrument_feature', featureTypeName: 'MultiSelectFretboard' },
+            { id: 'capo-feature',              icon: 'adjust',          label: 'Capo',         viewId: 'capo_view',                       requiredInstruments: ['Guitar', 'Ukulele', 'Mandolin', 'Mandola'] },
         ],
     },
     {
