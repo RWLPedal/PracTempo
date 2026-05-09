@@ -26,6 +26,7 @@ export interface NoteRenderData {
   icon?: NoteIcon; // Icon to display instead of text label
   colorSchemeOverride?: FretboardColorScheme; // Override global scheme for this note
   radiusOverride?: number; // Scaled override for radius (e.g., open notes)
+  opacity?: number; // 0–1, defaults to 1
   // Coords are calculated internally, not passed in
 }
 
@@ -61,6 +62,30 @@ export interface RoundedRectData {
    * each segment's fret range by the accumulated interval deviation. Defaults to true.
    */
   autoSplit?: boolean;
+}
+
+/**
+ * A rectilinear polygon drawn around a set of (string, fret) positions.
+ * The polygon traces the smallest Manhattan outline that encloses every circle
+ * in the given point set, using half the string/fret spacing as the boundary.
+ */
+export interface PolygonData {
+  /** The set of (stringIndex, fret) positions the polygon should enclose. */
+  points: { stringIndex: number; fret: number }[];
+  /** Stroke (outline) color. */
+  color: string;
+  /** Fill color — usually the same as color; opacity is controlled separately. */
+  fillColor?: string;
+  /** Fill opacity (0–1). Defaults to 0.15. */
+  fillOpacity?: number;
+  /** Stroke opacity (0–1). Defaults to 1. */
+  strokeOpacity?: number;
+  /** Unscaled stroke width. Defaults to 2. */
+  strokeWidth?: number;
+  /** Unscaled inset from the fret-line boundaries. Defaults to 3. */
+  padding?: number;
+  /** Unscaled corner fillet radius applied to every vertex via arcTo. Defaults to 0 (sharp). */
+  cornerRadius?: number;
 }
 
 /** A barre chord bar drawn as a filled pill spanning multiple strings at one fret. */
@@ -262,6 +287,7 @@ export class Fretboard {
   private linesToRender: LineData[] = [];
   private roundedRectsToRender: RoundedRectData[] = [];
   private barresToRender: BarreData[] = [];
+  private polygonsToRender: PolygonData[] = [];
   private startFret: number = 0; // Store the starting fret for rendering
   // Calculated positions (relative to internal origin)
   private nutLineY = 0;
@@ -312,11 +338,15 @@ export class Fretboard {
   public setBarres(barres: BarreData[]): void {
     this.barresToRender = barres;
   }
+  public setPolygons(polygons: PolygonData[]): void {
+    this.polygonsToRender = polygons;
+  }
   public clearMarkings(): void {
     this.notesToRender = [];
     this.linesToRender = [];
     this.roundedRectsToRender = [];
     this.barresToRender = [];
+    this.polygonsToRender = [];
   }
 
   /** Sets the starting fret number for the diagram display. */
@@ -437,9 +467,10 @@ export class Fretboard {
   render(ctx: CanvasRenderingContext2D): void {
     ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height);
     this._renderGrid(ctx);
-    this._renderBarres(ctx);      // Behind notes
-    this._renderLines(ctx);       // Behind notes
-    this._renderNotes(ctx);       // Notes on top
+    this._renderBarres(ctx);       // Behind notes
+    this._renderLines(ctx);        // Behind notes
+    this._renderPolygons(ctx);     // Behind notes
+    this._renderNotes(ctx);        // Notes on top
     this._renderRoundedRects(ctx); // Outlines on top of everything
   }
 
@@ -704,6 +735,141 @@ export class Fretboard {
     });
   }
 
+  /**
+   * Builds a closed rectilinear canvas path that tightly wraps the given
+   * (stringIndex, fret) positions using purely horizontal and vertical edges.
+   * For each string the path traces the top edge (min-fret boundary) left-to-right,
+   * then the bottom edge (max-fret boundary) right-to-left, stepping between
+   * adjacent strings at their visual midpoint.  Returns false if there are no
+   * visible points.
+   */
+  private _buildPolygonCanvasPath(
+    ctx: CanvasRenderingContext2D,
+    points: { stringIndex: number; fret: number }[],
+    padding: number,
+    cornerRadius: number = 0
+  ): boolean {
+    const stringFretMap = new Map<number, { min: number; max: number }>();
+    for (const p of points) {
+      if (p.fret < 0) continue;
+      const ex = stringFretMap.get(p.stringIndex);
+      if (!ex) {
+        stringFretMap.set(p.stringIndex, { min: p.fret, max: p.fret });
+      } else {
+        ex.min = Math.min(ex.min, p.fret);
+        ex.max = Math.max(ex.max, p.fret);
+      }
+    }
+    if (stringFretMap.size === 0) return false;
+
+    const scaledPad  = padding * this.config.scaleFactor;
+    const fretLen    = this.config.fretLengthPx;
+    const strSpace   = this.config.stringSpacingPx;
+    const noteRadius = this.config.noteRadiusPx;
+    const maxSI      = this.config.stringCount - 1;
+
+    // Virtual-space X for a string index (accounts for handedness)
+    const vxOf = (si: number) => {
+      const vi = this.config.handedness === 'left' ? maxSI - si : si;
+      return this.absoluteLeftPx + vi * strSpace;
+    };
+
+    // Virtual-space Y: just inside the fret-line above the given fret
+    const vyTop = (fret: number) => {
+      const df = fret - this.startFret;
+      if (df <= 0) return this.nutLineY - scaledPad;
+      return this.nutLineY + (df - 1) * fretLen + scaledPad;
+    };
+
+    // Virtual-space Y: just inside the fret-line below the given fret
+    const vyBottom = (fret: number) => {
+      const df = fret - this.startFret;
+      if (df <= 0) return this.nutLineY - scaledPad;
+      return this.nutLineY + df * fretLen - scaledPad;
+    };
+
+    // Sort strings left-to-right in visual space
+    const strings = [...stringFretMap.keys()].sort((a, b) => vxOf(a) - vxOf(b));
+    const firstS  = strings[0];
+    const lastS   = strings[strings.length - 1];
+    // Extend exactly scaledPad pixels beyond the note circles in the string direction
+    const halfStr = noteRadius + scaledPad;
+
+    const pts: { x: number; y: number }[] = [];
+
+    // Top-left corner
+    pts.push(this._toCanvas(vxOf(firstS) - halfStr, vyTop(stringFretMap.get(firstS)!.min)));
+
+    // Top edge: left → right, stepping at string midpoints when minFret changes
+    for (let i = 0; i < strings.length - 1; i++) {
+      const si   = strings[i];
+      const sj   = strings[i + 1];
+      const minI = stringFretMap.get(si)!.min;
+      const minJ = stringFretMap.get(sj)!.min;
+      const midX = (vxOf(si) + vxOf(sj)) / 2;
+      pts.push(this._toCanvas(midX, vyTop(minI)));
+      if (minJ !== minI) pts.push(this._toCanvas(midX, vyTop(minJ)));
+    }
+
+    // Top-right and bottom-right corners
+    pts.push(this._toCanvas(vxOf(lastS) + halfStr, vyTop(stringFretMap.get(lastS)!.min)));
+    pts.push(this._toCanvas(vxOf(lastS) + halfStr, vyBottom(stringFretMap.get(lastS)!.max)));
+
+    // Bottom edge: right → left, stepping at string midpoints when maxFret changes
+    for (let i = strings.length - 1; i > 0; i--) {
+      const si   = strings[i];
+      const sj   = strings[i - 1];
+      const maxI = stringFretMap.get(si)!.max;
+      const maxJ = stringFretMap.get(sj)!.max;
+      const midX = (vxOf(si) + vxOf(sj)) / 2;
+      pts.push(this._toCanvas(midX, vyBottom(maxI)));
+      if (maxJ !== maxI) pts.push(this._toCanvas(midX, vyBottom(maxJ)));
+    }
+
+    // Bottom-left corner (left edge closes back to top-left)
+    pts.push(this._toCanvas(vxOf(firstS) - halfStr, vyBottom(stringFretMap.get(firstS)!.max)));
+
+    if (pts.length < 3) return false;
+    const n = pts.length;
+    const r = cornerRadius * this.config.scaleFactor;
+    ctx.beginPath();
+    if (r <= 0) {
+      ctx.moveTo(pts[0].x, pts[0].y);
+      for (let i = 1; i < n; i++) ctx.lineTo(pts[i].x, pts[i].y);
+    } else {
+      // Start at the midpoint of the last edge so every vertex can be rounded with arcTo
+      const last = pts[n - 1];
+      ctx.moveTo((last.x + pts[0].x) / 2, (last.y + pts[0].y) / 2);
+      for (let i = 0; i < n; i++) {
+        const p    = pts[i];
+        const next = pts[(i + 1) % n];
+        ctx.arcTo(p.x, p.y, next.x, next.y, r);
+      }
+    }
+    ctx.closePath();
+    return true;
+  }
+
+  private _renderPolygons(ctx: CanvasRenderingContext2D): void {
+    const scaleFactor = this.config.scaleFactor;
+    for (const poly of this.polygonsToRender) {
+      const padding      = poly.padding      ?? 3;
+      const cornerRadius = poly.cornerRadius ?? 0;
+      if (!this._buildPolygonCanvasPath(ctx, poly.points, padding, cornerRadius)) continue;
+      ctx.save();
+      if (poly.fillColor) {
+        ctx.globalAlpha = poly.fillOpacity ?? 0.15;
+        ctx.fillStyle = poly.fillColor;
+        ctx.fill();
+      }
+      ctx.globalAlpha = poly.strokeOpacity ?? 1;
+      ctx.strokeStyle = poly.color;
+      ctx.lineWidth = (poly.strokeWidth ?? 2) * scaleFactor;
+      ctx.stroke();
+      ctx.restore();
+    }
+  }
+
   private _renderLines(ctx: CanvasRenderingContext2D): void {
     const scaleFactor = this.config.scaleFactor;
     ctx.save();
@@ -733,6 +899,8 @@ export class Fretboard {
     this.notesToRender.forEach((noteData) => {
       const displayFret = noteData.fret - this.startFret;
       if (noteData.fret === -1 || (displayFret >= 0 && displayFret <= this.fretCount)) {
+        ctx.save();
+        ctx.globalAlpha = noteData.opacity ?? 1;
 
         if (noteData.fret === -1) {
           // Handle muted string — compute canvas-space position via _toCanvas
@@ -833,6 +1001,7 @@ export class Fretboard {
             this._drawText(ctx, contentToDraw, x, y, effectiveFontSize, fgColor);
           }
         }
+        ctx.restore();
       }
     });
   }

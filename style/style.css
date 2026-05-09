@@ -1850,6 +1850,14 @@ body.dark-theme .drone-icon-btn.is-active {
   color: #fff;
 }
 
+/* ── CAGED feature — title and shape toggles ────────────────────────────────── */
+.caged-main-title {
+  margin: 0 0 4px !important;
+  color: var(--clr-text) !important;
+  font-family: inherit !important;
+}
+
+
 /* ── Drum machine — palette row additions ───────────────────────────────────── */
 .dm-palette-sep {
   width: 1px;

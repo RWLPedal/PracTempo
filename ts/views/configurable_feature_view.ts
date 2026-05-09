@@ -241,8 +241,11 @@ export class ConfigurableFeatureView extends BaseView {
     private createAndRenderFeature(config: (string | null)[]) {
         if (!this.featureClass) return;
 
-        // Substitute __driven__ sentinel with the last known driven value
-        const finalConfig = this.isDrivenUpdate
+        // Substitute __driven__ sentinel with the last known driven value.
+        // Also use buildDrivenConfig for user-triggered rebuilds when sentinels are
+        // present so that variadic args (e.g. CAGED shape buttons) are not discarded.
+        const hasDrivenSentinel = config.some(c => c === '__driven__');
+        const finalConfig = (this.isDrivenUpdate || hasDrivenSentinel)
             ? this.buildDrivenConfig(config)
             : config.filter(c => c !== null && c !== '__driven__') as string[];
 

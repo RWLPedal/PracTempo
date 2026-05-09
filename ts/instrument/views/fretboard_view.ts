@@ -4,6 +4,7 @@ import {
   FretboardConfig,
   NoteRenderData,
   LineData,
+  PolygonData,
 } from "../fretboard"; // Import types from fretboard.ts
 import { addCanvas, START_PX } from "../instrument_utils";
 
@@ -96,6 +97,11 @@ export class FretboardView extends BaseView {
 
   public setLines(lines: LineData[]): void {
     this.fretboard.setLines(lines);
+    this.redrawIfReady();
+  }
+
+  public setPolygons(polygons: PolygonData[]): void {
+    this.fretboard.setPolygons(polygons);
     this.redrawIfReady();
   }
 

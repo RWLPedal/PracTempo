@@ -263,6 +263,7 @@ registerDriveTarget({
 
 // ─── CagedFeature as target ───────────────────────────────────────────────────
 // Drives the 'Root Note' arg to slide CAGED patterns to a new root.
+// Also drives 'Scale Type' from a KeySignal so major/minor modality follows the source.
 
 registerDriveTarget({
   featureTypeName: 'CAGED',
@@ -272,6 +273,17 @@ registerDriveTarget({
   resolveValue(signal: DriveSignal): string | null {
     if (signal.kind === SignalKind.Tempo) return null;
     return signal.rootNote || null;
+  },
+});
+
+registerDriveTarget({
+  featureTypeName: 'CAGED',
+  argName: 'Scale Type',
+  label: 'Scale type (from linked key source)',
+  acceptedKinds: [SignalKind.Key],
+  resolveValue(signal: DriveSignal): string | null {
+    if (signal.kind !== SignalKind.Key) return null;
+    return signal.keyType === 'Major' ? 'Major' : 'Minor';
   },
 });
 

@@ -130,6 +130,11 @@ export class ConfigView {
                     if (first) select.value = first.value;
                 }
                 existing.remove();
+                // Sync argValues so buildFlatConfig no longer emits the sentinel.
+                if (typeof this.schema !== 'string') {
+                    const argIndex = this.schema.args.findIndex(a => a.name === argName);
+                    if (argIndex !== -1) this.argValues.set(argIndex, select.value);
+                }
             }
             return;
         }
