@@ -1,0 +1,96 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   base.css — Design tokens, theme bridge, global utilities
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Design Tokens ──────────────────────────────────────────────────────── */
+:root {
+  /* Navy / blue family */
+  --clr-navy-900:   #001F5B;
+  --clr-navy-700:   #1E3A5F;
+  --clr-navy-500:   #2C4A7C;
+  --clr-navy-300:   #4E7FBA;
+  --clr-slate-500:  #6A5ACD;
+  --clr-sky-300:    #87CEEB;
+  --clr-teal-300:   #8FD1D1;
+  --clr-steel-200:  #B0C4DE;
+
+  /* Neutral greys */
+  --clr-grey-50:   #F8F9FA;
+  --clr-grey-100:  #F1F4F8;
+  --clr-grey-200:  #E2E8F0;
+  --clr-grey-300:  #CBD5E1;
+  --clr-grey-500:  #64748B;
+  --clr-grey-700:  #334155;
+  --clr-grey-900:  #1A1A2E;
+
+  --clr-dark-bg:   #1A1F2E;
+
+  /* Semantic */
+  --clr-danger:  #C0392B;
+  --clr-success: #1A6B3A;
+  --clr-info:    var(--clr-navy-500);
+  --clr-warning: #B07A00;
+
+  /* ── Light Mode (legacy refs — theme-tokens.css now drives actual values) */
+  --clr-bg-light:           #F8F9FA;
+  --clr-primary-light:      #2C4A7C;
+  --clr-secondary-light:    #F1F4F8;
+  --clr-tertiary-light:     #E2E8F0;
+  --clr-text-light:         #1A1A2E;
+  --clr-text-subtle-light:  #64748B;
+  --clr-border-light:       #E2E8F0;
+  --clr-shadow-light:       rgba(0, 0, 0, 0.08);
+
+  /* ── Dark Mode (legacy refs) */
+  --clr-bg-dark:           #1A1F2E;
+  --clr-primary-dark:      #4E7FBA;
+  --clr-secondary-dark:    #252C3B;
+  --clr-tertiary-dark:     #2D3548;
+  --clr-text-dark:         #E8ECF0;
+  --clr-text-subtle-dark:  #8B9BB4;
+  --clr-border-dark:       #363E52;
+  --clr-shadow-dark:       rgba(0, 0, 0, 0.30);
+
+  /* ── Hover states */
+  --clr-primary-light-hover: #1E3A5F;
+  --clr-primary-dark-hover:  #6FA3D4;
+
+  --clr-link: var(--clr-primary-light);
+}
+
+/* ── Apply theme tokens → semantic vars ─────────────────────────────────── */
+body {
+  /* theme-tokens.css sets --bg, --accent, etc. on [data-theme]; these
+     mappings let rules using --clr-* continue to work. */
+  --clr-bg:          var(--bg);
+  --clr-primary:     var(--accent);
+  --clr-secondary:   var(--panel-bg);
+  --clr-tertiary:    var(--input-bg);
+  --clr-text:        var(--text-primary);
+  --clr-text-subtle: var(--text-muted);
+  --clr-border:      var(--border);
+  --clr-shadow:      var(--clr-shadow, rgba(0, 0, 0, 0.10));
+  --clr-link:        var(--accent);
+  --clr-primary-light-hover: var(--accent-dim);
+  --clr-primary-dark-hover:  var(--accent-dim);
+
+  font-family: 'DM Sans', 'Open Sans', sans-serif;
+  background-color: var(--bg);
+  color: var(--text-primary);
+  transition: background-color 0.3s ease, color 0.3s ease;
+}
+
+/* ── Flash Overlay ──────────────────────────────────────────────────────── */
+.hidden  { display: none;  opacity: 0; }
+.visible { display: block; opacity: 0.8; }
+#overlay {
+  background: var(--clr-danger);
+  height: 100%;
+  left: 0;
+  position: fixed;
+  right: 0;
+  top: 0;
+  width: 100%;
+  z-index: 100;
+  transition: opacity 0.15s ease-in-out;
+}

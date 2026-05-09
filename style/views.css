@@ -1,0 +1,783 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   views.css — Feature view styles: timer, schedule playback, chord diagram,
+   metronome, color legend, drone, drum machine, capo, and shared
+   feature-title helpers.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── Feature Title Helpers ─────────────────────────────────────────────── */
+.feature-main-title {
+  font-size: 0.9rem !important;
+  margin-top: 0 !important;
+  margin-bottom: 4px !important;
+  padding: 0 !important;
+}
+.floating-view-content .feature-main-title { display: none !important; }
+
+.feature-subtitle {
+  font-size: 0.9rem !important;
+  margin-top: 4px !important;
+  margin-bottom: 2px !important;
+  padding: 0 !important;
+}
+
+/* ─── TimerView ─────────────────────────────────────────────────────────── */
+.timer-view {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 6px 8px;
+}
+.timer-title {
+  font-size: 1.25em;
+  font-weight: 600;
+  color: var(--clr-text);
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.timer-ring-container {
+  position: relative;
+  width: 220px;
+  height: 220px;
+  align-self: center;
+}
+.timer-ring {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg) scale(-1, 1);
+}
+.timer-ring-bg {
+  fill: none;
+  stroke: var(--clr-border);
+  stroke-width: 12;
+}
+.timer-ring-progress {
+  fill: none;
+  stroke: var(--clr-primary);
+  stroke-width: 12;
+  stroke-linecap: round;
+  stroke-dasharray: 628.3;
+  stroke-dashoffset: 0;
+  transition: stroke-dashoffset 0.9s linear;
+}
+.timer-controls {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  gap: 8px;
+}
+.timer-start-pause,
+.timer-reset {
+  padding: 4px 14px;
+  font-size: 1em;
+  min-width: 2.5em;
+}
+.timer-display {
+  font-family: 'DM Mono', 'SF Mono', 'Fira Code', 'Consolas', monospace;
+  font-size: 2.2em;
+  font-weight: 400;
+  line-height: 1.1;
+  cursor: pointer;
+  border-radius: 6px;
+  padding: 4px 8px;
+  background: transparent;
+  color: var(--clr-text);
+  user-select: none;
+  min-width: 7.5ch;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  white-space: nowrap;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+.timer-display[contenteditable="true"],
+.timer-display.is-editing {
+  outline: 2px solid var(--clr-primary);
+  background: var(--clr-tertiary);
+  cursor: text;
+  user-select: text;
+}
+
+/* ─── SchedulePlaybackView ───────────────────────────────────────────────── */
+.schedule-playback-view {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 4px 0;
+}
+.playback-total-section {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 0 8px;
+}
+.playback-section-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--clr-text-subtle);
+  white-space: nowrap;
+  margin: 0;
+}
+.playback-total-timer {
+  font-size: 1em;
+  font-variant-numeric: tabular-nums;
+  color: var(--clr-text-subtle);
+}
+.playback-upcoming-section { padding: 0 8px; }
+.playback-upcoming-section > .playback-section-label {
+  margin-bottom: 6px;
+  display: block;
+}
+.playback-upcoming-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.playback-upcoming-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 10px;
+  border-radius: 5px;
+  background: var(--clr-tertiary);
+  gap: 8px;
+}
+body.dark-theme .playback-upcoming-item { background: var(--clr-tertiary-dark); }
+.playback-upcoming-name {
+  flex: 1;
+  font-size: 0.9em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--clr-text);
+}
+.playback-upcoming-duration {
+  font-size: 0.78em;
+  font-variant-numeric: tabular-nums;
+  color: var(--clr-text-subtle);
+  background: var(--clr-secondary);
+  border-radius: 10px;
+  padding: 1px 9px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  border: 1px solid var(--clr-border);
+}
+body.dark-theme .playback-upcoming-duration {
+  background: var(--clr-secondary-dark);
+  border-color: var(--clr-border-dark);
+}
+.playback-upcoming-end .playback-upcoming-name {
+  font-weight: 700;
+  font-size: 0.8em;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--clr-text-subtle);
+}
+.playback-upcoming-empty {
+  font-size: 0.85em;
+  color: var(--clr-text-subtle);
+  padding: 4px 10px;
+  font-style: italic;
+}
+
+/* ─── Chord Diagram View ─────────────────────────────────────────────────── */
+.chord-diagram-view {
+  display: inline-block;
+  vertical-align: top;
+  padding: 5px;
+}
+.chord-diagram-view .title.is-6 { margin-bottom: 4px !important; }
+.chord-diagram-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-align: center;
+  color: var(--clr-text);
+  margin-bottom: 2px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.chord-notes-list {
+  font-size: 0.75rem;
+  text-align: center;
+  color: var(--clr-text-subtle);
+  margin-bottom: 8px;
+  line-height: 1.2;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ─── Metronome View ─────────────────────────────────────────────────────── */
+.metronome-view {
+  width: 100%;
+  padding: 8px 10px;
+  box-sizing: border-box;
+}
+
+.metronome-beats-container {
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 0;
+  border-bottom: none;
+  margin-bottom: 10px;
+}
+.metronome-beat.beat-downbeat { width: 20px; height: 20px; }
+.metronome-beat.beat-subdivision { width: 16px; height: 16px; opacity: 0.75; }
+
+.metronome-beat.beat-normal {
+  background-color: var(--text-muted);
+  opacity: 0.7;
+}
+.metronome-beat.beat-accent {
+  background-color: var(--accent);
+  opacity: 1;
+}
+.metronome-beat.beat-silent {
+  background-color: transparent;
+  border: 2px dashed var(--border);
+  opacity: 0.5;
+}
+.metronome-beat.beat-current {
+  border-color: var(--accent);
+  transform: scale(1.15);
+  box-shadow: 0 0 5px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+.metronome-beat.beat-current.beat-normal,
+.metronome-beat.beat-current.beat-silent { opacity: 1; }
+
+.metronome-beat {
+  cursor: pointer;
+  transition: transform 0.1s ease-out;
+}
+.metronome-beat:hover { transform: scale(1.1); }
+
+.play-pause-btn .material-icons { vertical-align: middle; }
+
+.metronome-transport-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 4px;
+}
+.metronome-bpm-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.metronome-progression {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-shrink: 0;
+}
+.metronome-progression-input {
+  width: 40px;
+  padding: 1px 3px;
+  text-align: center;
+  font-size: 0.72rem;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  background: var(--input-bg, var(--panel-bg));
+  color: var(--text);
+}
+.metronome-progression-input:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.metronome-progression-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.play-pause-btn {
+  min-width: 40px;
+  font-size: 1.2em;
+  padding-top: 0;
+  padding-bottom: 0;
+  line-height: 1.5;
+}
+.metronome-bpm-slider {
+  flex: 1 1 0;
+  min-width: 50px;
+}
+.metronome-bpm-display {
+  min-width: 32px;
+  font-size: 0.8rem;
+  text-align: right;
+}
+.metronome-mute-btn.is-warning {
+  background-color: var(--clr-warning);
+  color: rgba(0, 0, 0, 0.8);
+  border-color: transparent;
+}
+
+/* ─── Color Legend View ──────────────────────────────────────────────────── */
+.color-legend-view .legend-title {
+  font-weight: 600;
+  margin-bottom: 8px;
+  font-size: 0.8rem;
+  text-align: center;
+  border-bottom: 1px solid var(--border, var(--clr-border));
+  padding-bottom: 4px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  margin-bottom: 4px;
+  font-size: 0.75rem;
+}
+.color-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.15);
+  margin-right: 6px;
+  flex-shrink: 0;
+}
+.legend-label { flex-grow: 1; }
+
+body.dark-theme .color-legend-view .legend-title { border-bottom-color: var(--clr-border-dark); }
+body.dark-theme .color-swatch { border-color: rgba(255, 255, 255, 0.20); }
+
+/* ─── DroneView ──────────────────────────────────────────────────────────── */
+.drone-view {
+  display: flex;
+  flex-direction: column;
+  padding: 8px 10px;
+}
+
+.drone-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.drone-play-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 6px;
+  height: 26px;
+  min-width: 32px;
+  border-radius: 4px;
+}
+
+.drone-play-btn .material-icons {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.drone-play-btn.is-active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: white;
+}
+
+/* ─── Feature Title Row (Scale / CAGED / etc.) ───────────────────────────── */
+.feature-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+.feature-title-row .feature-main-title {
+  flex: 1;
+  margin: 0 !important;
+}
+.drone-icon-btn {
+  flex-shrink: 0;
+  background: none;
+  border: 1px solid var(--clr-border);
+  border-radius: 4px;
+  cursor: pointer;
+  color: var(--clr-text-subtle);
+  padding: 2px 4px;
+  display: flex;
+  align-items: center;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.drone-icon-btn .material-icons { font-size: 18px; }
+.drone-icon-btn:hover {
+  color: var(--clr-primary);
+  border-color: var(--clr-primary);
+}
+.drone-icon-btn.is-active {
+  background: var(--clr-primary);
+  border-color: var(--clr-primary);
+  color: #fff;
+}
+body.dark-theme .drone-icon-btn {
+  border-color: var(--clr-border-dark);
+  color: var(--clr-text-subtle-dark);
+}
+body.dark-theme .drone-icon-btn:hover {
+  color: var(--clr-primary-dark);
+  border-color: var(--clr-primary-dark);
+}
+body.dark-theme .drone-icon-btn.is-active {
+  background: var(--clr-primary-dark);
+  border-color: var(--clr-primary-dark);
+  color: #fff;
+}
+
+/* ─── CAGED Feature ──────────────────────────────────────────────────────── */
+.caged-main-title {
+  margin: 0 0 4px !important;
+  color: var(--clr-text) !important;
+  font-family: inherit !important;
+}
+
+/* ─── DrumMachineView ────────────────────────────────────────────────────── */
+.drum-machine-view {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  padding: 8px 10px;
+  min-width: 440px;
+}
+
+.dm-controls {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.dm-control-group {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.dm-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--clr-text-subtle);
+  white-space: nowrap;
+}
+.dm-bpm-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.dm-bpm-slider {
+  width: 60px;
+  cursor: pointer;
+  accent-color: var(--clr-primary);
+}
+.dm-bpm-display {
+  font-size: 0.78rem;
+  font-weight: 700;
+  min-width: 3.2ch;
+  text-align: right;
+  color: var(--clr-text);
+  font-variant-numeric: tabular-nums;
+}
+.dm-play-btn {
+  margin-left: auto;
+  min-width: 56px;
+}
+.dm-icon-btn {
+  padding: 0 4px !important;
+  height: auto !important;
+  line-height: 1 !important;
+}
+.dm-icon-btn .material-icons { font-size: 16px; }
+
+/* Palette: two stacked rows */
+.dm-palette {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.dm-palette-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  flex-wrap: nowrap;
+}
+.dm-sound-btn {
+  border: 2px solid transparent !important;
+  font-size: 0.7rem !important;
+  padding: 2px 8px !important;
+  height: auto !important;
+  line-height: 1.6 !important;
+  transition: border-color 0.1s, background 0.1s, color 0.1s;
+}
+.dm-sound-btn:hover {
+  border-color: var(--accent) !important;
+  color: var(--accent) !important;
+}
+.dm-sound-btn.is-active {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+  color: #fff !important;
+}
+
+/* Grid */
+.dm-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dm-row {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.dm-track-label {
+  width: 40px;
+  min-width: 40px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-align: right;
+  padding-right: 4px;
+  color: var(--clr-text-subtle);
+  user-select: none;
+  white-space: nowrap;
+  overflow: hidden;
+}
+.dm-step-num {
+  width: 28px;
+  min-width: 28px;
+  height: 14px;
+  text-align: center;
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  user-select: none;
+  line-height: 14px;
+}
+.dm-step-num.dm-step-current { color: var(--clr-primary); }
+
+/* Extra left margin at beat boundaries (steps 4, 8, 12, …) */
+.dm-beat-start { margin-left: 4px; }
+
+.dm-cell {
+  width: 28px;
+  min-width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.92);
+  background: var(--pad-off);
+  border: 1px solid color-mix(in srgb, var(--text-primary) 8%, transparent);
+  user-select: none;
+  transition: filter 0.07s, transform 0.06s;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  box-sizing: border-box;
+}
+.dm-cell:hover {
+  filter: brightness(1.10);
+  transform: scale(1.07);
+}
+.dm-cell.dm-cell-filled {
+  border-color: rgba(0, 0, 0, 0.18);
+}
+.dm-cell.dm-cell-current {
+  outline: 2px solid var(--clr-primary);
+  outline-offset: 1px;
+}
+
+body.dark-theme .dm-cell.dm-cell-filled {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* Palette separator and chord/key tool buttons */
+.dm-palette-sep {
+  width: 1px;
+  align-self: stretch;
+  background: var(--clr-border);
+  margin: 0 4px;
+  flex-shrink: 0;
+}
+.dm-key-type-btn {
+  font-size: 0.68rem !important;
+  padding: 2px 6px !important;
+  height: auto !important;
+  border-radius: 4px !important;
+  white-space: nowrap;
+}
+.dm-chord-tool-select { font-size: 0.72rem !important; }
+.dm-chord-tool-active  { border-color: var(--accent) !important; }
+
+/* Backing track — bass degree dropdown */
+.dm-bass-tool-select { font-size: 0.72rem !important; }
+.dm-bass-tool-active  { border-color: var(--note-fifth) !important; }
+
+/* Backing track — bars pill toggle */
+.dm-bars-toggle {
+  display: flex;
+  align-items: stretch;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+.dm-bars-btn {
+  background: none;
+  border: none;
+  border-right: 1px solid var(--border);
+  padding: 2px 7px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--text-muted);
+  line-height: 1.6;
+  transition: background 0.1s, color 0.1s;
+}
+.dm-bars-btn:last-child { border-right: none; }
+.dm-bars-btn:hover {
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+.dm-bars-btn.is-active {
+  background: var(--accent);
+  color: #fff;
+}
+
+/* Chord progression row */
+.dm-prog-separator {
+  height: 1px;
+  background: var(--border);
+  margin: 4px 0 2px;
+  opacity: 0.6;
+}
+/* Width and font-size are set dynamically; the formula w = 480/N − 2 ensures
+   N cells always fill the same 490 px as the drum grid. */
+.dm-measure-cell {
+  flex: none;
+  height: 28px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: var(--pad-off);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-weight: 700;
+  color: var(--text-muted);
+  user-select: none;
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: filter 0.1s, transform 0.07s;
+}
+.dm-measure-cell:hover { filter: brightness(1.08); }
+.dm-measure-cell.dm-measure-filled {
+  background: var(--dm-measure-color, #2C4A7C);
+  color: #fff;
+  border-color: rgba(0, 0, 0, 0.15);
+}
+.dm-measure-cell.dm-measure-current {
+  outline: 2px solid var(--clr-primary);
+  outline-offset: 1px;
+}
+body.dark-theme .dm-measure-cell.dm-measure-filled {
+  border-color: rgba(255, 255, 255, 0.15);
+}
+
+/* ─── Capo View ──────────────────────────────────────────────────────────── */
+.capo-view {
+  font-size: 13px;
+  padding: 4px 8px;
+  min-width: 200px;
+}
+
+.capo-view-capo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.capo-view-label {
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
+.capo-view-select {
+  flex: 1;
+  max-width: 140px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  font-family: inherit;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+.capo-view-select:hover,
+.capo-view-select:focus {
+  border-color: var(--accent);
+  outline: none;
+}
+.capo-view-select option {
+  background: var(--panel-bg);
+  color: var(--text-primary);
+}
+
+.capo-view-header-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 2px 10px;
+  margin-bottom: 4px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-muted);
+  border-bottom: 1px solid var(--border);
+}
+
+.capo-view-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.capo-view-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 12px;
+  border-radius: 20px;
+  background: var(--input-bg);
+  font-size: 13px;
+  transition: background 0.12s;
+}
+
+.capo-view-row:hover {
+  background: var(--border);
+}
+
+.capo-view-row-left {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.capo-view-row-right {
+  font-weight: 400;
+  color: var(--accent);
+}

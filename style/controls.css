@@ -1,0 +1,412 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   controls.css — Buttons, inputs, form elements, notifications, app controls,
+   settings modal theming, and volume control.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ── Button ─────────────────────────────────────────────────────────────── */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  height: 2.25em;
+  padding: 0.375em 0.75em;
+  white-space: nowrap;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  text-decoration: none;
+  background-color: var(--panel-bg);
+  border-color: var(--border);
+  color: var(--text-primary);
+}
+.button:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+/* In dark/forest themes Bulma's is-light renders white — override it */
+:root[data-theme="dark"] .button.is-light,
+:root[data-theme="forest"] .button.is-light {
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+
+/* ── Inputs, textareas, selects ─────────────────────────────────────────── */
+.input,
+.textarea,
+.select select,
+.modal-card-body .input,
+.modal-card-body .select select {
+  display: block;
+  width: 100%;
+  height: 2.25em;
+  padding: 0.375em 0.75em;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  appearance: none;
+  -webkit-appearance: none;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 1rem;
+  line-height: 1.5;
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+}
+.textarea {
+  display: block;
+  height: auto;
+  resize: vertical;
+}
+.input::placeholder,
+.textarea::placeholder { color: var(--text-muted); }
+
+.select {
+  display: inline-block;
+  position: relative;
+  vertical-align: top;
+}
+.select.is-fullwidth,
+.select.is-fullwidth select { width: 100%; }
+.select select { padding-right: 2.25em; }
+.select:not(.is-multiple):not(.is-loading)::after {
+  border-color: var(--clr-link);
+  border-style: solid;
+  border-width: 2px;
+  border-right: 0;
+  border-top: 0;
+  content: '';
+  display: block;
+  height: 0.5em;
+  width: 0.5em;
+  pointer-events: none;
+  position: absolute;
+  right: 0.75em;
+  top: 50%;
+  transform: translateY(-75%) rotate(-45deg);
+}
+
+/* ── Form layout (field / label / control) ──────────────────────────────── */
+.field { margin-bottom: 0.75rem; }
+.field.is-horizontal { display: flex; align-items: baseline; }
+.field-label { flex: 0 0 auto; width: 160px; padding-right: 12px; }
+.field-label.is-normal { padding-top: 0.375em; }
+.field-body { flex: 1; display: flex; flex-direction: column; }
+.field-body .field { margin-bottom: 0; }
+.label { font-weight: 600; font-size: 0.875rem; margin-bottom: 0.25rem; display: block; }
+.control { position: relative; }
+.control.is-expanded { flex: 1; }
+.checkbox { cursor: pointer; }
+
+/* ── Delete / close button (×) ──────────────────────────────────────────── */
+.delete {
+  background: rgba(10, 10, 10, 0.2);
+  border: none;
+  border-radius: 9999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  position: relative;
+  flex-shrink: 0;
+}
+.delete::before,
+.delete::after {
+  background-color: white;
+  content: '';
+  display: block;
+  position: absolute;
+  height: 2px;
+  width: 50%;
+}
+.delete::before { transform: rotate(45deg); }
+.delete::after  { transform: rotate(-45deg); }
+.delete:hover { background: rgba(10, 10, 10, 0.4); }
+
+/* ── Typography helpers ─────────────────────────────────────────────────── */
+.title.is-6 { font-size: 1rem; font-weight: 600; }
+.subtitle {
+  color: var(--clr-text-subtle);
+  font-weight: 400;
+  margin-bottom: 0.5rem;
+}
+
+/* ── Layout utility classes ─────────────────────────────────────────────── */
+.mt-4 { margin-top: 1rem; }
+.is-justify-content-flex-end { justify-content: flex-end; }
+
+/* ── Notifications ──────────────────────────────────────────────────────── */
+.notification {
+  background-color: var(--clr-secondary);
+  color: var(--clr-text);
+  border-radius: 6px;
+  border: 1px solid var(--clr-border);
+  padding: 1rem;
+}
+body.dark-theme .notification {
+  background-color: var(--clr-secondary-dark);
+  color: var(--clr-text-dark);
+  border-color: transparent;
+}
+.notification.is-info {
+  background-color: var(--clr-info);
+  color: white;
+  border: none;
+}
+.notification.is-success {
+  background-color: var(--clr-success);
+  color: white;
+  border: none;
+}
+body.dark-theme .notification.is-info,
+body.dark-theme .notification.is-success { color: #fff; }
+
+#task-wrapper {
+  background-color: var(--clr-secondary);
+  color: var(--clr-text);
+  border: none;
+}
+body.dark-theme #task-wrapper { color: var(--clr-text-dark); }
+
+/* ── Underline-only inputs for config / feature-arg controls ────────────── */
+.config-feature-arg {
+  border: none;
+  border-bottom: 1px solid var(--clr-border);
+  border-radius: 0;
+  padding: 4px 4px 4px 0;
+  background-color: transparent;
+  color: var(--clr-text);
+  font-size: 0.8rem;
+  line-height: 1.2;
+  height: auto;
+  max-width: 120px;
+  transition: border-color 0.15s;
+}
+.config-feature-arg:hover,
+.config-feature-arg:focus {
+  border-bottom-color: var(--clr-primary);
+  outline: none;
+  box-shadow: none;
+}
+body.dark-theme .config-feature-arg {
+  color: var(--clr-text-dark);
+  border-bottom-color: var(--clr-border-dark);
+}
+body.dark-theme .config-feature-arg:hover,
+body.dark-theme .config-feature-arg:focus {
+  border-bottom-color: var(--clr-primary-dark);
+}
+
+/* ── Main Controls (Start / Reset / Settings) ───────────────────────────── */
+.main-controls { align-items: center; }
+.main-controls .level-item {
+  margin: 0 5px;
+  flex-shrink: 0;
+}
+.main-controls .button.not-text {
+  min-width: auto;
+  padding-left: 8px;
+  padding-right: 8px;
+  height: auto;
+}
+.main-controls .button { min-width: 80px; }
+
+#start-control.is-success {
+  background-color: var(--clr-success);
+  color: white;
+  border: none;
+}
+#start-control.is-warning {
+  background-color: var(--clr-warning);
+  color: rgba(0, 0, 0, 0.8);
+  border: none;
+}
+#reset-control.is-danger {
+  background-color: var(--clr-danger);
+  color: white;
+  border: none;
+}
+
+.topbar-icon-buttons {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+.topbar-icon-button,
+#settings-button {
+  background: none;
+  border: none;
+  padding: 0 5px;
+  cursor: pointer;
+  color: var(--clr-text-subtle);
+  font-size: 1.5rem;
+  line-height: 1;
+  vertical-align: middle;
+  text-decoration: none;
+}
+.topbar-icon-button:hover,
+#settings-button:hover { color: var(--clr-link); }
+
+#floating-view-button {
+  background: none;
+  border: none;
+  text-decoration: none;
+}
+#floating-view-button:hover { color: var(--clr-link); }
+
+/* ── Editor Controls Container (bottom of schedule editor) ──────────────── */
+#editor-controls {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--clr-border);
+}
+#editor-controls .button {
+  font-family: 'Open Sans', sans-serif;
+  text-decoration: none;
+  background-color: var(--clr-secondary);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+  padding: 0.25em 0.5em;
+  font-size: 0.85em;
+  transition: background-color 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out;
+  border-radius: 4px;
+}
+#editor-controls .button:hover {
+  background-color: var(--clr-tertiary);
+  color: var(--clr-text);
+  border-color: var(--clr-grey-300);
+}
+#editor-controls .button:active {
+  background-color: var(--clr-border);
+  color: var(--clr-text-subtle);
+}
+body.dark-theme #editor-controls .button {
+  background-color: var(--clr-secondary-dark);
+  color: var(--clr-text-dark);
+  border-color: var(--clr-border-dark);
+}
+body.dark-theme #editor-controls .button:hover {
+  background-color: var(--clr-tertiary-dark);
+  color: var(--clr-text-dark);
+  border-color: var(--clr-border-dark);
+}
+body.dark-theme #editor-controls .button:active {
+  background-color: #3A4560;
+  color: var(--clr-text-subtle-dark);
+  border-color: var(--clr-border-dark);
+}
+
+#set-schedule-control {
+  background-color: var(--clr-primary);
+  color: white;
+  border: none;
+}
+#set-schedule-control:hover { opacity: 0.9; }
+body.dark-theme #set-schedule-control {
+  background-color: var(--clr-primary);
+  color: #fff;
+}
+
+#mode-toggle {
+  border-color: var(--clr-link);
+  color: var(--clr-link);
+}
+#add-config-entry {
+  border-color: var(--clr-info);
+  color: var(--clr-info);
+}
+body.dark-theme #mode-toggle {
+  color: var(--clr-link);
+  border-color: var(--clr-link);
+}
+body.dark-theme #add-config-entry {
+  color: var(--clr-info);
+  border-color: var(--clr-info);
+}
+
+/* ── Settings Modal — themed colors ─────────────────────────────────────── */
+/* Structural layout (position, flex, sizing) is in layout.css */
+.modal-card { background-color: var(--settings-bg); }
+.modal-card-head {
+  background-color: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
+}
+.modal-card-title { color: var(--text-primary); }
+.modal-card-foot {
+  background-color: var(--panel-bg);
+  border-top: 1px solid var(--border);
+}
+.modal-card-body {
+  background-color: var(--settings-bg);
+  color: var(--text-primary);
+}
+.modal-card-body .field label.label { color: var(--text-primary); }
+.modal-card-body .title { color: var(--text-primary); }
+
+.modal-card-foot .button.is-success {
+  background-color: var(--clr-success);
+  color: white;
+  border: none;
+}
+.modal-card-foot .button:not(.is-success) {
+  background-color: var(--panel-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+/* ── Volume Control ─────────────────────────────────────────────────────── */
+.vol-ctrl {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.vol-ctrl-popup {
+  position: fixed;
+  background: var(--clr-bg);
+  border: 1px solid var(--clr-border);
+  border-radius: 8px;
+  z-index: 9999;
+  box-shadow: 0 6px 20px var(--clr-shadow);
+  min-width: 170px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+.vol-ctrl-popup[hidden] { display: none; }
+.vol-ctrl-popup-title {
+  background: var(--clr-secondary);
+  border-bottom: 1px solid var(--clr-border);
+  padding: 4px 10px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--clr-text-subtle);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.vol-ctrl-popup-body {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+}
+.vol-ctrl-slider {
+  flex: 1;
+  cursor: pointer;
+  accent-color: var(--clr-primary);
+}
+.vol-ctrl-pct {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--clr-text);
+  min-width: 36px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+body.dark-theme .vol-ctrl-popup-title {
+  background: var(--clr-secondary-dark);
+  border-bottom-color: var(--clr-border-dark);
+}

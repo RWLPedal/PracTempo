@@ -1,0 +1,417 @@
+/* ══════════════════════════════════════════════════════════════════════════
+   editor.css — Config compact panel, schedule editor grid, feature argument
+   inputs, layer palette picker, and drag-and-drop styles.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/* ─── ConfigView compact (floating windows) ──────────────────────────────── */
+.config-compact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  align-items: center;
+  padding: 3px 0;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+  max-height: 600px;
+  transition: max-height 0.25s ease, padding 0.25s ease,
+              margin-bottom 0.25s ease, border-bottom-width 0.25s ease;
+}
+.config-compact.is-collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  margin-bottom: 0;
+  border-bottom-width: 0;
+}
+.config-compact .field {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-bottom: 0;
+}
+.config-compact .config-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  margin-bottom: 0;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.config-compact .control {
+  display: flex;
+  align-items: center;
+}
+
+/* Select dropdown */
+.config-compact .config-select-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.config-compact .config-select-wrap select {
+  font-family: inherit;
+  font-size: 0.78rem;
+  height: 26px;
+  padding: 0 1.5em 0 0.4em;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background-color: transparent;
+  color: var(--text-primary);
+  appearance: none;
+  -webkit-appearance: none;
+  cursor: pointer;
+  min-width: 70px;
+  transition: border-color 0.15s;
+}
+.config-compact .config-select-wrap select option {
+  background-color: var(--panel-bg);
+  color: var(--text-primary);
+}
+.config-compact .config-select-wrap select:hover,
+.config-compact .config-select-wrap select:focus {
+  border-bottom-color: var(--accent);
+  outline: none;
+  box-shadow: none;
+}
+.config-compact .config-select-wrap::after {
+  content: '';
+  position: absolute;
+  right: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 0;
+  height: 0;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  border-top: 5px solid var(--text-muted);
+  pointer-events: none;
+}
+
+/* Toggle buttons */
+.config-compact .config-toggle-btn {
+  font-family: inherit;
+  font-size: 0.70rem;
+  height: 22px;
+  padding: 0 7px;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  white-space: nowrap;
+}
+.config-compact .config-toggle-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+.config-compact .config-toggle-btn.is-active {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--panel-bg);
+}
+
+/* Checkbox */
+.config-compact .config-checkbox-label {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  user-select: none;
+}
+.config-compact .config-checkbox-label input[type="checkbox"] {
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+/* ─── Schedule Editor ────────────────────────────────────────────────────── */
+#schedule-editor-container {
+  background-color: transparent;
+  padding: 1rem;
+  border-radius: 6px;
+  border: 1px solid var(--clr-border);
+}
+body.dark-theme #schedule-editor-container {
+  background-color: var(--clr-secondary-dark);
+}
+
+#text-editor-wrapper .textarea {
+  background-color: var(--clr-bg);
+  border: 1px solid var(--clr-border);
+  color: var(--clr-text);
+}
+
+/* Config Editor Grid Layout */
+.config-header,
+.config-entry-row {
+  display: grid;
+  grid-template-columns: 70px minmax(100px, 1fr) 130px minmax(150px, 2fr) 40px;
+  gap: 8px;
+  align-items: start;
+  margin-bottom: 8px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--clr-border);
+}
+.config-entry-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+}
+
+.config-header {
+  font-weight: 700;
+  font-size: 0.7rem;
+  padding-bottom: 5px;
+  border-bottom: 2px solid var(--clr-border);
+  color: var(--clr-text-subtle);
+  margin-bottom: 8px;
+  align-items: center;
+  text-transform: uppercase;
+}
+.config-header .header-item { padding: 0 4px; }
+
+.config-entry-row {
+  background-color: transparent;
+  border-radius: 6px;
+  padding: 8px;
+  border: 1px solid transparent;
+  box-shadow: none;
+  transition: background-color 0.15s ease;
+  align-items: center;
+}
+.config-entry-row:hover {
+  background-color: var(--clr-secondary);
+  border-color: var(--clr-border);
+}
+body.dark-theme .config-entry-row { background-color: transparent; }
+body.dark-theme .config-entry-row:hover { background-color: var(--clr-secondary-dark); }
+
+.config-cell { padding: 0 4px; }
+.duration-cell,
+.action-cell,
+.config-header .header-item:first-child,
+.config-header .header-item:last-child {
+  text-align: center;
+  align-self: center;
+}
+.feature-args-inner-container {
+  display: flex;
+  flex-wrap: wrap;
+}
+.feature-args-cell {
+  display: flex;
+  flex-direction: row;
+  gap: 4px;
+  align-self: start;
+}
+
+/* Feature Argument Styling */
+.feature-arg-wrapper {
+  display: flex;
+  flex-direction: row;
+  gap: 3px;
+  align-items: center;
+}
+.feature-arg-wrapper label {
+  font-size: 0.65rem;
+  color: var(--clr-text-subtle);
+  font-weight: 700;
+  display: block;
+  margin-bottom: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+.feature-arg-inputs-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  align-items: center;
+}
+
+/* Compact toggle buttons in schedule editor */
+.numeral-toggle-btn.button {
+  font-size: 0.7rem !important;
+  height: 22px !important;
+  padding: 0 5px !important;
+  line-height: 1 !important;
+  border-radius: 3px;
+}
+.variadic-input-wrapper {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.select.is-small { margin: 0; }
+.variadic-input-wrapper .select { max-width: 120px; }
+
+/* Variadic Buttons */
+.remove-variadic-arg-btn {
+  padding: 0 5px !important;
+  height: 22px !important;
+  line-height: 1 !important;
+  font-size: 0.8rem !important;
+  min-width: auto;
+  color: var(--clr-danger);
+  border-color: var(--clr-danger);
+  background-color: transparent;
+}
+.remove-variadic-arg-btn:hover { background-color: rgba(192, 57, 43, 0.08); }
+body.dark-theme .remove-variadic-arg-btn {
+  color: #f09080;
+  border-color: #f09080;
+}
+
+.add-variadic-group-btn {
+  padding: 0 6px !important;
+  height: 24px !important;
+  line-height: 1 !important;
+  font-size: 0.9rem !important;
+  margin-top: 4px;
+  align-self: flex-start;
+  color: var(--clr-info);
+  border-color: var(--clr-info);
+  background-color: transparent;
+}
+.add-variadic-group-btn:hover { background-color: rgba(44, 74, 124, 0.08); }
+body.dark-theme .add-variadic-group-btn {
+  color: var(--clr-primary-dark);
+  border-color: var(--clr-primary-dark);
+}
+
+/* Remove Row Button */
+.remove-interval-btn {
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  cursor: pointer;
+  background: none;
+  border: none;
+  color: var(--clr-danger);
+  font-size: 1rem;
+  padding: 0;
+  line-height: 1;
+}
+.config-entry-row:hover .remove-interval-btn { opacity: 1; }
+.remove-interval-btn:hover { color: #922B21; }
+body.dark-theme .remove-interval-btn { color: #f09080; }
+body.dark-theme .remove-interval-btn:hover { color: #e87060; }
+
+/* ─── Layer List — Palette Color Picker ──────────────────────────────────── */
+.layer-palette-picker-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.layer-palette-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: border-color 0.12s, box-shadow 0.12s;
+}
+.layer-palette-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px var(--accent-dim, var(--border));
+}
+
+.layer-palette-swatch-preview {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.layer-palette-popover {
+  position: fixed;
+  z-index: 9999;
+  display: flex;
+  gap: 5px;
+  padding: 6px;
+  background: var(--panel-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-panel);
+  white-space: nowrap;
+}
+.layer-palette-popover[hidden] { display: none; }
+
+.palette-swatch {
+  display: block;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  padding: 0;
+  transition: transform 0.10s, border-color 0.10s;
+  outline: none;
+}
+.palette-swatch:hover { transform: scale(1.2); }
+.palette-swatch.is-active { border-color: var(--text-primary); }
+
+/* Layer List — Add / Remove buttons */
+.add-layer-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  background: transparent;
+  border: 1px solid var(--accent-dim, var(--border));
+  border-radius: 3px;
+  color: var(--accent);
+  cursor: pointer;
+  flex-shrink: 0;
+  align-self: flex-end;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.add-layer-btn .material-icons { font-size: 18px; }
+.add-layer-btn:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--panel-bg);
+}
+
+.layer-remove-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 3px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  line-height: 1;
+  transition: color 0.12s, background 0.12s;
+}
+.layer-remove-btn:hover {
+  color: var(--clr-danger, #c0392b);
+  background: rgba(192, 57, 43, 0.10);
+}
+
+/* ─── Drag and Drop ──────────────────────────────────────────────────────── */
+.config-entry-row.dragging {
+  opacity: 0.4;
+  background-color: var(--clr-tertiary);
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+body.dark-theme .config-entry-row.dragging { background-color: var(--clr-tertiary-dark); }
+.drag-over {
+  border-top: 2px dashed var(--clr-link);
+  margin-top: -2px;
+}
