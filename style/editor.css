@@ -134,79 +134,117 @@
   background-color: transparent;
   padding: 1rem;
   border-radius: 6px;
-  border: 1px solid var(--clr-border);
-}
-body.dark-theme #schedule-editor-container {
-  background-color: var(--clr-secondary-dark);
+  border: 1px solid var(--border);
 }
 
 #text-editor-wrapper .textarea {
-  background-color: var(--clr-bg);
-  border: 1px solid var(--clr-border);
-  color: var(--clr-text);
+  background-color: var(--bg);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
 }
 
-/* Config Editor Grid Layout */
-.config-header,
+/* ─── SFV Editor Controls ──────────────────────────────────────────────── */
+/* Toolbar icons use muted color */
+#editor-controls .button .material-icons {
+  color: var(--text-muted);
+  font-size: 16px;
+  vertical-align: middle;
+}
+#editor-controls .button:hover .material-icons {
+  color: var(--text-primary);
+}
+/* Apply & Play button overrides */
+#set-schedule-control .material-icons {
+  color: var(--panel-bg) !important;
+}
+
+/* Config Editor — Flex-based row layout (overrides old grid) */
+.config-header {
+  display: none; /* Hide the old header row */
+}
+
 .config-entry-row {
-  display: grid;
-  grid-template-columns: 70px minmax(100px, 1fr) 130px minmax(150px, 2fr) 40px;
-  gap: 8px;
-  align-items: start;
-  margin-bottom: 8px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--clr-border);
+  display: flex !important;
+  align-items: center;
+  gap: 5px;
+  padding: 1px 6px;
+  margin-bottom: 1px;
+  padding-bottom: 1px;
+  border-bottom: 1px solid var(--border);
+  position: relative;
+  background-color: transparent;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  box-shadow: none;
+  transition: background-color 0.15s ease;
 }
 .config-entry-row:last-child {
   border-bottom: none;
   margin-bottom: 0;
 }
-
-.config-header {
-  font-weight: 700;
-  font-size: 0.7rem;
-  padding-bottom: 5px;
-  border-bottom: 2px solid var(--clr-border);
-  color: var(--clr-text-subtle);
-  margin-bottom: 8px;
-  align-items: center;
-  text-transform: uppercase;
-}
-.config-header .header-item { padding: 0 4px; }
-
-.config-entry-row {
-  background-color: transparent;
-  border-radius: 6px;
-  padding: 8px;
-  border: 1px solid transparent;
-  box-shadow: none;
-  transition: background-color 0.15s ease;
-  align-items: center;
-}
 .config-entry-row:hover {
-  background-color: var(--clr-secondary);
-  border-color: var(--clr-border);
+  background-color: var(--input-bg);
+  border-color: var(--border);
 }
-body.dark-theme .config-entry-row { background-color: transparent; }
-body.dark-theme .config-entry-row:hover { background-color: var(--clr-secondary-dark); }
 
-.config-cell { padding: 0 4px; }
-.duration-cell,
-.action-cell,
-.config-header .header-item:first-child,
-.config-header .header-item:last-child {
+/* Drag handle cell */
+.drag-handle-cell {
+  flex-shrink: 0;
+  padding: 0 2px;
+  color: var(--clr-text-subtle);
+  opacity: 0.4;
+  cursor: grab;
+  font-size: 0.72rem;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Duration cell */
+.config-duration-cell {
+  flex: 0 0 50px;
+}
+.config-duration-cell input.config-duration {
+  width: 48px;
+  font-size: 0.7rem !important;
+  height: 22px !important;
+  padding: 1px 4px !important;
   text-align: center;
-  align-self: center;
+}
+
+/* Task name cell */
+.config-task-cell {
+  flex: 0 0 auto;
+  min-width: 80px;
+}
+.config-task-cell input {
+  width: 100%;
+  min-width: 80px;
+  font-size: 0.7rem !important;
+  height: 22px !important;
+  padding: 1px 5px !important;
+}
+
+/* Feature type dropdown cell — slightly wider */
+.feature-type-cell {
+  flex: 0 0 160px;
+}
+.feature-type-cell .select.is-small select {
+  font-size: 0.72rem;
+  height: 22px;
+}
+
+/* Feature args cell */
+.feature-args-cell {
+  flex: 1;
+  min-width: 150px;
+  align-self: start;
 }
 .feature-args-inner-container {
   display: flex;
   flex-wrap: wrap;
-}
-.feature-args-cell {
-  display: flex;
-  flex-direction: row;
-  gap: 4px;
-  align-self: start;
+  gap: 4px 8px;
 }
 
 /* Feature Argument Styling */
@@ -217,8 +255,8 @@ body.dark-theme .config-entry-row:hover { background-color: var(--clr-secondary-
   align-items: center;
 }
 .feature-arg-wrapper label {
-  font-size: 0.65rem;
-  color: var(--clr-text-subtle);
+  font-size: 0.60rem;
+  color: var(--text-muted);
   font-weight: 700;
   display: block;
   margin-bottom: 0;
@@ -232,12 +270,26 @@ body.dark-theme .config-entry-row:hover { background-color: var(--clr-secondary-
   gap: 3px;
   align-items: center;
 }
+/* Hide the "..." ellipsis dropdown (metronome BPM) in interval rows */
+.config-ellipsis-dropdown {
+  display: none !important;
+}
+.feature-arg-inputs-container .select.is-small select {
+  font-size: 0.68rem;
+  height: 22px;
+  padding: 0 1.5em 0 0.3em;
+}
+.feature-arg-inputs-container .input.is-small {
+  height: 22px;
+  font-size: 0.68rem;
+  padding: 1px 4px;
+}
 
 /* Compact toggle buttons in schedule editor */
 .numeral-toggle-btn.button {
-  font-size: 0.7rem !important;
-  height: 22px !important;
-  padding: 0 5px !important;
+  font-size: 0.65rem !important;
+  height: 20px !important;
+  padding: 0 4px !important;
   line-height: 1 !important;
   border-radius: 3px;
 }
@@ -248,7 +300,59 @@ body.dark-theme .config-entry-row:hover { background-color: var(--clr-secondary-
   margin-bottom: 4px;
 }
 .select.is-small { margin: 0; }
-.variadic-input-wrapper .select { max-width: 120px; }
+.variadic-input-wrapper .select { max-width: 100px; }
+.select.is-small select {
+  font-size: 0.7rem;
+  height: 24px;
+  padding: 0 1.2em 0 0.4em;
+}
+
+/* Actions cell (copy + remove) — float top-right smaller */
+.action-cell {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  display: flex;
+  gap: 2px;
+  padding: 0;
+}
+.action-cell .copy-row-btn,
+.action-cell .remove-row-btn {
+  font-size: 0.65rem;
+  height: 18px;
+  min-width: 18px;
+  padding: 0 3px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  border: 1px solid var(--clr-border);
+  background: transparent;
+  color: var(--clr-text-subtle);
+  cursor: pointer;
+  opacity: 0.5;
+  transition: opacity 0.15s, color 0.15s;
+}
+.action-cell .copy-row-btn:hover,
+.action-cell .remove-row-btn:hover {
+  opacity: 1;
+  color: var(--clr-primary);
+}
+.action-cell .remove-row-btn:hover {
+  color: var(--clr-danger);
+}
+.config-entry-row:hover .action-cell .copy-row-btn,
+.config-entry-row:hover .action-cell .remove-row-btn {
+  opacity: 0.8;
+}
+
+/* Variadic add button */
+.add-variadic-btn.button {
+  font-size: 0.68rem !important;
+  height: 22px !important;
+  padding: 0 6px !important;
+}
 
 /* Variadic Buttons */
 .remove-variadic-arg-btn {
@@ -261,10 +365,8 @@ body.dark-theme .config-entry-row:hover { background-color: var(--clr-secondary-
   border-color: var(--clr-danger);
   background-color: transparent;
 }
-.remove-variadic-arg-btn:hover { background-color: rgba(192, 57, 43, 0.08); }
-body.dark-theme .remove-variadic-arg-btn {
-  color: #f09080;
-  border-color: #f09080;
+.remove-variadic-arg-btn:hover {
+  background-color: color-mix(in srgb, var(--clr-danger) 10%, transparent);
 }
 
 .add-variadic-group-btn {
@@ -274,32 +376,13 @@ body.dark-theme .remove-variadic-arg-btn {
   font-size: 0.9rem !important;
   margin-top: 4px;
   align-self: flex-start;
-  color: var(--clr-info);
-  border-color: var(--clr-info);
+  color: var(--accent);
+  border-color: var(--accent);
   background-color: transparent;
 }
-.add-variadic-group-btn:hover { background-color: rgba(44, 74, 124, 0.08); }
-body.dark-theme .add-variadic-group-btn {
-  color: var(--clr-primary-dark);
-  border-color: var(--clr-primary-dark);
+.add-variadic-group-btn:hover {
+  background-color: color-mix(in srgb, var(--accent) 10%, transparent);
 }
-
-/* Remove Row Button */
-.remove-interval-btn {
-  opacity: 0;
-  transition: opacity 0.2s ease-in-out;
-  cursor: pointer;
-  background: none;
-  border: none;
-  color: var(--clr-danger);
-  font-size: 1rem;
-  padding: 0;
-  line-height: 1;
-}
-.config-entry-row:hover .remove-interval-btn { opacity: 1; }
-.remove-interval-btn:hover { color: #922B21; }
-body.dark-theme .remove-interval-btn { color: #f09080; }
-body.dark-theme .remove-interval-btn:hover { color: #e87060; }
 
 /* ─── Layer List — Palette Color Picker ──────────────────────────────────── */
 .layer-palette-picker-wrap {
@@ -407,11 +490,10 @@ body.dark-theme .remove-interval-btn:hover { color: #e87060; }
 /* ─── Drag and Drop ──────────────────────────────────────────────────────── */
 .config-entry-row.dragging {
   opacity: 0.4;
-  background-color: var(--clr-tertiary);
+  background-color: var(--input-bg);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
 }
-body.dark-theme .config-entry-row.dragging { background-color: var(--clr-tertiary-dark); }
 .drag-over {
-  border-top: 2px dashed var(--clr-link);
+  border-top: 2px dashed var(--accent);
   margin-top: -2px;
 }

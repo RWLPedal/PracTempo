@@ -87,6 +87,18 @@ export class LinkManager {
       this.routeSignals(instanceId, signals);
     });
 
+    // Listen for schedule-feature-changed (ScheduleFloatingView → link system)
+    viewAreaEl.addEventListener('schedule-feature-changed', (e: Event) => {
+      const instanceId = this.resolveSourceInstanceId(e);
+      if (!instanceId) return;
+      const viewId = this.instanceIdToViewId(instanceId);
+      if (!viewId) return;
+      const descriptor = getDriveSourceDescriptor(viewId);
+      if (!descriptor) return;
+      const signals = descriptor.extractSignals((e as CustomEvent).detail);
+      this.routeSignals(instanceId, signals);
+    });
+
     // Relay signals forwarded by features (e.g. MultiSelectFretboard driven update → ChordDiagram)
     viewAreaEl.addEventListener('feature-signal-relay', (e: Event) => {
       const detail = (e as CustomEvent<{ featureTypeName?: string; signal?: DriveSignal }>).detail;

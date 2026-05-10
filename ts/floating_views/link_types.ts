@@ -16,9 +16,10 @@ export interface LinkRecord {
 // ─── Signal kinds ─────────────────────────────────────────────────────────────
 // Extend this enum to add new signal categories.
 export enum SignalKind {
-  Chord = 'Chord',
-  Key   = 'Key',
-  Tempo = 'Tempo',
+  Chord   = 'Chord',
+  Key     = 'Key',
+  Tempo   = 'Tempo',
+  Feature = 'Feature',
 }
 
 // A generic chord signal — different targets interpret it differently:
@@ -48,4 +49,14 @@ export interface TempoSignal {
   bpm: number;
 }
 
-export type DriveSignal = ChordSignal | KeySignal | TempoSignal;
+// A feature signal — carries a schedule interval's feature identity and config.
+//   AnyFloatingView: renders the specified feature type with the given config.
+//   featureTypeName null = rest interval (no feature to display).
+export interface FeatureSignal {
+  kind: SignalKind.Feature;
+  categoryName: string;
+  featureTypeName: string | null;
+  config: ReadonlyArray<string>;
+}
+
+export type DriveSignal = ChordSignal | KeySignal | TempoSignal | FeatureSignal;

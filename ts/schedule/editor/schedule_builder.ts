@@ -1,5 +1,5 @@
 import { Schedule, Interval } from "../schedule";
-import { DisplayController } from "../../display_controller";
+import { IDisplayController } from "../../display_controller";
 import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
 import { Feature } from "../../feature";
@@ -22,6 +22,7 @@ export class ScheduleBuilder {
   private rowManager: RowManager;
   private errorDisplay: ErrorDisplay;
   private configEntriesContainerEl: HTMLElement;
+  private scheduleName: string = '';
 
   constructor(
     rowManager: RowManager,
@@ -33,13 +34,18 @@ export class ScheduleBuilder {
     this.configEntriesContainerEl = configEntriesContainerEl;
   }
 
+  /** Sets the schedule name to be assigned to the built Schedule object. */
+  public setScheduleName(name: string): void {
+    this.scheduleName = name;
+  }
+
   /**
    * Builds the Schedule object from the current state of the config editor UI rows.
    * Uses the feature registry for generic feature/settings instantiation.
    * @returns A new Schedule instance or null if errors occur.
    */
   public buildSchedule(
-    displayController: DisplayController,
+    displayController: IDisplayController,
     audioController: AudioController,
     settings: AppSettings,
     maxCanvasHeight: number
@@ -47,6 +53,7 @@ export class ScheduleBuilder {
     console.log("[ScheduleBuilder] Starting buildSchedule...");
     this.errorDisplay.removeMessage(); // Clear previous errors
     const schedule = new Schedule(displayController, audioController);
+    schedule.name = this.scheduleName;
     const rows =
       this.configEntriesContainerEl.querySelectorAll<HTMLElement>(
         ".schedule-row"
@@ -168,7 +175,8 @@ export class ScheduleBuilder {
             intervalData.task ||
               intervalData.featureTypeName ||
               `Interval ${index + 1}`, // Task name fallback
-            feature // Add the created feature (or null)
+            feature,
+            categoryName
           );
           schedule.addInterval(interval);
           console.log(

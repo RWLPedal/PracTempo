@@ -1,5 +1,5 @@
 ﻿import { AudioController } from "../../audio_controller";
-import { DisplayController } from "../../display_controller";
+import { IDisplayController } from "../../display_controller";
 import { Schedule } from "../schedule";
 import { AppSettings, LAST_RUN_SCHEDULE_JSON_KEY } from "../../settings";
 import { InstrumentSettings } from "../../instrument/instrument_settings";
@@ -54,7 +54,6 @@ export class ScheduleEditor {
   private keyboardManager: KeyboardShortcutManager;
   private scheduleBuilder: ScheduleBuilder;
   private scheduleNameDisplayEl!: HTMLElement | null;
-  private editScheduleNameBtnEl!: HTMLElement | null;
   private currentMode: EditorMode = EditorMode.Config;
   private scheduleName: string = DEFAULT_SCHEDULE_NAME;
   private defaultCategoryName: string | null = null;
@@ -120,6 +119,7 @@ export class ScheduleEditor {
       this.errorDisplay,
       this.uiManager.configEntriesContainerEl
     );
+    this.scheduleBuilder.setScheduleName(this.scheduleName);
 
     this._attachButtonHandlers();
     this._attachNameEditHandlers();
@@ -145,43 +145,35 @@ export class ScheduleEditor {
     }
   }
 
-  // ... (_findNameEditElements, _updateScheduleNameDisplay, _attachNameEditHandlers unchanged) ...
+  // ─── Schedule name (inline editable on blur/keydown handled by UI manager) ─
+
   private _findNameEditElements(): void {
-    this.scheduleNameDisplayEl = document.getElementById(
-      "schedule-name-display"
-    );
-    this.editScheduleNameBtnEl = document.getElementById(
-      "edit-schedule-name-btn"
-    );
+    // Scoped lookup first (floating view context), then global fallback (index.html)
+    this.scheduleNameDisplayEl =
+      this.containerEl.querySelector<HTMLElement>("#schedule-name-display") ??
+      document.getElementById("schedule-name-display");
     if (!this.scheduleNameDisplayEl)
       console.warn(
         "Schedule name display element (#schedule-name-display) not found."
-      );
-    if (!this.editScheduleNameBtnEl)
-      console.warn(
-        "Edit schedule name button (#edit-schedule-name-btn) not found."
       );
   }
   private _updateScheduleNameDisplay(): void {
     if (this.scheduleNameDisplayEl) {
       this.scheduleNameDisplayEl.textContent = `Schedule: ${this.scheduleName}`;
-      this.scheduleNameDisplayEl.title = `Current schedule: ${this.scheduleName}. Click Edit button to rename.`;
+      this.scheduleNameDisplayEl.title = `Current schedule: ${this.scheduleName}. Double-click to rename.`;
     }
   }
   private _attachNameEditHandlers(): void {
-    if (!this.editScheduleNameBtnEl || !this.scheduleNameDisplayEl) return;
-    this.editScheduleNameBtnEl.onclick = (event) => {
-      event.stopPropagation(); // Stop propagation
-      const currentName = this.scheduleName;
-      const newName = prompt("Enter new schedule name:", currentName);
-      if (newName !== null && newName.trim() !== "") {
-        this.scheduleName = newName.trim();
-        this._updateScheduleNameDisplay();
+    if (!this.scheduleNameDisplayEl) return;
+    // Listen for blur on the contentEditable name display to persist the name
+    this.scheduleNameDisplayEl.addEventListener("blur", () => {
+      const newName = this.scheduleNameDisplayEl!.textContent?.replace(/^Schedule:\s*/, "").trim() ?? "";
+      if (newName && newName !== this.scheduleName) {
+        this.scheduleName = newName;
         console.log("Schedule name updated to:", this.scheduleName);
-      } else if (newName !== null) {
-        alert("Schedule name cannot be empty.");
       }
-    };
+      this._updateScheduleNameDisplay();
+    });
   }
 
   // --- Mode Switching & Syncing ---
@@ -350,6 +342,11 @@ export class ScheduleEditor {
     return null;
   }
 
+  /** Overrides the label of the "Set Schedule" apply button (e.g. for floating-view context). */
+  public setApplyButtonLabel(label: string): void {
+    this.uiManager.setApplyButtonLabel(label);
+  }
+
   /** Attaches handlers to the main editor control buttons */
   private _attachButtonHandlers(): void {
     this.uiManager.modeToggleEl.onclick = () => this.toggleMode();
@@ -495,7 +492,7 @@ export class ScheduleEditor {
 
   /** Builds and returns the Schedule object for the timer (uses updated builder) */
   public getSchedule(
-    displayController: DisplayController,
+    displayController: IDisplayController,
     settings: AppSettings,
     maxCanvasHeight: number
   ): Schedule | null {

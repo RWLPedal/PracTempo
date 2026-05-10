@@ -1,6 +1,6 @@
 import { Feature } from "../feature";
 import { AudioController } from "../audio_controller";
-import { DisplayController, Status } from "../display_controller";
+import { IDisplayController, Status } from "../display_controller";
 
 // Colors for tasks in intervals.
 const intervalColors = [
@@ -17,11 +17,12 @@ export class Schedule {
   currentIntervalIndex: number;
   accumulatedSeconds: number;
   totalDuration: number;
-  display: DisplayController;
+  display: IDisplayController;
   audio: AudioController;
   color_index: number;
+  name: string = '';
 
-  constructor(display: DisplayController,
+  constructor(display: IDisplayController,
     audio: AudioController) {
     this.display = display;
     this.audio = audio;
@@ -105,7 +106,9 @@ export class Schedule {
   setDisplayTask(interval: Interval): void {
     console.log("Setting display for interval:", interval);
     const suffix = interval.isIntroActive() ? " (Warmup)" : "";
-    this.display.setTask(interval.task + suffix, interval.color);
+    const title = this.name ? `${this.name}: ${interval.task}${suffix}` : interval.task + suffix;
+    this.display.setTask(title, interval.color);
+    this.display.setCurrentCategoryName(interval.categoryName);
 
     if (interval.feature) {
       // Render feature (which includes its views via DisplayController)
@@ -260,18 +263,20 @@ export class Interval {
   duration: number;
   introDuration: number;
   task: string;
-  color: string;
+  color: string = '';
   feature: Feature | null;
+  categoryName: string;
   timer: IntervalTimer;
   introFinishedCallback: Function | null = null;
   updateCallback: Function | null = null;
   finishedCallback: Function | null = null;
 
-  constructor(duration: number, introDuration: number, task: string, feature: Feature | null = null) {
+  constructor(duration: number, introDuration: number, task: string, feature: Feature | null = null, categoryName: string = '') {
     this.duration = duration;
     this.introDuration = introDuration;
     this.task = task;
     this.feature = feature;
+    this.categoryName = categoryName;
     this.timer = new IntervalTimer(duration, introDuration);
   }
 
@@ -286,7 +291,7 @@ export class Interval {
     // Pass callbacks to timer
     this.timer.setCallbacks(
       () => this.introFinishedCallback?.(),
-      (time) => this.updateCallback?.(time),
+      (time: number) => this.updateCallback?.(time),
       () => this.finishedCallback?.()
     );
   }
@@ -344,9 +349,9 @@ class IntervalTimer {
   timeRemaining: number;
   introTimeRemaining: number;
   isIntroFinished: boolean;
-  introFinishedCallback: Function;
-  updateCallback: Function;
-  finishedCallback: Function;
+  introFinishedCallback!: Function;
+  updateCallback!: Function;
+  finishedCallback!: Function;
   private countdownTimerId: number | null = null;
 
   constructor(time: number,

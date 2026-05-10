@@ -3,7 +3,7 @@
 // (reference_main.ts) to wire all signal translations.
 
 import { registerDriveSource, registerDriveTarget } from './drive_registry';
-import { SignalKind, ChordSignal, KeySignal, DriveSignal } from './link_types';
+import { SignalKind, ChordSignal, KeySignal, DriveSignal, FeatureSignal } from './link_types';
 import { KeyType } from '../instrument/music_types';
 import {
   resolveAbsoluteChordKey,
@@ -179,7 +179,7 @@ registerDriveTarget({
   label: 'Scale name (from linked source)',
   acceptedKinds: [SignalKind.Key, SignalKind.Chord],
   resolveValue(signal: DriveSignal): string | null {
-    if (signal.kind === SignalKind.Tempo) return null;
+    if (signal.kind !== SignalKind.Chord && signal.kind !== SignalKind.Key) return null;
     return signal.keyType === 'Major' ? 'Major' : 'Natural Minor';
   },
 });
@@ -190,7 +190,7 @@ registerDriveTarget({
   label: 'Root note (from linked source)',
   acceptedKinds: [SignalKind.Key, SignalKind.Chord],
   resolveValue(signal: DriveSignal): string | null {
-    if (signal.kind === SignalKind.Tempo) return null;
+    if (signal.kind !== SignalKind.Chord && signal.kind !== SignalKind.Key) return null;
     return signal.rootNote;
   },
 });
@@ -205,7 +205,7 @@ registerDriveTarget({
   label: 'Root note (from linked source)',
   acceptedKinds: [SignalKind.Chord, SignalKind.Key],
   resolveValue(signal: DriveSignal): string | null {
-    if (signal.kind === SignalKind.Tempo) return null;
+    if (signal.kind !== SignalKind.Chord && signal.kind !== SignalKind.Key) return null;
     return signal.rootNote || null;
   },
 });
@@ -256,7 +256,7 @@ registerDriveTarget({
   label: 'Root note (from linked source)',
   acceptedKinds: [SignalKind.Chord, SignalKind.Key],
   resolveValue(signal: DriveSignal): string | null {
-    if (signal.kind === SignalKind.Tempo) return null;
+    if (signal.kind !== SignalKind.Chord && signal.kind !== SignalKind.Key) return null;
     return signal.rootNote || null;
   },
 });
@@ -271,7 +271,7 @@ registerDriveTarget({
   label: 'Root note (from linked source)',
   acceptedKinds: [SignalKind.Chord, SignalKind.Key],
   resolveValue(signal: DriveSignal): string | null {
-    if (signal.kind === SignalKind.Tempo) return null;
+    if (signal.kind !== SignalKind.Chord && signal.kind !== SignalKind.Key) return null;
     return signal.rootNote || null;
   },
 });
@@ -342,6 +342,41 @@ registerDriveTarget({
   argName: 'BPM',
   label: 'BPM (from linked tempo source)',
   acceptedKinds: [SignalKind.Tempo],
+  resolveValue(_signal: DriveSignal): string | null {
+    return null;
+  },
+});
+
+// ─── ScheduleFloatingView as source ───────────────────────────────────────────
+// Dispatches 'schedule-feature-changed' CustomEvent when a schedule interval
+// starts or the schedule resets. Carries category + feature type + config so
+// AnyFloatingView can create and render the appropriate feature.
+
+registerDriveSource({
+  viewId: 'schedule_floating_view',
+  emittedKinds: [SignalKind.Feature],
+  extractSignals(detail: any): DriveSignal[] {
+    const signal: FeatureSignal = {
+      kind: SignalKind.Feature,
+      categoryName: detail?.categoryName ?? '',
+      featureTypeName: detail?.featureTypeName ?? null,
+      config: Array.isArray(detail?.config) ? [...detail.config] : [],
+    };
+    return [signal];
+  },
+});
+
+// ─── AnyFloatingView as target ────────────────────────────────────────────────
+// AnyFloatingView (viewId: 'any_floating_view') listens for drive-signal events
+// and renders whatever feature the signal describes.
+// resolveValue returns null; AnyFloatingView handles signal application directly.
+
+registerDriveTarget({
+  featureTypeName: 'Any',
+  viewId: 'any_floating_view',
+  argName: 'Feature',
+  label: 'Feature from linked schedule',
+  acceptedKinds: [SignalKind.Feature],
   resolveValue(_signal: DriveSignal): string | null {
     return null;
   },

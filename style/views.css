@@ -163,8 +163,8 @@ body.dark-theme .playback-upcoming-item { background: var(--clr-tertiary-dark); 
 .playback-upcoming-duration {
   font-size: 0.78em;
   font-variant-numeric: tabular-nums;
-  color: var(--clr-text-subtle);
-  background: var(--clr-secondary);
+  color: var(--clr-text);
+  background: var(--clr-tertiary);
   border-radius: 10px;
   padding: 1px 9px;
   white-space: nowrap;
@@ -172,15 +172,24 @@ body.dark-theme .playback-upcoming-item { background: var(--clr-tertiary-dark); 
   border: 1px solid var(--clr-border);
 }
 body.dark-theme .playback-upcoming-duration {
-  background: var(--clr-secondary-dark);
+  background: var(--clr-tertiary-dark);
   border-color: var(--clr-border-dark);
+}
+.playback-upcoming-end {
+  background: transparent !important;
+  border: 1px dashed var(--clr-border);
 }
 .playback-upcoming-end .playback-upcoming-name {
   font-weight: 700;
-  font-size: 0.8em;
+  font-size: 0.78em;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   color: var(--clr-text-subtle);
+  text-align: center;
+  width: 100%;
+}
+.playback-upcoming-end .playback-upcoming-duration {
+  display: none;
 }
 .playback-upcoming-empty {
   font-size: 0.85em;
@@ -780,4 +789,159 @@ body.dark-theme .dm-measure-cell.dm-measure-filled {
 .capo-view-row-right {
   font-weight: 400;
   color: var(--accent);
+}
+
+/* ─── ScheduleFloatingView ───────────────────────────────────────────────── */
+
+.schedule-floating-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sfv-edit-section {
+  flex: 1;
+  overflow-y: auto;
+  padding: 6px 8px;
+}
+
+/* Remove the redundant inner box the editor adds when embedded in a panel */
+.schedule-floating-view #schedule-editor-container {
+  border: none;
+  padding: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
+/* Row hover: use --input-bg so it's distinct from the panel-bg container */
+.schedule-floating-view .config-entry-row:hover {
+  background-color: var(--input-bg);
+}
+
+/* Fix font-family and use new theme vars for editor action buttons */
+.schedule-floating-view #editor-controls {
+  border-top-color: var(--border);
+  padding-top: 8px;
+  margin-top: 8px;
+}
+.schedule-floating-view #editor-controls .button {
+  font-family: 'DM Sans', sans-serif;
+  background-color: var(--input-bg);
+  border-color: var(--border);
+  color: var(--text-primary);
+  font-size: 0.82rem;
+}
+.schedule-floating-view #editor-controls .button:hover {
+  background-color: var(--panel-bg);
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+/* Apply & Play primary button */
+.schedule-floating-view #set-schedule-control {
+  background-color: var(--accent);
+  color: var(--panel-bg);
+  border: none;
+}
+.schedule-floating-view #set-schedule-control .material-icons {
+  color: var(--panel-bg);
+  font-size: 16px;
+}
+.schedule-floating-view #set-schedule-control:hover {
+  background-color: var(--accent);
+  opacity: 0.85;
+  color: var(--panel-bg);
+}
+
+.sfv-play-section {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.sfv-play-controls {
+  display: flex;
+  gap: 6px;
+  padding: 8px;
+  align-items: center;
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--border);
+}
+
+/* Play-mode control buttons — all derive from theme tokens */
+.sfv-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 0.78rem;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 4px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--text-muted);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 0.12s, border-color 0.12s, color 0.12s;
+}
+.sfv-btn .material-icons { font-size: 14px; }
+.sfv-btn:hover {
+  border-color: var(--accent);
+  color: var(--text-primary);
+}
+.sfv-btn--accent {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.sfv-btn--accent:hover {
+  background: var(--accent);
+  color: var(--panel-bg);
+}
+.sfv-btn--danger {
+  border-color: var(--clr-danger);
+  color: var(--clr-danger);
+}
+.sfv-btn--danger:hover {
+  background: color-mix(in srgb, var(--clr-danger) 12%, transparent);
+}
+
+/* Border flash on interval transition */
+@keyframes sfv-flash-anim {
+  0%   { box-shadow: inset 0 0 0 3px var(--accent); }
+  80%  { box-shadow: inset 0 0 0 3px var(--accent); }
+  100% { box-shadow: none; }
+}
+
+.sfv-flash {
+  animation: sfv-flash-anim 0.6s ease-out forwards;
+}
+
+/* ─── AnyFloatingView ────────────────────────────────────────────────────── */
+
+.any-floating-view {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+
+.any-view-placeholder {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 24px;
+  color: var(--text-muted);
+  font-size: 13px;
+  font-style: italic;
+}
+
+.any-view-feature-container {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }

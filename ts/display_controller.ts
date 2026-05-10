@@ -9,7 +9,22 @@ export enum Status {
   Stop = "Stop",
 }
 
-export class DisplayController {
+export interface IDisplayController {
+  setTask(taskName: string, color: string): void;
+  setTime(seconds: number): void;
+  setTimerDuration(seconds: number): void;
+  setStatus(status: Status): void;
+  flashOverlay(): void;
+  setStart(): void;
+  setPause(): void;
+  setTotalTime(elapsed: number, total: number): void;
+  setUpcoming(intervals: Interval[], isEndVisible: boolean): void;
+  renderFeature(feature: Feature): void;
+  clearFeature(): void;
+  setCurrentCategoryName(categoryName: string): void;
+}
+
+export class DisplayController implements IDisplayController {
   diagramEl: HTMLElement;
   controlButtonEl: HTMLElement;
 
@@ -135,4 +150,6 @@ export class DisplayController {
     this.controlButtonEl.classList.remove("is-success");
     this.controlButtonEl.classList.add("is-warning");
   }
+
+  setCurrentCategoryName(_categoryName: string): void {}
 }

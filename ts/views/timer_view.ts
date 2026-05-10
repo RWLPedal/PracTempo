@@ -97,13 +97,15 @@ export class TimerView extends BaseView {
 
     this.startPauseBtn = document.createElement('button');
     this.startPauseBtn.classList.add('button', 'timer-start-pause');
-    this.startPauseBtn.textContent = '▶';
+    this.startPauseBtn.innerHTML = '<span class="material-icons">play_arrow</span>';
+    this.startPauseBtn.title = 'Play / Pause';
     this.startPauseBtn.addEventListener('click', () => this.handleStartPause());
     controls.appendChild(this.startPauseBtn);
 
     this.resetBtn = document.createElement('button');
     this.resetBtn.classList.add('button', 'timer-reset');
-    this.resetBtn.textContent = '↺';
+    this.resetBtn.innerHTML = '<span class="material-icons">replay</span>';
+    this.resetBtn.title = 'Reset current interval';
     this.resetBtn.addEventListener('click', () => this.handleReset());
     controls.appendChild(this.resetBtn);
 
@@ -366,10 +368,10 @@ export class TimerView extends BaseView {
 
   private updateButtonState(): void {
     if (!this.startPauseBtn) return;
-    if (this.isRunning) {
-      this.startPauseBtn.textContent = '‖';
-    } else {
-      this.startPauseBtn.textContent = '▶';
+    const icon = this.startPauseBtn.querySelector<HTMLElement>('.material-icons');
+    if (icon) {
+      icon.textContent = this.isRunning ? 'pause' : 'play_arrow';
     }
+    this.startPauseBtn.title = this.isRunning ? 'Pause' : 'Play';
   }
 }

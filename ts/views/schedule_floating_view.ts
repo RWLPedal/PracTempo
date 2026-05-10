@@ -1,0 +1,296 @@
+import { BaseView } from '../base_view';
+import { AppSettings, LAST_RUN_SCHEDULE_JSON_KEY, RECENT_SCHEDULES_JSON_KEY, MAX_RECENT_SCHEDULES } from '../settings';
+import { AudioController } from '../audio_controller';
+import { Schedule } from '../schedule/schedule';
+import { ScheduleEditor } from '../schedule/editor/schedule_editor';
+import { ScheduleDisplayAdapter } from '../schedule/schedule_display_adapter';
+import { TimerView } from './timer_view';
+import { SchedulePlaybackView } from './schedule_playback_view';
+
+type SFVMode = 'edit' | 'play';
+
+const DEFAULT_MAX_CANVAS_HEIGHT = 550;
+
+/**
+ * Floating view that embeds the full schedule workflow:
+ *   - Edit mode: ScheduleEditor for defining practice intervals
+ *   - Play mode: timer + upcoming list + controls (skip, reset, back to edit)
+ *
+ * When linked to an AnyFloatingView via the link system, feature signals
+ * dispatched by ScheduleDisplayAdapter are routed there for rendering.
+ */
+export class ScheduleFloatingView extends BaseView {
+  private mode: SFVMode = 'edit';
+  private appSettings: AppSettings;
+  private audioController: AudioController;
+  private adapter: ScheduleDisplayAdapter;
+  private editor: ScheduleEditor | null = null;
+  private currentSchedule: Schedule | null = null;
+  private timerView: TimerView | null = null;
+  private playbackView: SchedulePlaybackView | null = null;
+
+  private editSection: HTMLElement | null = null;
+  private playSection: HTMLElement | null = null;
+  private startPauseBtn: HTMLButtonElement | null = null;
+  private skipBtn: HTMLButtonElement | null = null;
+  private resetBtn: HTMLButtonElement | null = null;
+  private switchToEditBtn: HTMLButtonElement | null = null;
+
+  constructor(initialState: any, appSettings: AppSettings) {
+    super();
+    this.appSettings = appSettings;
+    this.adapter = new ScheduleDisplayAdapter();
+    this.audioController = new AudioController(
+      document.querySelector('#intro-end-sound') as HTMLAudioElement | null,
+      document.querySelector('#interval-end-sound') as HTMLAudioElement | null,
+      document.querySelector('#metronome-sound') as HTMLAudioElement | null,
+      document.querySelector('#metronome-accent-sound') as HTMLAudioElement | null,
+    );
+    if (initialState?.mode === 'play' || initialState?.mode === 'edit') {
+      this.mode = initialState.mode;
+    }
+  }
+
+  render(container: HTMLElement): void {
+    this.container = container;
+    container.innerHTML = '';
+    container.classList.add('schedule-floating-view');
+
+    // The adapter dispatches 'schedule-feature-changed' on this element;
+    // it bubbles up through the floating-view-area to the LinkManager.
+    this.adapter.setSignalSourceElement(container);
+    this.adapter.setOnFlash(() => this._flashBorder());
+    this.adapter.setOnStart(() => this._updatePlayPauseIcon(false));
+    this.adapter.setOnPause(() => this._updatePlayPauseIcon(true));
+
+    // Edit section
+    this.editSection = document.createElement('div');
+    this.editSection.classList.add('sfv-edit-section');
+    container.appendChild(this.editSection);
+    this._buildEditor();
+
+    // Play section
+    this.playSection = document.createElement('div');
+    this.playSection.classList.add('sfv-play-section');
+    container.appendChild(this.playSection);
+    this._buildPlayUI();
+
+    this._applyModeUI();
+  }
+
+  // ─── Editor setup ──────────────────────────────────────────────────────────
+
+  private _buildEditor(): void {
+    if (!this.editSection) return;
+    this.editSection.innerHTML = '';
+
+    this.editor = new ScheduleEditor(
+      this.editSection,
+      () => this._applyAndPlay(),  // "Set Schedule" button → build + switch to play
+      this.audioController,
+      this.appSettings
+    );
+
+    // Relabel the apply button for floating-view context
+    this.editor.setApplyButtonLabel('Apply & Play');
+
+    // Hide the Load/Save button — no modal available in floating context
+    const loadSaveBtn = this.editSection.querySelector<HTMLElement>('#load-schedule-button');
+    if (loadSaveBtn) loadSaveBtn.style.display = 'none';
+  }
+
+  // ─── Playback UI setup ─────────────────────────────────────────────────────
+
+  private _buildPlayUI(): void {
+    if (!this.playSection) return;
+    this.playSection.innerHTML = '';
+
+    // Control strip
+    const controls = document.createElement('div');
+    controls.classList.add('sfv-play-controls');
+
+    // All four transport buttons grouped together: play/pause, skip (fast forward), reset, edit
+    this.startPauseBtn = document.createElement('button');
+    this.startPauseBtn.classList.add('sfv-btn', 'sfv-btn--accent');
+    this.startPauseBtn.innerHTML = '<span class="material-icons">play_arrow</span>';
+    this.startPauseBtn.title = 'Play/Pause schedule';
+    this.startPauseBtn.addEventListener('click', () => this._handleStartPause());
+    controls.appendChild(this.startPauseBtn);
+
+    this.skipBtn = document.createElement('button');
+    this.skipBtn.classList.add('sfv-btn');
+    this.skipBtn.innerHTML = '<span class="material-icons">skip_next</span>';
+    this.skipBtn.title = 'Skip to next interval';
+    this.skipBtn.addEventListener('click', () => this._handleSkip());
+    controls.appendChild(this.skipBtn);
+
+    this.resetBtn = document.createElement('button');
+    this.resetBtn.classList.add('sfv-btn');
+    this.resetBtn.innerHTML = '<span class="material-icons">replay</span>';
+    this.resetBtn.title = 'Reset schedule to beginning';
+    this.resetBtn.addEventListener('click', () => this._handleReset());
+    controls.appendChild(this.resetBtn);
+
+    this.switchToEditBtn = document.createElement('button');
+    this.switchToEditBtn.classList.add('sfv-btn');
+    this.switchToEditBtn.innerHTML = '<span class="material-icons">edit</span>';
+    this.switchToEditBtn.title = 'Edit schedule';
+    this.switchToEditBtn.addEventListener('click', () => this._switchToEdit());
+    controls.appendChild(this.switchToEditBtn);
+
+    this.playSection.appendChild(controls);
+
+    // Playback view (contains timer slot + total progress + upcoming list)
+    const playbackContainer = document.createElement('div');
+    this.playSection.appendChild(playbackContainer);
+    this.playbackView = new SchedulePlaybackView(playbackContainer);
+    this.adapter.setPlaybackView(this.playbackView);
+
+    // Timer view — schedule-driven mode (callbacks delegate to schedule)
+    this.timerView = new TimerView(
+      300,
+      () => this._handleStartPause(),
+      () => this._handleReset(),
+      (seconds) => this.currentSchedule?.setCurrentIntervalTime(seconds)
+    );
+    this.timerView.render(this.playbackView.getTimerContainer());
+    this.adapter.setTimerView(this.timerView);
+
+    // Adapter callbacks update the timer view button state via setStatus/setStart/setPause,
+    // so no separate start/pause button needed here.
+  }
+
+  // ─── Mode switching ────────────────────────────────────────────────────────
+
+  private _applyAndPlay(): void {
+    const schedule = this._buildSchedule();
+    if (!schedule) return;
+    this.currentSchedule = schedule;
+    this.currentSchedule.prepare();
+    this._saveScheduleToStorage();
+    this._switchToPlay();
+  }
+
+  private _switchToPlay(): void {
+    this.mode = 'play';
+    this._applyModeUI();
+    this._saveViewState();
+  }
+
+  private _switchToEdit(): void {
+    this.currentSchedule?.pause();
+    this.mode = 'edit';
+    this._applyModeUI();
+    this._saveViewState();
+  }
+
+  private _applyModeUI(): void {
+    if (!this.editSection || !this.playSection) return;
+    const isPlay = this.mode === 'play';
+    this.editSection.style.display = isPlay ? 'none' : '';
+    this.playSection.style.display = isPlay ? '' : 'none';
+  }
+
+  /** Updates the play/pause button icon based on running state. */
+  private _updatePlayPauseIcon(isPaused: boolean): void {
+    if (!this.startPauseBtn) return;
+    const icon = this.startPauseBtn.querySelector('.material-icons');
+    if (icon) {
+      icon.textContent = isPaused ? 'play_arrow' : 'pause';
+    }
+    this.startPauseBtn.title = isPaused ? 'Play schedule' : 'Pause schedule';
+  }
+
+  // ─── Schedule lifecycle ────────────────────────────────────────────────────
+
+  private _handleStartPause(): void {
+    if (!this.currentSchedule) {
+      // No schedule yet — build it and start
+      const schedule = this._buildSchedule();
+      if (!schedule) return;
+      this.currentSchedule = schedule;
+      this.currentSchedule.prepare();
+    }
+    if (this.currentSchedule.isFinished()) {
+      this._handleReset();
+      return;
+    }
+    if (this.currentSchedule.isRunning()) {
+      this.currentSchedule.pause();
+    } else {
+      this.currentSchedule.start();
+    }
+  }
+
+  private _handleSkip(): void {
+    if (!this.currentSchedule || this.currentSchedule.isFinished()) return;
+    this.currentSchedule.skip();
+  }
+
+  private _handleReset(): void {
+    this.currentSchedule?.pause();
+    const schedule = this._buildSchedule();
+    if (!schedule) return;
+    this.currentSchedule = schedule;
+    this.currentSchedule.prepare();
+  }
+
+  private _buildSchedule(): Schedule | null {
+    if (!this.editor) return null;
+    const container = this.container;
+    const maxCanvasHeight = container ? (container.clientHeight || DEFAULT_MAX_CANVAS_HEIGHT) : DEFAULT_MAX_CANVAS_HEIGHT;
+    return this.editor.getSchedule(this.adapter, this.appSettings, maxCanvasHeight);
+  }
+
+  // ─── Border flash ──────────────────────────────────────────────────────────
+
+  private _flashBorder(): void {
+    if (!this.container) return;
+    const wrapper = this.container.closest<HTMLElement>('.floating-view-wrapper');
+    const target = wrapper ?? this.container;
+    target.classList.add('sfv-flash');
+    setTimeout(() => target.classList.remove('sfv-flash'), 600);
+  }
+
+  // ─── Persistence ──────────────────────────────────────────────────────────
+
+  private _saveViewState(): void {
+    this.container?.dispatchEvent(new CustomEvent('feature-state-changed', {
+      bubbles: true,
+      detail: { mode: this.mode },
+    }));
+  }
+
+  private _saveScheduleToStorage(): void {
+    if (!this.editor) return;
+    try {
+      const json = this.editor.getScheduleJSON();
+      const parsed = JSON.parse(json);
+      if (!parsed || !Array.isArray(parsed.items) || parsed.items.length === 0) return;
+      localStorage.setItem(LAST_RUN_SCHEDULE_JSON_KEY, json);
+      const stored = localStorage.getItem(RECENT_SCHEDULES_JSON_KEY);
+      let recent: string[] = [];
+      if (stored) {
+        try { const p = JSON.parse(stored); if (Array.isArray(p)) recent = p; } catch {}
+      }
+      recent = recent.filter(s => s !== json);
+      recent.unshift(json);
+      if (recent.length > MAX_RECENT_SCHEDULES) recent.length = MAX_RECENT_SCHEDULES;
+      localStorage.setItem(RECENT_SCHEDULES_JSON_KEY, JSON.stringify(recent));
+    } catch {}
+  }
+
+  // ─── View lifecycle ────────────────────────────────────────────────────────
+
+  start(): void {}
+
+  stop(): void {
+    this.currentSchedule?.pause();
+  }
+
+  destroy(): void {
+    this.currentSchedule?.pause();
+    this.timerView?.destroy();
+    super.destroy();
+  }
+}

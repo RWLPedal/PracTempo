@@ -35,6 +35,8 @@ const NAV_SECTIONS: NavSection[] = [
     {
         label: 'Practice',
         buttons: [
+            { id: 'schedule-feature',     icon: 'event_note',  label: 'Schedule',      viewId: 'schedule_floating_view' },
+            { id: 'any-feature',          icon: 'smart_display', label: 'Any',          viewId: 'any_floating_view' },
             { id: 'metronome-feature',    icon: 'timer',       label: 'Metronome',     viewId: 'instrument_floating_metronome' },
             { id: 'timer-feature',        icon: 'alarm',       label: 'Timer',         viewId: 'floating_timer' },
             { id: 'drum-machine-feature', icon: 'queue_music', label: 'Backing Track', viewId: 'drum_machine' },

@@ -70,7 +70,7 @@
 .select.is-fullwidth select { width: 100%; }
 .select select { padding-right: 2.25em; }
 .select:not(.is-multiple):not(.is-loading)::after {
-  border-color: var(--clr-link);
+  border-color: var(--accent);
   border-style: solid;
   border-width: 2px;
   border-right: 0;
@@ -128,7 +128,7 @@
 /* ── Typography helpers ─────────────────────────────────────────────────── */
 .title.is-6 { font-size: 1rem; font-weight: 600; }
 .subtitle {
-  color: var(--clr-text-subtle);
+  color: var(--text-muted);
   font-weight: 400;
   margin-bottom: 0.5rem;
 }
@@ -139,16 +139,11 @@
 
 /* ── Notifications ──────────────────────────────────────────────────────── */
 .notification {
-  background-color: var(--clr-secondary);
-  color: var(--clr-text);
+  background-color: var(--panel-bg);
+  color: var(--text-primary);
   border-radius: 6px;
-  border: 1px solid var(--clr-border);
+  border: 1px solid var(--border);
   padding: 1rem;
-}
-body.dark-theme .notification {
-  background-color: var(--clr-secondary-dark);
-  color: var(--clr-text-dark);
-  border-color: transparent;
 }
 .notification.is-info {
   background-color: var(--clr-info);
@@ -160,24 +155,21 @@ body.dark-theme .notification {
   color: white;
   border: none;
 }
-body.dark-theme .notification.is-info,
-body.dark-theme .notification.is-success { color: #fff; }
 
 #task-wrapper {
-  background-color: var(--clr-secondary);
-  color: var(--clr-text);
+  background-color: var(--panel-bg);
+  color: var(--text-primary);
   border: none;
 }
-body.dark-theme #task-wrapper { color: var(--clr-text-dark); }
 
 /* ── Underline-only inputs for config / feature-arg controls ────────────── */
 .config-feature-arg {
   border: none;
-  border-bottom: 1px solid var(--clr-border);
+  border-bottom: 1px solid var(--border);
   border-radius: 0;
   padding: 4px 4px 4px 0;
   background-color: transparent;
-  color: var(--clr-text);
+  color: var(--text-primary);
   font-size: 0.8rem;
   line-height: 1.2;
   height: auto;
@@ -186,17 +178,9 @@ body.dark-theme #task-wrapper { color: var(--clr-text-dark); }
 }
 .config-feature-arg:hover,
 .config-feature-arg:focus {
-  border-bottom-color: var(--clr-primary);
+  border-bottom-color: var(--accent);
   outline: none;
   box-shadow: none;
-}
-body.dark-theme .config-feature-arg {
-  color: var(--clr-text-dark);
-  border-bottom-color: var(--clr-border-dark);
-}
-body.dark-theme .config-feature-arg:hover,
-body.dark-theme .config-feature-arg:focus {
-  border-bottom-color: var(--clr-primary-dark);
 }
 
 /* ── Main Controls (Start / Reset / Settings) ───────────────────────────── */
@@ -240,21 +224,21 @@ body.dark-theme .config-feature-arg:focus {
   border: none;
   padding: 0 5px;
   cursor: pointer;
-  color: var(--clr-text-subtle);
+  color: var(--text-muted);
   font-size: 1.5rem;
   line-height: 1;
   vertical-align: middle;
   text-decoration: none;
 }
 .topbar-icon-button:hover,
-#settings-button:hover { color: var(--clr-link); }
+#settings-button:hover { color: var(--accent); }
 
 #floating-view-button {
   background: none;
   border: none;
   text-decoration: none;
 }
-#floating-view-button:hover { color: var(--clr-link); }
+#floating-view-button:hover { color: var(--accent); }
 
 /* ── Editor Controls Container (bottom of schedule editor) ──────────────── */
 #editor-controls {
@@ -266,67 +250,40 @@ body.dark-theme .config-feature-arg:focus {
   border-top: 1px solid var(--clr-border);
 }
 #editor-controls .button {
-  font-family: 'Open Sans', sans-serif;
+  font-family: 'DM Sans', sans-serif;
   text-decoration: none;
-  background-color: var(--clr-secondary);
-  border: 1px solid var(--clr-border);
-  color: var(--clr-text);
+  background-color: var(--panel-bg);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
   padding: 0.25em 0.5em;
   font-size: 0.85em;
   transition: background-color 0.15s ease-out, border-color 0.15s ease-out, color 0.15s ease-out;
   border-radius: 4px;
 }
 #editor-controls .button:hover {
-  background-color: var(--clr-tertiary);
-  color: var(--clr-text);
-  border-color: var(--clr-grey-300);
+  background-color: var(--input-bg);
+  color: var(--text-primary);
+  border-color: var(--accent);
 }
 #editor-controls .button:active {
-  background-color: var(--clr-border);
-  color: var(--clr-text-subtle);
-}
-body.dark-theme #editor-controls .button {
-  background-color: var(--clr-secondary-dark);
-  color: var(--clr-text-dark);
-  border-color: var(--clr-border-dark);
-}
-body.dark-theme #editor-controls .button:hover {
-  background-color: var(--clr-tertiary-dark);
-  color: var(--clr-text-dark);
-  border-color: var(--clr-border-dark);
-}
-body.dark-theme #editor-controls .button:active {
-  background-color: #3A4560;
-  color: var(--clr-text-subtle-dark);
-  border-color: var(--clr-border-dark);
+  background-color: var(--border);
+  color: var(--text-muted);
 }
 
 #set-schedule-control {
-  background-color: var(--clr-primary);
-  color: white;
+  background-color: var(--accent);
+  color: var(--panel-bg);
   border: none;
 }
 #set-schedule-control:hover { opacity: 0.9; }
-body.dark-theme #set-schedule-control {
-  background-color: var(--clr-primary);
-  color: #fff;
-}
 
 #mode-toggle {
-  border-color: var(--clr-link);
-  color: var(--clr-link);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 #add-config-entry {
-  border-color: var(--clr-info);
-  color: var(--clr-info);
-}
-body.dark-theme #mode-toggle {
-  color: var(--clr-link);
-  border-color: var(--clr-link);
-}
-body.dark-theme #add-config-entry {
-  color: var(--clr-info);
-  border-color: var(--clr-info);
+  border-color: var(--accent-dim);
+  color: var(--accent-dim);
 }
 
 /* ── Settings Modal — themed colors ─────────────────────────────────────── */
@@ -367,23 +324,23 @@ body.dark-theme #add-config-entry {
 }
 .vol-ctrl-popup {
   position: fixed;
-  background: var(--clr-bg);
-  border: 1px solid var(--clr-border);
+  background: var(--bg);
+  border: 1px solid var(--border);
   border-radius: 8px;
   z-index: 9999;
-  box-shadow: 0 6px 20px var(--clr-shadow);
+  box-shadow: var(--shadow-panel);
   min-width: 170px;
   overflow: hidden;
   white-space: nowrap;
 }
 .vol-ctrl-popup[hidden] { display: none; }
 .vol-ctrl-popup-title {
-  background: var(--clr-secondary);
-  border-bottom: 1px solid var(--clr-border);
+  background: var(--panel-bg);
+  border-bottom: 1px solid var(--border);
   padding: 4px 10px;
   font-size: 0.72rem;
   font-weight: 700;
-  color: var(--clr-text-subtle);
+  color: var(--text-muted);
   letter-spacing: 0.04em;
   text-transform: uppercase;
 }
@@ -396,17 +353,13 @@ body.dark-theme #add-config-entry {
 .vol-ctrl-slider {
   flex: 1;
   cursor: pointer;
-  accent-color: var(--clr-primary);
+  accent-color: var(--accent);
 }
 .vol-ctrl-pct {
   font-size: 0.75rem;
   font-weight: 700;
-  color: var(--clr-text);
+  color: var(--text-primary);
   min-width: 36px;
   text-align: right;
   font-variant-numeric: tabular-nums;
-}
-body.dark-theme .vol-ctrl-popup-title {
-  background: var(--clr-secondary-dark);
-  border-bottom-color: var(--clr-border-dark);
 }
