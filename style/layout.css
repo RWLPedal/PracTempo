@@ -148,6 +148,7 @@ body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
   grid-template-columns: 192px 1fr;
   grid-template-rows: 1fr;
   height: 100vh;
+  position: relative;
   transition: grid-template-columns 0.22s ease;
 }
 .reference-layout:has(.side-bar-container.is-collapsed) {
@@ -167,6 +168,7 @@ body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
   grid-area: main-content;
   padding: 1rem;
   overflow: auto;
+  position: relative;
 }
 
 /* ─── Sidebar ────────────────────────────────────────────────────────────── */
@@ -364,7 +366,6 @@ body.dark-theme .dropdown-item.has-checkbox label.checkbox:hover {
   height: 100%;
   pointer-events: none;
   overflow: hidden;
-  z-index: 90;
 }
 #floating-view-area.grid-active {
   background-image:

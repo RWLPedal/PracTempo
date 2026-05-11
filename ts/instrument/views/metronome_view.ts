@@ -112,6 +112,7 @@ export class MetronomeView extends BaseView {
     const timeSigWrapper = document.createElement("div");
     timeSigWrapper.classList.add("select", "is-small");
     this.timeSigSelect = document.createElement("select");
+    this.timeSigSelect.classList.add("metronome-time-signature-selector");
     this.timeSigSelect.setAttribute("aria-label", "Time Signature");
     COMMON_TIME_SIGNATURES.forEach((sig) => {
       const option = new Option(sig.label, sig.label);
@@ -136,7 +137,7 @@ export class MetronomeView extends BaseView {
     this.muteButton = document.createElement("button");
     this.muteButton.type = "button";
     this.muteButton.classList.add("button", "is-small", "metronome-mute-btn");
-    this.muteButton.style.minWidth = "55px";
+    this.muteButton.innerHTML = `<span class="material-icons">volume_up</span>`;
     this.muteButton.addEventListener("click", this.toggleMute.bind(this));
     transportRow.appendChild(this.muteButton);
 
@@ -375,7 +376,9 @@ export class MetronomeView extends BaseView {
 
   private updateMuteButtonState(): void {
     if (!this.muteButton) return;
-    this.muteButton.textContent = this.isMuted ? "Unmute" : "Mute";
+    this.muteButton.innerHTML = this.isMuted
+      ? `<span class="material-icons">volume_off</span>`
+      : `<span class="material-icons">volume_up</span>`;
     this.muteButton.classList.toggle("is-warning", this.isMuted);
   }
 

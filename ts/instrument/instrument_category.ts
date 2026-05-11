@@ -230,7 +230,7 @@ export class InstrumentCategory implements Category {
       viewId: "instrument_floating_metronome",
       displayName: "Metronome",
       categoryName: this.getName(),
-      defaultWidth: 260,
+      defaultWidth: 280,
       defaultHeight: 120,
       createView: (_initialState?: any, _appSettings?: AppSettings) => {
         const audioController = new AudioController(

@@ -301,6 +301,8 @@ body.dark-theme .playback-upcoming-duration {
   border-radius: 3px;
   background: var(--input-bg, var(--panel-bg));
   color: var(--text);
+  height: 22px;
+  box-sizing: border-box;
 }
 .metronome-progression-input:disabled {
   opacity: 0.45;
@@ -312,21 +314,36 @@ body.dark-theme .playback-upcoming-duration {
   white-space: nowrap;
 }
 
+.metronome-time-signature-selector {
+  min-width: 50px;
+}
+
 .play-pause-btn {
   min-width: 40px;
   font-size: 1.2em;
   padding-top: 0;
   padding-bottom: 0;
-  line-height: 1.5;
+  height: 24px;
+  line-height: 1;
 }
 .metronome-bpm-slider {
-  flex: 1 1 0;
+  flex: 1.2 1 0;
   min-width: 50px;
 }
 .metronome-bpm-display {
   min-width: 32px;
   font-size: 0.8rem;
   text-align: right;
+}
+.metronome-mute-btn {
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.metronome-mute-btn .material-icons {
+  font-size: 16px;
+  line-height: 1;
 }
 .metronome-mute-btn.is-warning {
   background-color: var(--clr-warning);
