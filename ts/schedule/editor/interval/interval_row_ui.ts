@@ -88,9 +88,8 @@ export function buildIntervalRowElement(
   const contentWrapper = document.createElement("div");
   contentWrapper.style.display = "grid";
   contentWrapper.style.flexGrow = "1";
-  // Adjusted grid for better layout flexibility
-  contentWrapper.style.gridTemplateColumns = "80px 1fr 1fr minmax(200px, 2fr)";
-  contentWrapper.style.gap = "5px";
+  contentWrapper.style.gridTemplateColumns = "50px 80px 155px minmax(60px, 1fr)";
+  contentWrapper.style.gap = "4px";
   contentWrapper.style.alignItems = "center";
 
   const durationDiv = createCellWithInput(
@@ -123,7 +122,6 @@ export function buildIntervalRowElement(
   // Actions Cell
   const actionsDiv = document.createElement("div");
   actionsDiv.classList.add("config-cell", "action-cell");
-  actionsDiv.style.display = "flex";
   actionsDiv.style.alignItems = "center";
   actionsDiv.style.gap = "3px";
   actionsDiv.appendChild(createCopyButtonCell());

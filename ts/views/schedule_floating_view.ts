@@ -31,9 +31,7 @@ export class ScheduleFloatingView extends BaseView {
 
   private editSection: HTMLElement | null = null;
   private playSection: HTMLElement | null = null;
-  private startPauseBtn: HTMLButtonElement | null = null;
   private skipBtn: HTMLButtonElement | null = null;
-  private resetBtn: HTMLButtonElement | null = null;
   private switchToEditBtn: HTMLButtonElement | null = null;
 
   constructor(initialState: any, appSettings: AppSettings) {
@@ -60,8 +58,6 @@ export class ScheduleFloatingView extends BaseView {
     // it bubbles up through the floating-view-area to the LinkManager.
     this.adapter.setSignalSourceElement(container);
     this.adapter.setOnFlash(() => this._flashBorder());
-    this.adapter.setOnStart(() => this._updatePlayPauseIcon(false));
-    this.adapter.setOnPause(() => this._updatePlayPauseIcon(true));
 
     // Edit section
     this.editSection = document.createElement('div');
@@ -105,42 +101,7 @@ export class ScheduleFloatingView extends BaseView {
     if (!this.playSection) return;
     this.playSection.innerHTML = '';
 
-    // Control strip
-    const controls = document.createElement('div');
-    controls.classList.add('sfv-play-controls');
-
-    // All four transport buttons grouped together: play/pause, skip (fast forward), reset, edit
-    this.startPauseBtn = document.createElement('button');
-    this.startPauseBtn.classList.add('sfv-btn', 'sfv-btn--accent');
-    this.startPauseBtn.innerHTML = '<span class="material-icons">play_arrow</span>';
-    this.startPauseBtn.title = 'Play/Pause schedule';
-    this.startPauseBtn.addEventListener('click', () => this._handleStartPause());
-    controls.appendChild(this.startPauseBtn);
-
-    this.skipBtn = document.createElement('button');
-    this.skipBtn.classList.add('sfv-btn');
-    this.skipBtn.innerHTML = '<span class="material-icons">skip_next</span>';
-    this.skipBtn.title = 'Skip to next interval';
-    this.skipBtn.addEventListener('click', () => this._handleSkip());
-    controls.appendChild(this.skipBtn);
-
-    this.resetBtn = document.createElement('button');
-    this.resetBtn.classList.add('sfv-btn');
-    this.resetBtn.innerHTML = '<span class="material-icons">replay</span>';
-    this.resetBtn.title = 'Reset schedule to beginning';
-    this.resetBtn.addEventListener('click', () => this._handleReset());
-    controls.appendChild(this.resetBtn);
-
-    this.switchToEditBtn = document.createElement('button');
-    this.switchToEditBtn.classList.add('sfv-btn');
-    this.switchToEditBtn.innerHTML = '<span class="material-icons">edit</span>';
-    this.switchToEditBtn.title = 'Edit schedule';
-    this.switchToEditBtn.addEventListener('click', () => this._switchToEdit());
-    controls.appendChild(this.switchToEditBtn);
-
-    this.playSection.appendChild(controls);
-
-    // Playback view (contains timer slot + total progress + upcoming list)
+    // Playback view (timer slot + total progress + upcoming list)
     const playbackContainer = document.createElement('div');
     this.playSection.appendChild(playbackContainer);
     this.playbackView = new SchedulePlaybackView(playbackContainer);
@@ -156,8 +117,26 @@ export class ScheduleFloatingView extends BaseView {
     this.timerView.render(this.playbackView.getTimerContainer());
     this.adapter.setTimerView(this.timerView);
 
-    // Adapter callbacks update the timer view button state via setStatus/setStart/setPause,
-    // so no separate start/pause button needed here.
+    // Secondary controls (skip + back-to-edit) sit between timer and upcoming list
+    const controls = document.createElement('div');
+    controls.classList.add('sfv-play-controls');
+
+    this.skipBtn = document.createElement('button');
+    this.skipBtn.classList.add('sfv-btn');
+    this.skipBtn.innerHTML = '<span class="material-icons">skip_next</span>';
+    this.skipBtn.title = 'Skip to next interval';
+    this.skipBtn.addEventListener('click', () => this._handleSkip());
+    controls.appendChild(this.skipBtn);
+
+    this.switchToEditBtn = document.createElement('button');
+    this.switchToEditBtn.classList.add('sfv-btn');
+    this.switchToEditBtn.innerHTML = '<span class="material-icons">edit</span>';
+    this.switchToEditBtn.title = 'Edit schedule';
+    this.switchToEditBtn.addEventListener('click', () => this._switchToEdit());
+    controls.appendChild(this.switchToEditBtn);
+
+    // Insert controls between timer slot and total-progress section
+    this.playbackView.getTimerContainer().after(controls);
   }
 
   // ─── Mode switching ────────────────────────────────────────────────────────
@@ -173,8 +152,13 @@ export class ScheduleFloatingView extends BaseView {
 
   private _switchToPlay(): void {
     this.mode = 'play';
+    this.playbackView?.setScheduleName(this._getScheduleName());
     this._applyModeUI();
     this._saveViewState();
+  }
+
+  private _getScheduleName(): string {
+    return this.editor?.getScheduleName() ?? '';
   }
 
   private _switchToEdit(): void {
@@ -189,16 +173,6 @@ export class ScheduleFloatingView extends BaseView {
     const isPlay = this.mode === 'play';
     this.editSection.style.display = isPlay ? 'none' : '';
     this.playSection.style.display = isPlay ? '' : 'none';
-  }
-
-  /** Updates the play/pause button icon based on running state. */
-  private _updatePlayPauseIcon(isPaused: boolean): void {
-    if (!this.startPauseBtn) return;
-    const icon = this.startPauseBtn.querySelector('.material-icons');
-    if (icon) {
-      icon.textContent = isPaused ? 'play_arrow' : 'pause';
-    }
-    this.startPauseBtn.title = isPaused ? 'Play schedule' : 'Pause schedule';
   }
 
   // ─── Schedule lifecycle ────────────────────────────────────────────────────

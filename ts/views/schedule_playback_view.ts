@@ -10,6 +10,7 @@ export class SchedulePlaybackView {
   private timerContainerEl!: HTMLElement;
   private totalTimerEl!: HTMLElement;
   private upcomingListEl!: HTMLElement;
+  private scheduleTitleEl!: HTMLElement;
 
   constructor(container: HTMLElement) {
     this.render(container);
@@ -23,6 +24,16 @@ export class SchedulePlaybackView {
     this.timerContainerEl = document.createElement('div');
     this.timerContainerEl.classList.add('playback-timer-slot');
     container.appendChild(this.timerContainerEl);
+
+    // ── Right panel: title + total + upcoming (groups as one grid area in wide layout) ──
+    const rightPanel = document.createElement('div');
+    rightPanel.classList.add('playback-right-panel');
+
+    // Schedule title (shown in play mode)
+    this.scheduleTitleEl = document.createElement('div');
+    this.scheduleTitleEl.classList.add('playback-schedule-title');
+    this.scheduleTitleEl.hidden = true;
+    rightPanel.appendChild(this.scheduleTitleEl);
 
     // ── Total progress ────────────────────────────────────────────────────────
     const totalSection = document.createElement('div');
@@ -39,7 +50,7 @@ export class SchedulePlaybackView {
 
     totalSection.appendChild(totalLabel);
     totalSection.appendChild(this.totalTimerEl);
-    container.appendChild(totalSection);
+    rightPanel.appendChild(totalSection);
 
     // ── Upcoming tasks ────────────────────────────────────────────────────────
     const upcomingSection = document.createElement('div');
@@ -55,12 +66,19 @@ export class SchedulePlaybackView {
 
     upcomingSection.appendChild(upcomingLabel);
     upcomingSection.appendChild(this.upcomingListEl);
-    container.appendChild(upcomingSection);
+    rightPanel.appendChild(upcomingSection);
+
+    container.appendChild(rightPanel);
   }
 
   /** The element into which the consuming code should render a TimerView. */
   getTimerContainer(): HTMLElement {
     return this.timerContainerEl;
+  }
+
+  setScheduleName(name: string): void {
+    this.scheduleTitleEl.textContent = name;
+    this.scheduleTitleEl.hidden = !name;
   }
 
   setTotalTime(elapsed: number, total: number): void {

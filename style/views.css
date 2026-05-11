@@ -148,43 +148,38 @@
   justify-content: space-between;
   padding: 5px 10px;
   border-radius: 5px;
-  background: var(--clr-tertiary);
+  background: var(--input-bg);
   gap: 8px;
 }
-body.dark-theme .playback-upcoming-item { background: var(--clr-tertiary-dark); }
 .playback-upcoming-name {
   flex: 1;
   font-size: 0.9em;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  color: var(--clr-text);
+  color: var(--text-primary);
 }
 .playback-upcoming-duration {
   font-size: 0.78em;
   font-variant-numeric: tabular-nums;
-  color: var(--clr-text);
-  background: var(--clr-tertiary);
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--accent) 10%, var(--input-bg));
   border-radius: 10px;
   padding: 1px 9px;
   white-space: nowrap;
   flex-shrink: 0;
-  border: 1px solid var(--clr-border);
-}
-body.dark-theme .playback-upcoming-duration {
-  background: var(--clr-tertiary-dark);
-  border-color: var(--clr-border-dark);
+  border: 1px solid color-mix(in srgb, var(--accent) 25%, var(--border));
 }
 .playback-upcoming-end {
   background: transparent !important;
-  border: 1px dashed var(--clr-border);
+  border: 1px dashed var(--border);
 }
 .playback-upcoming-end .playback-upcoming-name {
   font-weight: 700;
   font-size: 0.78em;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  color: var(--clr-text-subtle);
+  color: var(--text-muted);
   text-align: center;
   width: 100%;
 }
@@ -193,7 +188,7 @@ body.dark-theme .playback-upcoming-duration {
 }
 .playback-upcoming-empty {
   font-size: 0.85em;
-  color: var(--clr-text-subtle);
+  color: var(--text-muted);
   padding: 4px 10px;
   font-style: italic;
 }
@@ -823,6 +818,15 @@ body.dark-theme .dm-measure-cell.dm-measure-filled {
   padding: 6px 8px;
 }
 
+/* Compact timer ring — 220 px is too tall for a panel */
+.schedule-floating-view .timer-ring-container {
+  width: 160px;
+  height: 160px;
+}
+.schedule-floating-view .timer-display {
+  font-size: 1.8em;
+}
+
 /* Remove the redundant inner box the editor adds when embedded in a panel */
 .schedule-floating-view #schedule-editor-container {
   border: none;
@@ -854,36 +858,23 @@ body.dark-theme .dm-measure-cell.dm-measure-filled {
   border-color: var(--accent);
   color: var(--text-primary);
 }
-/* Apply & Play primary button */
-.schedule-floating-view #set-schedule-control {
-  background-color: var(--accent);
-  color: var(--panel-bg);
-  border: none;
-}
-.schedule-floating-view #set-schedule-control .material-icons {
-  color: var(--panel-bg);
-  font-size: 16px;
-}
-.schedule-floating-view #set-schedule-control:hover {
-  background-color: var(--accent);
-  opacity: 0.85;
-  color: var(--panel-bg);
-}
+/* Apply & Play primary button — handled by #editor-controls #set-schedule-control in editor.css */
 
 .sfv-play-section {
   display: flex;
   flex-direction: column;
   height: 100%;
   overflow: hidden;
+  container-type: inline-size;
+  container-name: sfv-play;
 }
 
 .sfv-play-controls {
   display: flex;
   gap: 6px;
-  padding: 8px;
+  padding: 2px 8px 4px;
   align-items: center;
   flex-shrink: 0;
-  border-bottom: 1px solid var(--border);
 }
 
 /* Play-mode control buttons — all derive from theme tokens */
@@ -922,6 +913,43 @@ body.dark-theme .dm-measure-cell.dm-measure-filled {
 }
 .sfv-btn--danger:hover {
   background: color-mix(in srgb, var(--clr-danger) 12%, transparent);
+}
+
+/* Right panel: groups total + upcoming as one area in the side-by-side grid */
+.playback-right-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+/* Schedule name shown in play mode */
+.playback-schedule-title {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px 8px 0;
+}
+
+/* Side-by-side layout when the panel is wide enough */
+@container sfv-play (min-width: 550px) {
+  .schedule-playback-view {
+    display: grid;
+    grid-template-columns: 185px 1fr;
+    grid-template-areas:
+      "timer  right"
+      "controls right";
+    grid-template-rows: auto 1fr;
+    gap: 0 12px;
+    align-items: start;
+  }
+  .playback-timer-slot  { grid-area: timer; }
+  .sfv-play-controls    { grid-area: controls; padding-top: 6px; }
+  .playback-right-panel { grid-area: right; }
 }
 
 /* Border flash on interval transition */

@@ -159,18 +159,16 @@ export class ScheduleEditor {
   }
   private _updateScheduleNameDisplay(): void {
     if (this.scheduleNameDisplayEl) {
-      this.scheduleNameDisplayEl.textContent = `Schedule: ${this.scheduleName}`;
-      this.scheduleNameDisplayEl.title = `Current schedule: ${this.scheduleName}. Double-click to rename.`;
+      this.scheduleNameDisplayEl.textContent = this.scheduleName;
+      this.scheduleNameDisplayEl.title = `Double-click to rename`;
     }
   }
   private _attachNameEditHandlers(): void {
     if (!this.scheduleNameDisplayEl) return;
-    // Listen for blur on the contentEditable name display to persist the name
     this.scheduleNameDisplayEl.addEventListener("blur", () => {
-      const newName = this.scheduleNameDisplayEl!.textContent?.replace(/^Schedule:\s*/, "").trim() ?? "";
+      const newName = this.scheduleNameDisplayEl!.textContent?.trim() ?? "";
       if (newName && newName !== this.scheduleName) {
         this.scheduleName = newName;
-        console.log("Schedule name updated to:", this.scheduleName);
       }
       this._updateScheduleNameDisplay();
     });
@@ -342,6 +340,11 @@ export class ScheduleEditor {
     return null;
   }
 
+  /** Returns the current schedule name as entered by the user. */
+  public getScheduleName(): string {
+    return this.scheduleName;
+  }
+
   /** Overrides the label of the "Set Schedule" apply button (e.g. for floating-view context). */
   public setApplyButtonLabel(label: string): void {
     this.uiManager.setApplyButtonLabel(label);
@@ -505,6 +508,7 @@ export class ScheduleEditor {
         return null;
       }
     }
+    this.scheduleBuilder.setScheduleName(this.scheduleName);
     return this.scheduleBuilder.buildSchedule(
       displayController,
       this.audioController,
