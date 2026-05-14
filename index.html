@@ -4,111 +4,34 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Guitar Timer</title>
+  <title>PracTempo — Reference</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bulma/0.9.4/css/bulma.min.css">
-  <script src="./js/bundle.js" defer></script>
+  <script src="./js/reference_bundle.js" defer></script>
   <link rel="stylesheet" href="style/theme-tokens.css">
   <link rel="stylesheet" href="style/style.css">
 </head>
 
 <body>
-  <div class="container pt-4 pb-4">
-
-    <div class="tile is-ancestor">
-
-      <div class="tile is-vertical is-parent is-5">
-        <!-- ScheduleTimerView renders its content (buttons) here -->
-        <div class="tile is-child notification" id="task-wrapper">
-        </div>
-        <!-- SchedulePlaybackView (timer + total + upcoming) renders here -->
-        <div class="tile is-child notification" id="playback-view-container">
-        </div>
-      </div> <div class="tile is-parent is-7">
-        <article id="diagram" class="tile is-child notification">
-          <p class="subtitle">Diagram</p> </article>
-      </div> </div> <div class="container pt-4 pb-4">
-        <div class="tile is-ancestor">
-            <div class="tile is-parent">
-                <article class="tile is-child notification pb-4" id="schedule-accordion">
-                    <div class="accordion-header is-clickable">
-                        <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                            <span class="accordion-toggle-icon">&#9660;</span>
-                        </div>
-                    </div>
-                    <div class="accordion-content" id="schedule-editor-container">
-                    </div>
-                </article>
-            </div>
-        </div>
-        </div>
-            </article>
-        </div>
-    </div> </div> <audio id="intro-end-sound" src="sounds/intro_bell.wav" preload="auto"></audio>
-  <audio id="interval-end-sound" src="sounds/bell.wav" preload="auto"></audio>
-  <audio id="metronome-sound" src="sounds/metronome.wav" preload="auto"></audio>
-  <audio id="metronome-accent-sound" src="sounds/metronome_accent.wav" preload="auto"></audio>
+  <div class="reference-layout">
+    <div id="side-bar" class="side-bar-container">
+      <!-- Sidebar content will be generated here -->
+    </div>
+    <div id="main-content" class="main-content-container">
+      <!-- Floating views will be appended here -->
+    </div>
+    <div id="floating-view-area"></div>
+  </div>
 
   <div id="overlay" class="hidden"></div>
 
-  <div class="modal" id="load-schedule-modal">
-    <div class="modal-background"></div>
-    <div class="modal-card">
-      <header class="modal-card-head">
-        <p class="modal-card-title">Load/Save Schedule</p>
-        <button class="delete" aria-label="close" id="load-schedule-modal-close"></button>
-      </header>
-      <section class="modal-card-body">
-        <h3 class="title is-5">Recent Schedules</h3>
-        <p class="is-size-7 has-text-grey mb-2">Click to load into editor. Click 'View' to preview.</p>
-        <div class="menu">
-          <ul class="menu-list" id="recent-schedules-list">
-            <li class="is-disabled"><a>(No recent schedules saved)</a></li>
-          </ul>
-        </div>
-        <hr>
-        <h3 class="title is-5">File Operations</h3>
-        <div class="field is-grouped">
-          <p class="control">
-            <button class="button is-link" id="save-schedule-disk">
-              <span>Save Current to File</span>
-            </button>
-          </p>
-          <p class="control">
-            <label class="button is-info" for="load-schedule-input-hidden">
-              <span>Load from File</span>
-            </label>
-            <input type="file" id="load-schedule-input-hidden" accept=".json,application/json" style="display: none;">
-          </p>
-        </div>
-
-        <div id="recent-schedule-preview"
-          style="display: none; margin-top: 15px; border-top: 1px solid #dbdbdb; padding-top: 15px;">
-          <button class="delete is-pulled-right" aria-label="close" id="close-preview-button"
-            title="Close Preview"></button>
-          <p class="has-text-weight-semibold is-size-6 mb-2">Full Schedule Preview:</p>
-          <pre id="recent-schedule-preview-content" style="max-height: 250px;
-                      overflow: auto;
-                      background-color: #f9f9f9;
-                      padding: 10px;
-                      border: 1px solid #dbdbdb;
-                      border-radius: 4px;
-                      white-space: pre-wrap;
-                      word-wrap: break-word;
-                      font-size: 0.85em;
-                      line-height: 1.4;">
-          </pre>
-        </div>
-      </section>
-      <footer class="modal-card-foot is-justify-content-flex-end">
-        <button class="button" id="load-schedule-modal-cancel">Cancel</button>
-      </footer>
-    </div>
-  </div>
-  <div id="floating-view-area"></div>
+  <!-- Audio elements for metronome (queried by FloatingMetronomeView) -->
+  <audio id="metronome-sound" src="sounds/metronome.wav" preload="auto"></audio>
+  <audio id="metronome-accent-sound" src="sounds/metronome_accent.wav" preload="auto"></audio>
+  <!-- Audio elements for schedule interval transitions (queried by ScheduleFloatingView) -->
+  <audio id="intro-end-sound" src="sounds/intro_bell.wav" preload="auto"></audio>
+  <audio id="interval-end-sound" src="sounds/bell.wav" preload="auto"></audio>
 </body>
 </html>

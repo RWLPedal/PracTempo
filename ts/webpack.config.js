@@ -3,7 +3,6 @@ const path = require('path');
 module.exports = {
   context: __dirname,
   entry: {
-    bundle: './main.ts',
     reference_bundle: './reference_page/reference_main.ts',
   },
   module: {

@@ -28,6 +28,7 @@ export class ScheduleFloatingView extends BaseView {
   private currentSchedule: Schedule | null = null;
   private timerView: TimerView | null = null;
   private playbackView: SchedulePlaybackView | null = null;
+  private initialState: any;
 
   private editSection: HTMLElement | null = null;
   private playSection: HTMLElement | null = null;
@@ -36,6 +37,7 @@ export class ScheduleFloatingView extends BaseView {
 
   constructor(initialState: any, appSettings: AppSettings) {
     super();
+    this.initialState = initialState;
     this.appSettings = appSettings;
     this.adapter = new ScheduleDisplayAdapter();
     this.audioController = new AudioController(
@@ -90,9 +92,10 @@ export class ScheduleFloatingView extends BaseView {
     // Relabel the apply button for floating-view context
     this.editor.setApplyButtonLabel('Apply & Play');
 
-    // Hide the Load/Save button — no modal available in floating context
-    const loadSaveBtn = this.editSection.querySelector<HTMLElement>('#load-schedule-button');
-    if (loadSaveBtn) loadSaveBtn.style.display = 'none';
+    // Restore persisted schedule if available (overrides last-run from localStorage)
+    if (this.initialState?.scheduleJSON) {
+      this.editor.setScheduleJSON(this.initialState.scheduleJSON, true);
+    }
   }
 
   // ─── Playback UI setup ─────────────────────────────────────────────────────
@@ -229,9 +232,12 @@ export class ScheduleFloatingView extends BaseView {
   // ─── Persistence ──────────────────────────────────────────────────────────
 
   private _saveViewState(): void {
+    const scheduleJSON = this.editor?.getScheduleJSON();
+    const detail: Record<string, unknown> = { mode: this.mode };
+    if (scheduleJSON) detail.scheduleJSON = scheduleJSON;
     this.container?.dispatchEvent(new CustomEvent('feature-state-changed', {
       bubbles: true,
-      detail: { mode: this.mode },
+      detail,
     }));
   }
 

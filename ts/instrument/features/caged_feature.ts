@@ -29,8 +29,7 @@ import { getColor as getColorFromScheme, NOTE_COLORS } from "../colors";
 export type CagedShapeName = "C" | "A" | "G" | "E" | "D";
 type LabelDisplayType = "Note Name" | "Interval";
 
-// Shapes in fretboard position order (E=1, D=2, C=3, A=4, G=5)
-const CAGED_SHAPE_ORDER: CagedShapeName[] = ["E", "D", "C", "A", "G"];
+const CAGED_SHAPE_ORDER: CagedShapeName[] = ["C", "A", "G", "E", "D"];
 
 // --- Reference CAGED Pattern Structure ---
 interface CagedReferenceNote {
@@ -317,10 +316,10 @@ export class CagedFeature extends InstrumentFeature {
         name: "Active Shapes",
         type: ArgType.Enum,
         required: false,
-        enum: ["E", "D", "C", "A", "G"],
+        enum: ["C", "A", "G", "E", "D"],
         uiComponentType: UiComponentType.ToggleButtonSelector,
         isVariadic: true,
-        uiComponentData: { buttonLabels: ["E", "D", "C", "A", "G"] },
+        uiComponentData: { buttonLabels: ["C", "A", "G", "E", "D"] },
         description: "Toggle CAGED shapes to focus on.",
       },
     ];

@@ -148,10 +148,8 @@ export class ScheduleEditor {
   // ─── Schedule name (inline editable on blur/keydown handled by UI manager) ─
 
   private _findNameEditElements(): void {
-    // Scoped lookup first (floating view context), then global fallback (index.html)
     this.scheduleNameDisplayEl =
-      this.containerEl.querySelector<HTMLElement>("#schedule-name-display") ??
-      document.getElementById("schedule-name-display");
+      this.containerEl.querySelector<HTMLElement>("#schedule-name-display");
     if (!this.scheduleNameDisplayEl)
       console.warn(
         "Schedule name display element (#schedule-name-display) not found."

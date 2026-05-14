@@ -11,7 +11,6 @@ export class EditorUIManager {
   public newScheduleButtonEl!: HTMLButtonElement;
   public addConfigEntryButtonEl!: HTMLButtonElement;
   public addGroupButtonEl!: HTMLButtonElement;
-  public loadSaveButtonEl!: HTMLButtonElement;
   public copyButtonEl!: HTMLButtonElement;
   public pasteButtonEl!: HTMLButtonElement;
   public setScheduleButtonEl!: HTMLButtonElement;
@@ -137,12 +136,6 @@ export class EditorUIManager {
       ["is-outlined"],
       "Switch to Text Editor"
     );
-    this.loadSaveButtonEl = this._createButton(
-      "load-schedule-button",
-      '<span class="material-icons">save</span> <span>Load/Save</span>',
-      ["is-info", "is-outlined"],
-      "Load/Save Schedules"
-    );
     this.setScheduleButtonEl = this._createButton(
       "set-schedule-control",
       '<span class="material-icons">check_circle</span> <span>Apply & Play</span>',
@@ -158,7 +151,6 @@ export class EditorUIManager {
       this.copyButtonEl,
       this.pasteButtonEl,
       this.modeToggleEl,
-      this.loadSaveButtonEl,
       this.setScheduleButtonEl
     );
 
