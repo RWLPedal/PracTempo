@@ -2,6 +2,11 @@ import { View } from "../view";
 import { FloatingViewInstanceState } from "./floating_view_types";
 
 // --- Grid Snap ---
+/** The canonical grid cell size in pixels. Used for both visual snap-to-grid
+ *  and coordinate serialization in save files. Import this from the manager
+ *  to keep a single source of truth. */
+export const GRID_UNIT = 12;
+
 let moduleGridSize: number | null = null;
 
 export function setFloatingViewGridSize(size: number | null): void {
@@ -341,6 +346,21 @@ export class FloatingViewWrapper {
   public bringToFront(zIndex: number): void {
     this.state.zIndex = zIndex;
     this.element.style.zIndex = `${zIndex}`;
+  }
+
+  /** Moves the view to the given pixel position without triggering a z-index change. */
+  public setPosition(x: number, y: number): void {
+    this.state.position = { x, y };
+    this.element.style.left = `${x}px`;
+    this.element.style.top = `${y}px`;
+  }
+
+  /** Returns the current pixel size of the wrapper element. */
+  public getSize(): { width: number; height: number } {
+    return {
+      width: this.element.offsetWidth,
+      height: this.element.offsetHeight,
+    };
   }
 
   /**

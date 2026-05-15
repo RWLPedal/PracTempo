@@ -10,7 +10,7 @@ import { CapoView } from '../views/capo_view';
 import { LinkManager } from '../floating_views/link_manager';
 import '../floating_views/drive_slots'; // registers all drive sources/targets as a side effect
 import { registerBuiltins } from '../app_bootstrap';
-import { setFloatingViewGridSize } from '../floating_views/floating_view_wrapper';
+import { setFloatingViewGridSize, GRID_UNIT } from '../floating_views/floating_view_wrapper';
 
 class ReferencePage {
     private floatingViewManager: FloatingViewManager;
@@ -138,7 +138,7 @@ class ReferencePage {
         if (!viewAreaEl) return;
         const enabled = !!this.settings.showGrid;
         viewAreaEl.classList.toggle('grid-active', enabled);
-        setFloatingViewGridSize(enabled ? 12 : null);
+        setFloatingViewGridSize(enabled ? GRID_UNIT : null);
     }
 }
 

@@ -359,6 +359,8 @@ body.dark-theme .dropdown-item.has-checkbox label.checkbox:hover {
 
 /* ─── Floating View System ───────────────────────────────────────────────── */
 #floating-view-area {
+  /* Must match GRID_UNIT constant in floating_view_wrapper.ts */
+  --grid-unit: 12px;
   position: absolute;
   top: 0;
   left: 0;
@@ -371,7 +373,7 @@ body.dark-theme .dropdown-item.has-checkbox label.checkbox:hover {
   background-image:
     linear-gradient(color-mix(in srgb, var(--border) 50%, transparent) 1px, transparent 1px),
     linear-gradient(90deg, color-mix(in srgb, var(--border) 50%, transparent) 1px, transparent 1px);
-  background-size: 12px 12px;
+  background-size: var(--grid-unit) var(--grid-unit);
 }
 
 .floating-view-wrapper {

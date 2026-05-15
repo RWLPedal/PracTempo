@@ -35,22 +35,34 @@ export function isFretboardDescriptor(
   return (d as FretboardFloatingViewDescriptor).isFretboardView === true;
 }
 
-// Represents the state of an active, visible floating view instance
+// Represents the state of an active, visible floating view instance.
+// position and size are runtime-only pixel values — they are NOT persisted.
+// gridPosition and gridSize are the persisted grid-unit coordinates.
 export interface FloatingViewInstanceState {
-  instanceId: string; // Unique ID for this specific instance
-  viewId: string; // Which type of view this is
+  instanceId: string;
+  viewId: string;
+  /** Runtime only. Derived from gridPosition on load; updated on drag. */
   position: { x: number; y: number };
-  size?: { width: number; height: number }; // Optional if resizable
+  /** Runtime only. Derived from gridSize on load; updated on user resize. */
+  size?: { width: number; height: number };
+  /** Persisted. Position in GRID_UNIT-sized cells. */
+  gridPosition: { col: number; row: number };
+  /** Persisted. Size in GRID_UNIT-sized cells. */
+  gridSize?: { cols: number; rows: number };
   zIndex: number;
-  viewState?: any; // Optional state specific to the View instance itself
+  viewState?: any;
   /** Per-instance orientation override, independent of the global Guitar setting. */
   orientationOverride?: "vertical" | "horizontal";
   /** Whether this instance is currently in the zoomed state. */
   zoomActive?: boolean;
 }
 
-// Structure for saving state to localStorage
+// Structure for saving state to localStorage.
+// referenceGrid records the viewport size (in grid units) at save time,
+// enabling proportional scaling when loading on a different screen size.
 export interface FloatingViewManagerSaveState {
+  /** Viewport dimensions in grid units at the time of saving. */
+  referenceGrid: { cols: number; rows: number };
   openViews: { [instanceId: string]: FloatingViewInstanceState };
   nextZIndex: number;
   links?: LinkRecord[];

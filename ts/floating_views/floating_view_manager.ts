@@ -1,5 +1,5 @@
 ﻿// ts/floating_views/floating_view_manager.ts
-import { FloatingViewWrapper } from "./floating_view_wrapper";
+import { FloatingViewWrapper, GRID_UNIT } from "./floating_view_wrapper";
 import {
   FloatingViewDescriptor,
   FloatingViewInstanceState,
@@ -14,6 +14,33 @@ import { getFeatureTypeNameByViewId } from "./drive_registry";
 const FLOATING_VIEW_STATE_KEY = "floatingViewStates";
 const FLOATING_VIEW_AREA_ID = "floating-view-area";
 
+// --- Grid coordinate helpers ---
+
+function pixelToGridCol(px: number): number {
+  return Math.round(px / GRID_UNIT);
+}
+
+function pixelToGridRow(py: number): number {
+  return Math.round(py / GRID_UNIT);
+}
+
+function gridColToPixel(col: number, scale: number): number {
+  return col * scale * GRID_UNIT;
+}
+
+function gridRowToPixel(row: number, scale: number): number {
+  return row * scale * GRID_UNIT;
+}
+
+function viewportGridSize(el: HTMLElement | null): { cols: number; rows: number } {
+  const w = el?.clientWidth ?? window.innerWidth;
+  const h = el?.clientHeight ?? window.innerHeight;
+  return {
+    cols: Math.max(1, Math.round(w / GRID_UNIT)),
+    rows: Math.max(1, Math.round(h / GRID_UNIT)),
+  };
+}
+
 export class FloatingViewManager {
   private activeViews = new Map<string, FloatingViewWrapper>();
   private viewAreaElement: HTMLElement | null;
@@ -22,6 +49,8 @@ export class FloatingViewManager {
   public appSettings: AppSettings;
   private storageKey: string;
   private linkManager: LinkManager | null = null;
+
+  private _resizeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor(appSettings: AppSettings, storageKey: string = FLOATING_VIEW_STATE_KEY) {
     this.appSettings = appSettings;
@@ -32,6 +61,29 @@ export class FloatingViewManager {
         `Floating View container #${FLOATING_VIEW_AREA_ID} not found! Views will not be displayed.`
       );
     }
+    window.addEventListener("resize", () => {
+      if (this._resizeDebounceTimer !== null) clearTimeout(this._resizeDebounceTimer);
+      this._resizeDebounceTimer = setTimeout(() => {
+        this._resizeDebounceTimer = null;
+        this._clampAllViews();
+      }, 100);
+    });
+  }
+
+  private _clampAllViews(): void {
+    const vpW = this.viewAreaElement?.clientWidth ?? window.innerWidth;
+    const vpH = this.viewAreaElement?.clientHeight ?? window.innerHeight;
+    this.activeViews.forEach((wrapper) => {
+      const state = wrapper["state"] as FloatingViewInstanceState;
+      const size = wrapper.getSize();
+      const clampedX = Math.max(0, Math.min(state.position.x, vpW - size.width));
+      const clampedY = Math.max(0, Math.min(state.position.y, vpH - size.height));
+      if (clampedX !== state.position.x || clampedY !== state.position.y) {
+        wrapper.setPosition(clampedX, clampedY);
+      }
+    });
+    // Save so clamped positions persist if the user saves after resizing.
+    this.saveState();
   }
 
   // --- Public API ---
@@ -99,11 +151,19 @@ export class FloatingViewManager {
       };
     })();
 
+    const spawnPosition = options?.position ?? defaultPosition;
     const state: FloatingViewInstanceState = {
       instanceId: instanceId,
       viewId: viewId,
-      position: options?.position ?? defaultPosition,
+      position: spawnPosition,
       size: options?.size,
+      gridPosition: {
+        col: pixelToGridCol(spawnPosition.x),
+        row: pixelToGridRow(spawnPosition.y),
+      },
+      gridSize: options?.size
+        ? { cols: pixelToGridCol(options.size.width), rows: pixelToGridRow(options.size.height) }
+        : undefined,
       zIndex: this.currentMaxZIndex,
       viewState: options?.viewState,
     };
@@ -169,21 +229,58 @@ export class FloatingViewManager {
     if (savedState && savedState.openViews) {
       this.currentMaxZIndex = savedState.nextZIndex || 100;
 
+      // Compute scale factor: fit the saved layout into the current viewport
+      // using the same logic as object-fit:contain (min of both axes).
+      const currentGrid = viewportGridSize(this.viewAreaElement);
+      const refGrid = savedState.referenceGrid ?? currentGrid;
+      const scale = Math.min(
+        currentGrid.cols / refGrid.cols,
+        currentGrid.rows / refGrid.rows
+      );
+
       const sortedStates = Object.values(savedState.openViews).sort(
         (a, b) => a.zIndex - b.zIndex
       );
 
-      sortedStates.forEach((state) => {
-        const descriptor = getFloatingViewDescriptor(state.viewId);
+      sortedStates.forEach((savedEntry) => {
+        const descriptor = getFloatingViewDescriptor(savedEntry.viewId);
         if (!descriptor) {
-          console.warn(`Cannot restore view: Descriptor not found for viewId "${state.viewId}"`);
+          console.warn(`Cannot restore view: Descriptor not found for viewId "${savedEntry.viewId}"`);
           return;
         }
         try {
-          const numericId = parseInt(state.instanceId.replace("fv-", ""), 10);
+          const numericId = parseInt(savedEntry.instanceId.replace("fv-", ""), 10);
           if (!isNaN(numericId)) {
             this.nextInstanceId = Math.max(this.nextInstanceId, numericId + 1);
           }
+
+          // Derive pixel position and size from grid units + scale.
+          const gp = savedEntry.gridPosition;
+          const pixelX = gridColToPixel(gp.col, scale);
+          const pixelY = gridRowToPixel(gp.row, scale);
+          const pixelSize = savedEntry.gridSize
+            ? {
+                width:  Math.round(savedEntry.gridSize.cols * scale * GRID_UNIT),
+                height: Math.round(savedEntry.gridSize.rows * scale * GRID_UNIT),
+              }
+            : undefined;
+
+          // Clamp position so the view stays within the current viewport.
+          const vpW = this.viewAreaElement?.clientWidth ?? window.innerWidth;
+          const vpH = this.viewAreaElement?.clientHeight ?? window.innerHeight;
+          const clampedX = pixelSize
+            ? Math.max(0, Math.min(pixelX, vpW - pixelSize.width))
+            : Math.max(0, Math.min(pixelX, vpW - (descriptor.defaultWidth ?? 150)));
+          const clampedY = pixelSize
+            ? Math.max(0, Math.min(pixelY, vpH - pixelSize.height))
+            : Math.max(0, Math.min(pixelY, vpH - 50));
+
+          // Build the runtime state with pixel fields populated.
+          const state: FloatingViewInstanceState = {
+            ...savedEntry,
+            position: { x: clampedX, y: clampedY },
+            size: pixelSize,
+          };
 
           // Apply any saved orientation/zoom overrides when recreating the view.
           const globalOrientation =
@@ -214,7 +311,7 @@ export class FloatingViewManager {
           viewArea.appendChild(wrapper.element);
           this.linkManager?.onWindowSpawned(state.instanceId, wrapper.element);
         } catch (e) {
-          console.error(`Error recreating view instance ${state.instanceId} (${state.viewId}):`, e);
+          console.error(`Error recreating view instance ${savedEntry.instanceId} (${savedEntry.viewId}):`, e);
         }
       });
       console.log(`Restored ${this.activeViews.size} floating views.`);
@@ -416,15 +513,7 @@ export class FloatingViewManager {
   }
 
   public exportStateJson(): string {
-    const stateToExport: FloatingViewManagerSaveState = {
-      openViews: {},
-      nextZIndex: this.currentMaxZIndex,
-      links: this.linkManager?.getLinks() ?? [],
-    };
-    this.activeViews.forEach((wrapper, instanceId) => {
-      stateToExport.openViews[instanceId] = wrapper["state"];
-    });
-    return JSON.stringify(stateToExport, null, 2);
+    return JSON.stringify(this._buildSaveState(), null, 2);
   }
 
   public importStateJson(json: string): void {
@@ -447,21 +536,57 @@ export class FloatingViewManager {
     this.restoreViewsFromState();
   }
 
-  private saveState(): void {
-    if (typeof localStorage === "undefined") return;
-
+  private _buildSaveState(): FloatingViewManagerSaveState {
+    const refGrid = viewportGridSize(this.viewAreaElement);
     const stateToSave: FloatingViewManagerSaveState = {
+      referenceGrid: refGrid,
       openViews: {},
       nextZIndex: this.currentMaxZIndex,
       links: this.linkManager?.getLinks() ?? [],
     };
-
     this.activeViews.forEach((wrapper, instanceId) => {
-      stateToSave.openViews[instanceId] = wrapper["state"];
+      const s = wrapper["state"] as FloatingViewInstanceState;
+      // Compute grid-unit coordinates from current pixel position/size.
+      const gridPosition = {
+        col: pixelToGridCol(s.position.x),
+        row: pixelToGridRow(s.position.y),
+      };
+      const gridSize = s.size
+        ? { cols: pixelToGridCol(s.size.width), rows: pixelToGridRow(s.size.height) }
+        : undefined;
+      // Build the entry without pixel-only fields.
+      const entry: FloatingViewInstanceState = {
+        instanceId: s.instanceId,
+        viewId: s.viewId,
+        position: s.position, // runtime field; excluded from JSON by _stripRuntime
+        size: s.size,          // runtime field; excluded below
+        gridPosition,
+        gridSize,
+        zIndex: s.zIndex,
+        viewState: s.viewState,
+        orientationOverride: s.orientationOverride,
+        zoomActive: s.zoomActive,
+      };
+      stateToSave.openViews[instanceId] = entry;
     });
+    return stateToSave;
+  }
 
+  private saveState(): void {
+    if (typeof localStorage === "undefined") return;
+    const saveState = this._buildSaveState();
+    // Strip runtime-only pixel fields before writing to storage.
+    const toWrite = {
+      ...saveState,
+      openViews: Object.fromEntries(
+        Object.entries(saveState.openViews).map(([id, s]) => {
+          const { position: _p, size: _sz, ...persisted } = s;
+          return [id, persisted];
+        })
+      ),
+    };
     try {
-      localStorage.setItem(this.storageKey, JSON.stringify(stateToSave));
+      localStorage.setItem(this.storageKey, JSON.stringify(toWrite));
     } catch (e) {
       console.error("Failed to save floating view state:", e);
     }
