@@ -43,6 +43,9 @@ export class ScaleFeature extends InstrumentFeature {
   private fretboardViewInstance: FretboardView;
   private fretCount: number;
 
+  // Height reserved for the feature title row rendered above the fretboard canvas.
+  private static readonly HEADER_H = 32;
+
   constructor(
     config: ReadonlyArray<string>, // [ScaleName, RootNote, ...HighlightNotes]
     scale: Scale,
@@ -55,7 +58,11 @@ export class ScaleFeature extends InstrumentFeature {
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
-    super(config, settings, intervalSettings, audioController, maxCanvasHeight);
+    // Reserve space for the title row so the canvas doesn't overflow the wrapper.
+    const canvasHeight = maxCanvasHeight !== undefined
+      ? Math.max(50, maxCanvasHeight - ScaleFeature.HEADER_H)
+      : undefined;
+    super(config, settings, intervalSettings, audioController, canvasHeight);
     this.scale = scale;
     this.keyIndex = keyIndex;
     this.rootNoteName = rootNoteName;

@@ -91,10 +91,34 @@ export class ChordDiagramView extends BaseView {
     this.prepareAndSetChordData();
   }
 
-  /** Calculates the required canvas dimensions, accounting for orientation. */
+  private static readonly MAX_CANVAS_WIDTH = 350;
+  private static readonly MAX_CANVAS_HEIGHT = 500;
+
+  /** Calculates the required canvas dimensions, capping width and height at their maximums. */
   private calculateDimensions(): void {
     this.requiredWidth = this.fretboardConfig.getRequiredWidth(this.fretCount);
     this.requiredHeight = this.fretboardConfig.getRequiredHeight(this.fretCount);
+
+    const needsWidthCap  = this.requiredWidth  > ChordDiagramView.MAX_CANVAS_WIDTH;
+    const needsHeightCap = this.requiredHeight > ChordDiagramView.MAX_CANVAS_HEIGHT;
+
+    if (needsWidthCap || needsHeightCap) {
+      this.fretboardConfig = new FretboardConfig(
+        this.fretboardConfig.tuning,
+        this.fretboardConfig.handedness,
+        this.fretboardConfig.orientation,
+        this.fretboardConfig.colorScheme,
+        this.fretboardConfig.markerDots,
+        this.fretboardConfig.sideNumbers,
+        this.fretboardConfig.stringWidths,
+        Math.min(this.requiredHeight, ChordDiagramView.MAX_CANVAS_HEIGHT),
+        Math.min(this.requiredWidth,  ChordDiagramView.MAX_CANVAS_WIDTH),
+        1.2,
+        this.fretCount
+      );
+      this.requiredWidth  = this.fretboardConfig.getRequiredWidth(this.fretCount);
+      this.requiredHeight = this.fretboardConfig.getRequiredHeight(this.fretCount);
+    }
   }
 
   /** Calculates NoteRenderData for the chord and passes it to the Fretboard instance. */

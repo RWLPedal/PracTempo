@@ -7,6 +7,7 @@ import { AudioController } from "../audio_controller";
 import { InstrumentIntervalSettings } from "../instrument/instrument_interval_settings";
 import { getDriveTargetSlots } from "../floating_views/drive_registry";
 import { DriveSignal } from "../floating_views/link_types";
+import { setPendingRenderConstraints } from "../instrument/instrument_base";
 
 export class ConfigurableFeatureView extends BaseView {
     private appSettings: AppSettings;
@@ -26,6 +27,9 @@ export class ConfigurableFeatureView extends BaseView {
 
     // Exposed for signal handling
     private configView: ConfigView | null = null;
+    // Available canvas space (px) measured from the last user-initiated wrapper resize.
+    private _availableWidth = 0;
+    private _availableHeight = 0;
     // Last received driven values per argName (used to substitute __driven__ sentinel)
     private drivenValues = new Map<string, string>();
     // When true, createAndRenderFeature emits feature-state-drive instead of feature-state-changed
@@ -158,6 +162,16 @@ export class ConfigurableFeatureView extends BaseView {
             this.configContainer.addEventListener('transitionend', onEnd);
         });
 
+        // Rescale canvases when the user manually resizes the floating wrapper.
+        this.listen(container, 'wrapper-user-resized', (e: Event) => {
+            const { width, height } = (e as CustomEvent<{ width: number; height: number }>).detail;
+            this._availableHeight = Math.max(50, height);
+            this._availableWidth  = Math.max(50, width);
+            if (this.configView) {
+                this.createAndRenderFeature(this.configView.currentConfig);
+            }
+        });
+
         // React to incoming link notifications — show/hide "Driven" options
         this.listen(container, 'link-status-changed', (e: Event) => {
             const { hasIncomingLinks } = (e as CustomEvent<{ hasIncomingLinks: boolean }>).detail;
@@ -279,7 +293,33 @@ export class ConfigurableFeatureView extends BaseView {
         this.feature?.destroy?.();
         this.featureContainer.innerHTML = '';
 
-        const maxCanvasHeight = 600;
+        // On user resize (_availableHeight > 0), pass a tight height constraint so the
+        // canvas doesn't overflow the wrapper. Subtract the config section height because
+        // the canvas lives below it inside featureContainer.
+        // On initial load (_availableHeight === 0), pass undefined so FretboardConfig uses
+        // its own default — _autoSizeToContent then grows the wrapper to fit.
+        let maxCanvasHeight: number | undefined;
+        if (this._availableHeight > 0) {
+            const paddingV = this.container
+                ? ((parseFloat(getComputedStyle(this.container).paddingTop) || 0) +
+                   (parseFloat(getComputedStyle(this.container).paddingBottom) || 0))
+                : 10;
+            const configH = this.configContainer
+                ? (this.configContainer.offsetHeight +
+                   (parseFloat(getComputedStyle(this.configContainer).marginBottom) || 0))
+                : 0;
+            maxCanvasHeight = Math.max(50, this._availableHeight - configH - paddingV);
+        }
+
+        // Subtract horizontal padding of the content element so the canvas width
+        // constraint reflects actual drawable space, not the padded container width.
+        if (this._availableWidth > 0) {
+            const paddingH = this.container
+                ? ((parseFloat(getComputedStyle(this.container).paddingLeft) || 0) +
+                   (parseFloat(getComputedStyle(this.container).paddingRight) || 0))
+                : 10;
+            setPendingRenderConstraints({ maxWidth: Math.max(50, this._availableWidth - paddingH) });
+        }
 
         try {
             const intervalSettings = new InstrumentIntervalSettings(); // Placeholder

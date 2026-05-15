@@ -1,4 +1,45 @@
 ﻿import { Feature, ConfigurationSchemaArg, ArgType, UiComponentType } from "../feature";
+
+// --- Pending render constraints ---
+// Set by ConfigurableFeatureView immediately before createFeature(); consumed once by InstrumentFeature.
+interface RenderConstraints { maxWidth?: number; }
+let _pendingConstraints: RenderConstraints = {};
+
+export function setPendingRenderConstraints(c: RenderConstraints): void {
+  _pendingConstraints = c;
+}
+
+/** Peek at the pending canvas width without consuming it (used by sub-features before super()). */
+export function peekPendingCanvasWidth(): number | undefined {
+  return _pendingConstraints.maxWidth;
+}
+
+/**
+ * Finds the column count (1..maxCols) that maximises the uniform scale at which
+ * `maxCols` items of base dimensions (baseW × baseH at scale=1) can fill a
+ * container of (totalW × totalH). Items that don't fit in one row wrap to
+ * additional rows. Returns the best column count.
+ */
+export function optimalColumns(
+  maxCols: number,
+  totalW: number,
+  totalH: number,
+  baseW: number,
+  baseH: number
+): number {
+  let bestScale = 0;
+  let bestCols = 1;
+  for (let c = 1; c <= maxCols; c++) {
+    const rows = Math.ceil(maxCols / c);
+    const s = Math.min((totalW / c) / baseW, (totalH / rows) / baseH);
+    if (s > bestScale) {
+      bestScale = s;
+      bestCols = c;
+    }
+  }
+  return bestCols;
+}
+// --- End pending render constraints ---
 import { View } from "../view";
 import { MetronomeView } from "./views/metronome_view";
 import {
@@ -78,6 +119,10 @@ export abstract class InstrumentFeature implements Feature {
     // Pass explicit widths for 6-string guitar to preserve existing appearance.
     const stringWidths = instrument === "Guitar" ? [3, 3, 2, 2, 1, 1] : undefined;
 
+    // Consume the pending width constraint set by ConfigurableFeatureView before createFeature().
+    const maxCanvasWidth = _pendingConstraints.maxWidth;
+    _pendingConstraints = {};
+
     this.fretboardConfig = new FretboardConfig(
       tuning,
       guitarGlobalSettings.handedness,
@@ -87,6 +132,7 @@ export abstract class InstrumentFeature implements Feature {
       undefined, // sideNumbers
       stringWidths,
       this.maxCanvasHeight,
+      maxCanvasWidth,
       guitarGlobalSettings.zoomMultiplier ?? 1.2
     );
 

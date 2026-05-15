@@ -22,6 +22,7 @@ import {
   addHeader,
   clearAllChildren,
 } from "../instrument_utils";
+import { peekPendingCanvasWidth, optimalColumns } from "../instrument_base";
 import { TriadQuality, getTriadNotesAndLinesForGroup } from "../triads";
 import { FretboardView } from "../views/fretboard_view";
 import { DEFAULT_INSTRUMENT_SETTINGS, InstrumentSettings } from "../instrument_settings";
@@ -138,9 +139,14 @@ export class TriadFeature extends InstrumentFeature {
     audioController?: AudioController,
     maxCanvasHeight?: number
   ) {
+    // Peek before super() consumes the pending constraint.
+    const totalWidth = peekPendingCanvasWidth();
+
     const guitarGlobalSettings =
       (settings.instrumentSettings as InstrumentSettings | undefined) ??
       DEFAULT_INSTRUMENT_SETTINGS;
+
+    // Reference config at default scale — used to compute base dimensions for optimalColumns.
     const baseFretboardConfig = new FretboardConfig(
       AVAILABLE_TUNINGS[guitarGlobalSettings.tuning] ?? STANDARD_TUNING,
       guitarGlobalSettings.handedness,
@@ -151,6 +157,28 @@ export class TriadFeature extends InstrumentFeature {
       undefined,
       maxCanvasHeight
     );
+
+    let perFretboardWidth: number | undefined;
+    let perFretboardHeight: number | undefined;
+    let fretboardScaleMultiplier = qualities.length === 1 ? 0.65 : 0.5;
+
+    if (totalWidth !== undefined && totalWidth > 0) {
+      const fretCount = 15;
+      const sf = baseFretboardConfig.scaleFactor;
+      const baseW = baseFretboardConfig.getRequiredWidth(fretCount) / sf;
+      const baseH = baseFretboardConfig.getRequiredHeight(fretCount) / sf;
+      // Reserve height for the main title and per-quality-row subtitle+margin.
+      const MAIN_HEADER_H = 32;
+      const ROW_HEADER_H = 38;
+      const usableH = Math.max(50, (maxCanvasHeight ?? 600) - MAIN_HEADER_H - qualities.length * ROW_HEADER_H);
+      const perQualityH = Math.floor(usableH / qualities.length);
+      const bestCols = optimalColumns(4, totalWidth, perQualityH, baseW, baseH);
+      const bestRows = Math.ceil(4 / bestCols);
+      perFretboardWidth  = Math.floor(totalWidth / bestCols);
+      perFretboardHeight = Math.floor(perQualityH / bestRows);
+      fretboardScaleMultiplier = guitarGlobalSettings.zoomMultiplier ?? 1.2;
+    }
+
     const featureFretboardConfig = new FretboardConfig(
       baseFretboardConfig.tuning,
       baseFretboardConfig.handedness,
@@ -159,8 +187,10 @@ export class TriadFeature extends InstrumentFeature {
       baseFretboardConfig.markerDots,
       baseFretboardConfig.sideNumbers,
       baseFretboardConfig.stringWidths,
-      maxCanvasHeight,
-      qualities.length === 1 ? 0.65 : 0.5
+      perFretboardHeight ?? maxCanvasHeight,
+      perFretboardWidth,
+      fretboardScaleMultiplier,
+      15
     );
 
     super(config, settings, intervalSettings, audioController, maxCanvasHeight);

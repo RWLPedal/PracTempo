@@ -141,18 +141,45 @@ export class FretboardConfig {
     ],
     stringWidths?: number[],
     maxCanvasHeight?: number,
-    globalScaleMultiplier: number = 1.2
+    maxCanvasWidth?: number,
+    globalScaleMultiplier: number = 1.2,
+    estimatedFretCount: number = 18
   ) {
     this.stringWidths = stringWidths ?? defaultStringWidths(tuning.tuning.length);
 
-    const DEFAULT_FRETBOARD_DRAW_HEIGHT = 650;
-    const ESTIMATED_FRETS_FOR_SCALING = 18;
-    const actualMaxHeight = maxCanvasHeight ?? DEFAULT_FRETBOARD_DRAW_HEIGHT;
-    const estimatedBaseHeight =
-      this.baseFretLengthPx * ESTIMATED_FRETS_FOR_SCALING + 80;
-    this.scaleFactor =
-      Math.min(1.0, actualMaxHeight / estimatedBaseHeight) *
-      globalScaleMultiplier;
+    // estimatedBaseSpan: exact span (string direction) at scaleFactor=1.
+    // getRequiredWidth/Height on the span axis = scaleFactor * estimatedBaseSpan, so the
+    // span cap formula  rawScale = maxSpan / (gSM * estimatedBaseSpan)  gives an exact fit.
+    const estimatedBaseSpan = 2 * START_PX + (this.stringCount - 1) * this.baseStringSpacingPx;
+
+    // actualBaseLengthPx: exact fret-axis canvas size at scaleFactor=1.
+    // getRequiredWidth/Height on the length axis = scaleFactor * actualBaseLengthPx, so
+    // using (gSM * actualBaseLengthPx) as the divisor also gives an exact fit.
+    const actualBaseLengthPx = 2 * START_PX + 10
+      + this.baseNoteRadiusPx * 2.5
+      + estimatedFretCount * this.baseFretLengthPx;
+
+    // Default length produces the same scaleFactor as the old estimatedBaseHeight formula
+    // (650 / (39*18+80) * 1.2), preserving the default visual appearance.
+    const defaultLengthPx = 650 * globalScaleMultiplier * actualBaseLengthPx
+      / (this.baseFretLengthPx * estimatedFretCount + 80);
+
+    // Vertical: height = fret axis, width = string-span axis. Horizontal = swapped.
+    const isHoriz = this.orientation === 'horizontal';
+    const maxLength = isHoriz ? (maxCanvasWidth ?? defaultLengthPx)
+                               : (maxCanvasHeight ?? defaultLengthPx);
+    const maxSpan = isHoriz ? maxCanvasHeight : maxCanvasWidth; // undefined = unconstrained
+
+    // rawScale * gSM = scaleFactor; dividing by (gSM * actualBaseLengthPx) ensures
+    // getRequiredHeight/Width (length axis) <= maxLength exactly.
+    let rawScale = maxLength / (globalScaleMultiplier * actualBaseLengthPx);
+
+    // Cap by string-span axis if provided — same exact-fit formula as above.
+    if (maxSpan !== undefined && maxSpan > 0) {
+      rawScale = Math.min(rawScale, maxSpan / (globalScaleMultiplier * estimatedBaseSpan));
+    }
+
+    this.scaleFactor = rawScale * globalScaleMultiplier;
 
     this.stringSpacingPx = this.baseStringSpacingPx * this.scaleFactor;
     this.fretLengthPx = this.baseFretLengthPx * this.scaleFactor;

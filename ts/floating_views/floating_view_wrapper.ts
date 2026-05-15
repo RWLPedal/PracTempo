@@ -85,6 +85,7 @@ export class FloatingViewWrapper {
   /** True while _autoSizeToContent or _adjustHeightToContent is setting element styles,
    *  so the ResizeObserver skips grid snapping for programmatic resizes. */
   private _isProgrammaticResize = false;
+  private _firstResizeObserverFire = true;
   /** Minimum wrapper width (px) — the descriptor's defaultWidth. Used as a floor
    *  when resizing after rotation so the config UI is never clipped. */
   private readonly defaultWidth: number;
@@ -257,6 +258,25 @@ export class FloatingViewWrapper {
     // Auto-size to canvas content after the element is in the DOM
     if (!state.size) {
       requestAnimationFrame(() => this._autoSizeToContent(false));
+    } else {
+      // Saved size restored — tell content its available space so features rescale to fit.
+      // Without this, ConfigurableFeatureView's _availableWidth/Height stay 0 and the
+      // fretboard renders at its default size instead of fitting the saved wrapper size.
+      // Use element.clientHeight minus title-bar height rather than contentElement.clientHeight:
+      // after the initial unconstrained render, contentElement reflects the natural content
+      // height (e.g. 523px), not the wrapper's saved constraint (e.g. 384px).
+      requestAnimationFrame(() => {
+        const titleBarEl = this.element.querySelector<HTMLElement>('.floating-view-titlebar');
+        const titleBarH = titleBarEl?.offsetHeight ?? 30;
+        const w = this.contentElement.clientWidth;
+        const h = this.element.clientHeight - titleBarH;
+        if (w > 0 && h > 0) {
+          this.contentElement.dispatchEvent(new CustomEvent('wrapper-user-resized', {
+            bubbles: false,
+            detail: { width: w, height: h },
+          }));
+        }
+      });
     }
 
     // Capture size after every resize (auto-size and manual CSS resize handle).
@@ -271,6 +291,8 @@ export class FloatingViewWrapper {
       const h = bo ? Math.round(bo.blockSize) : Math.round(entry.contentRect.height);
       if (w <= 0 || h <= 0) return;
 
+      const isFirst = this._firstResizeObserverFire;
+      this._firstResizeObserverFire = false;
       const wasProgrammatic = this._isProgrammaticResize;
       this._isProgrammaticResize = false;
       this.state.size = { width: w, height: h };
@@ -292,6 +314,21 @@ export class FloatingViewWrapper {
           }
         }
         this.onSaveCallback();
+        // Notify content so features can rescale to the new available space.
+        // Skipped on initial layout fire and on programmatic resizes (zoom, rotation, auto-size).
+        // Use element.clientHeight minus title-bar height: contentElement.clientHeight reflects
+        // the previous render's content (which may overflow the new wrapper size).
+        if (!wasProgrammatic && !isFirst) {
+          const titleBarEl = this.element.querySelector<HTMLElement>('.floating-view-titlebar');
+          const titleBarH = titleBarEl?.offsetHeight ?? 30;
+          this.contentElement.dispatchEvent(new CustomEvent('wrapper-user-resized', {
+            bubbles: false,
+            detail: {
+              width:  this.contentElement.clientWidth,
+              height: this.element.clientHeight - titleBarH,
+            },
+          }));
+        }
       }, 150);
     });
     this.resizeObserver.observe(this.element);

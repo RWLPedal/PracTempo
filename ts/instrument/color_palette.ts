@@ -103,7 +103,7 @@ export const INTERVAL_PALETTE_INDEX: Readonly<Record<string, number>> = {
   R:    0,
   b2:   1,
   "2":  2,
-  b3:   3,
+  b3:   4,
   "3":  4,
   "4":  5,
   d5:   6,
