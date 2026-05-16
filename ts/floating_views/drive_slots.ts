@@ -214,35 +214,35 @@ registerDriveTarget({
   featureTypeName: 'Triad Shapes',
   argName: 'Qualities',
   label: 'Quality (from linked key source)',
-  acceptedKinds: [SignalKind.Key],
+  acceptedKinds: [SignalKind.Key, SignalKind.Chord],
   transparent: true,
   resolveValue(signal: DriveSignal): string | null {
-    if (signal.kind !== SignalKind.Key) return null;
+    if (signal.kind !== SignalKind.Key && signal.kind !== SignalKind.Chord) return null;
     return signal.keyType === 'Major' ? 'Major' : 'Minor';
   },
 });
 
 // ─── ChordProgressionFeature as target ───────────────────────────────────────
-// A KeySignal drives the root note and key type of the progression.
+// A KeySignal or ChordSignal drives the root note and key type of the progression.
 
 registerDriveTarget({
   featureTypeName: 'Chord Progression',
   argName: 'Root Note',
-  label: 'Root note (from linked key source)',
-  acceptedKinds: [SignalKind.Key],
+  label: 'Root note (from linked source)',
+  acceptedKinds: [SignalKind.Key, SignalKind.Chord],
   resolveValue(signal: DriveSignal): string | null {
-    if (signal.kind !== SignalKind.Key) return null;
-    return signal.rootNote;
+    if (signal.kind !== SignalKind.Key && signal.kind !== SignalKind.Chord) return null;
+    return signal.rootNote || null;
   },
 });
 
 registerDriveTarget({
   featureTypeName: 'Chord Progression',
   argName: 'Key Type',
-  label: 'Key type (from linked key source)',
-  acceptedKinds: [SignalKind.Key],
+  label: 'Key type (from linked source)',
+  acceptedKinds: [SignalKind.Key, SignalKind.Chord],
   resolveValue(signal: DriveSignal): string | null {
-    if (signal.kind !== SignalKind.Key) return null;
+    if (signal.kind !== SignalKind.Key && signal.kind !== SignalKind.Chord) return null;
     return signal.keyType === 'Major' ? 'Major' : 'Minor';
   },
 });

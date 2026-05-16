@@ -251,6 +251,31 @@ body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
   margin-top: auto;
   border-top: 1px solid var(--border);
 }
+.sidebar-layout-picker {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px 4px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-layout-picker .select {
+  flex: 1;
+  min-width: 0;
+}
+.sidebar-layout-picker .select select {
+  font-size: 0.72rem;
+  height: 1.9em;
+  padding: 0 1.8em 0 0.5em;
+  background-color: var(--bg-secondary);
+  color: var(--text-primary);
+  border-color: var(--border);
+}
+.sidebar-layout-picker .select::after {
+  border-color: var(--text-muted);
+  width: 0.5em;
+  height: 0.5em;
+}
+
 .sidebar-theme-picker {
   display: flex;
   align-items: center;
@@ -326,7 +351,8 @@ body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
 .side-bar-container.is-collapsed .sidebar-nav-btn .material-icons {
   font-size: 18px;
 }
-.side-bar-container.is-collapsed .sidebar-theme-picker {
+.side-bar-container.is-collapsed .sidebar-theme-picker,
+.side-bar-container.is-collapsed .sidebar-layout-picker {
   display: none;
 }
 .side-bar-container.is-collapsed .sidebar-tools-bar > *:not(#sidebar-collapse-btn) {

@@ -63,14 +63,8 @@ export class MoveableToggleView extends BaseView {
     clearAllChildren(this.diagramDiv);
 
     if (this.isMoveable) {
-      if (this.moveableViews.length > 0) {
-        this.moveableViews.forEach((v) => v.render(this.diagramDiv!));
-      } else {
-        const msg = document.createElement("p");
-        msg.textContent = "No moveable shapes available.";
-        msg.style.color = "var(--clr-text-subtle, #888)";
-        this.diagramDiv.appendChild(msg);
-      }
+      this.staticViews.forEach((v) => v.render(this.diagramDiv!));
+      this.moveableViews.forEach((v) => v.render(this.diagramDiv!));
     } else {
       this.staticViews.forEach((v) => v.render(this.diagramDiv!));
     }
@@ -94,6 +88,8 @@ export class MoveableToggleView extends BaseView {
   }
 
   private _activeViews(): ChordDiagramView[] {
-    return this.isMoveable ? this.moveableViews : this.staticViews;
+    return this.isMoveable
+      ? [...this.staticViews, ...this.moveableViews]
+      : this.staticViews;
   }
 }

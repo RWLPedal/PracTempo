@@ -536,6 +536,25 @@ export class FloatingViewManager {
     this.restoreViewsFromState();
   }
 
+  public loadNamedLayout(name: string): void {
+    const payload = this.screenConfigManager.loadNamed(name);
+    if (!payload) {
+      console.error(`loadNamedLayout: no layout found for "${name}".`);
+      return;
+    }
+
+    const instanceIds = Array.from(this.activeViews.keys());
+    instanceIds.forEach(id => {
+      const wrapper = this.activeViews.get(id);
+      if (wrapper) wrapper.destroy();
+    });
+    this.activeViews.clear();
+    this.nextInstanceId = 1;
+
+    this.screenConfigManager.saveAutoSave(payload);
+    this.restoreViewsFromState();
+  }
+
   private _buildSaveState(): FloatingViewManagerSaveState {
     const refGrid = viewportGridSize(this.viewAreaElement);
     const stateToSave: FloatingViewManagerSaveState = {

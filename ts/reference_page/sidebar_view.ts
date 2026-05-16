@@ -125,6 +125,16 @@ export class SidebarView {
         const collapseTitle = this.isCollapsed ? 'Expand sidebar' : 'Collapse sidebar';
         html += `
             <div class="sidebar-footer">
+                <div class="sidebar-layout-picker">
+                    <label class="sidebar-theme-label" for="sidebar-layout-select">Layout</label>
+                    <div class="select is-fullwidth">
+                        <select id="sidebar-layout-select">
+                            <option value="">— select —</option>
+                            <option value="default:reference">Reference</option>
+                            <option value="default:practice">Practice (Indie)</option>
+                        </select>
+                    </div>
+                </div>
                 <div class="sidebar-theme-picker">
                     <span class="sidebar-theme-label">Theme</span>
                     ${swatchesHtml}
@@ -192,6 +202,19 @@ export class SidebarView {
                     });
                 }
             }
+        }
+
+        // Wire layout selector
+        const layoutSelect = document.getElementById('sidebar-layout-select') as HTMLSelectElement | null;
+        if (layoutSelect && this.floatingViewManager) {
+            const manager = this.floatingViewManager;
+            layoutSelect.addEventListener('change', () => {
+                const name = layoutSelect.value;
+                if (name) {
+                    manager.loadNamedLayout(name);
+                    layoutSelect.value = '';
+                }
+            });
         }
 
         // Wire theme swatches
