@@ -1,5 +1,5 @@
 ﻿// ts/schedule/editor/schedule_serializer.ts
-import { getCategory } from "../../feature_registry";
+import { instrumentCategory } from "../../instrument/instrument_category";
 import {
   IntervalSettings,
   IntervalRowData,
@@ -79,16 +79,6 @@ export function parseScheduleJSON(jsonString: string): {
       const task = typeof item.task === "string" ? item.task.trim() : "";
       const categoryName = item.categoryName; // Already validated by type guard
 
-      // Check if category exists in registry
-      const category = getCategory(categoryName);
-      if (!category) {
-        console.warn(
-          `Skipping interval at index ${index}: Category "${categoryName}" is not registered.`,
-          item
-        );
-        return;
-      }
-
       const featureTypeName =
         typeof item.featureTypeName === "string"
           ? item.featureTypeName.trim()
@@ -101,14 +91,14 @@ export function parseScheduleJSON(jsonString: string): {
       let intervalSettings: IntervalSettings;
       const settingsData = item.intervalSettings;
       try {
-        intervalSettings = category.createIntervalSettingsFromJSON(settingsData);
+        intervalSettings = instrumentCategory.createIntervalSettingsFromJSON(settingsData);
       } catch (parseError: any) {
         console.error(
           `Error parsing interval settings for category "${categoryName}" at index ${index}:`,
           parseError,
           settingsData
         );
-        intervalSettings = category.getIntervalSettingsFactory()();
+        intervalSettings = instrumentCategory.getIntervalSettingsFactory()();
       }
       // ---- End IntervalSettings Instance Creation ----
 

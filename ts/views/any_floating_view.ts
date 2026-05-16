@@ -2,7 +2,8 @@ import { BaseView } from '../base_view';
 import { AppSettings } from '../settings';
 import { AudioController } from '../audio_controller';
 import { Feature } from '../feature';
-import { getCategory, getFeatureTypeDescriptor } from '../feature_registry';
+import { getFeatureTypeDescriptor } from '../feature_registry';
+import { instrumentCategory } from '../instrument/instrument_category';
 import { DriveSignal, SignalKind, FeatureSignal } from '../floating_views/link_types';
 
 const PLACEHOLDER_UNLINKED = 'Connect a Schedule to display features here';
@@ -78,10 +79,7 @@ export class AnyFloatingView extends BaseView {
     }
 
     try {
-      const category = getCategory(signal.categoryName);
-      const intervalSettings = category
-        ? category.getIntervalSettingsFactory()()
-        : { toJSON: () => ({}) };
+      const intervalSettings = instrumentCategory.getIntervalSettingsFactory()();
 
       const maxCanvasHeight = this.featureContainer?.clientHeight || (this.container?.clientHeight ?? 600);
 

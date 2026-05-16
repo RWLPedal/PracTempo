@@ -1,19 +1,24 @@
-﻿// ts/app_bootstrap.ts
-// Shared registration logic run by both the practice page (main.ts) and the
-// reference page (reference_main.ts). Keeps the two entry points in sync without
-// copy-pasting.
-
 import { registerCategory } from "./feature_registry";
 import { registerFloatingView } from "./floating_views/floating_view_registry";
-import { InstrumentCategory } from "./instrument/instrument_category";
+import { FretboardFloatingViewDescriptor } from "./floating_views/floating_view_types";
+import { instrumentCategory } from "./instrument/instrument_category";
 import { TimerView } from "./views/timer_view";
 import { DroneView } from "./views/drone_view";
 import { ScheduleFloatingView } from "./views/schedule_floating_view";
 import { AnyFloatingView } from "./views/any_floating_view";
+import { BackingTrackView } from "./views/backing_track_view";
+import { CapoView } from "./views/capo_view";
+import { ConfigurableFeatureView } from "./views/configurable_feature_view";
+import { ColorLegendView } from "./instrument/views/color_legend_view";
+import { MetronomeView } from "./instrument/views/metronome_view";
+import { NotesFeature } from "./instrument/features/notes_feature";
+import { ChordProgressionFeature } from "./instrument/features/chord_progression_feature";
+import { InstrumentIntervalSettings } from "./instrument/instrument_interval_settings";
+import { AudioController } from "./audio_controller";
 import { AppSettings } from "./settings";
 
 export function registerBuiltins(): void {
-    registerCategory(new InstrumentCategory());
+    registerCategory(instrumentCategory);
 
     registerFloatingView({
         viewId: "floating_timer",
@@ -53,5 +58,127 @@ export function registerBuiltins(): void {
         showInMenu: false,
         createView: (initialState?: any, appSettings?: AppSettings) =>
             new AnyFloatingView(initialState, appSettings!),
+    });
+
+    registerFloatingView({
+        viewId: "drum_machine",
+        displayName: "Backing Track",
+        categoryName: "General",
+        defaultWidth: 585,
+        defaultHeight: 300,
+        createView: (initialState?: any) => new BackingTrackView(initialState),
+    });
+
+    registerFloatingView({
+        viewId: "capo_view",
+        displayName: "Capo",
+        categoryName: "General",
+        defaultWidth: 240,
+        defaultHeight: 350,
+        createView: (_initialState?: any, appSettings?: AppSettings) => new CapoView(appSettings!),
+    });
+
+    registerFloatingView({
+        viewId: "instrument_color_legend",
+        displayName: "Color Legend",
+        categoryName: "Instrument",
+        defaultWidth: 180,
+        createView: (_initialState?: any, appSettings?: AppSettings) => {
+            if (!appSettings) {
+                console.error("AppSettings not provided to ColorLegendView factory!");
+                return {
+                    render: (c: HTMLElement) => (c.textContent = "Error: Settings unavailable."),
+                    start() {},
+                    stop() {},
+                    destroy() {},
+                };
+            }
+            return new ColorLegendView(appSettings);
+        },
+    });
+
+    registerFloatingView({
+        viewId: "configurable_instrument_feature",
+        displayName: "Configurable Feature",
+        categoryName: "Instrument",
+        defaultWidth: 420,
+        defaultHeight: 550,
+        showInMenu: false,
+        supportsConfigToggle: true,
+        isFretboardView: true,
+        supportsRotate: true,
+        supportsZoom: true,
+        createView: (initialState?: any, appSettings?: AppSettings) =>
+            new ConfigurableFeatureView({ categoryName: "Instrument", ...initialState }, appSettings!),
+    } as FretboardFloatingViewDescriptor);
+
+    registerFloatingView({
+        viewId: "instrument_notes_reference",
+        displayName: "Fretboard Notes",
+        categoryName: "Instrument",
+        defaultWidth: 340,
+        defaultHeight: 550,
+        showInMenu: true,
+        isFretboardView: true,
+        supportsRotate: true,
+        supportsZoom: true,
+        createView: (initialState?: any, appSettings?: AppSettings) => {
+            // No audio output — AudioController is required by the feature API but unused here.
+            const audio = new AudioController(null, null, null, null);
+            const feature = NotesFeature.createFeature(
+                ['None'],
+                audio,
+                appSettings,
+                new InstrumentIntervalSettings(),
+                650,
+                "Instrument"
+            );
+            return {
+                render: (container: HTMLElement) => {
+                    feature.render(container);
+                    if (feature.views) {
+                        feature.views.forEach(v => v.render(container));
+                    }
+                },
+                start: () => feature.start?.(),
+                stop: () => feature.stop?.(),
+                destroy: () => feature.destroy?.(),
+            };
+        },
+    } as FretboardFloatingViewDescriptor);
+
+    registerFloatingView({
+        viewId: "instrument_chord_progression",
+        displayName: "Chord Progression",
+        categoryName: "Instrument",
+        defaultWidth: 420,
+        defaultHeight: 600,
+        showInMenu: true,
+        supportsConfigToggle: true,
+        isFretboardView: true,
+        supportsRotate: true,
+        supportsZoom: true,
+        createView: (initialState?: any, appSettings?: AppSettings) =>
+            new ConfigurableFeatureView(
+                { ...initialState, categoryName: "Instrument", featureTypeName: ChordProgressionFeature.typeName },
+                appSettings!
+            ),
+    } as FretboardFloatingViewDescriptor);
+
+    registerFloatingView({
+        viewId: "instrument_floating_metronome",
+        displayName: "Metronome",
+        categoryName: "Instrument",
+        defaultWidth: 280,
+        defaultHeight: 120,
+        createView: () => {
+            const audioController = new AudioController(
+                document.querySelector("#intro-end-sound") as HTMLAudioElement,
+                document.querySelector("#interval-end-sound") as HTMLAudioElement,
+                document.querySelector("#metronome-sound") as HTMLAudioElement,
+                document.querySelector("#metronome-accent-sound") as HTMLAudioElement,
+            );
+            return new MetronomeView(120, audioController);
+        },
     });
 }

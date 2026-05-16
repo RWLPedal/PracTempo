@@ -1,6 +1,6 @@
 ﻿import { BaseView } from "../base_view";
 import { AppSettings } from "../settings";
-import { getCategory } from "../feature_registry";
+import { instrumentCategory } from "../instrument/instrument_category";
 import { Feature, FeatureTypeDescriptor } from "../feature";
 import { ConfigView } from "./config_view";
 import { AudioController } from "../audio_controller";
@@ -65,13 +65,7 @@ export class ConfigurableFeatureView extends BaseView {
         this.container.appendChild(this.configContainer);
         this.container.appendChild(this.featureContainer);
 
-        const category = getCategory(this.categoryName);
-        if (!category) {
-            this.container.innerHTML = `Error: Category '${this.categoryName}' not found`;
-            return;
-        }
-
-        const FeatureClass = category.getFeatureTypes().get(this.featureTypeName);
+        const FeatureClass = instrumentCategory.getFeatureTypes().get(this.featureTypeName);
         if (!FeatureClass) {
             this.container.innerHTML = `Error: Feature '${this.featureTypeName}' not found in category.`;
             return;

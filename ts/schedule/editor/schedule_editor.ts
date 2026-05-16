@@ -28,7 +28,7 @@ import { ClipboardManager } from "./clipboard_manager";
 import { DragDropManager } from "./drag_drop_manager";
 import { KeyboardShortcutManager } from "./keyboard_shortcut_manager";
 import { ScheduleBuilder } from "./schedule_builder";
-import { getCategory } from "../../feature_registry";
+import { instrumentCategory } from "../../instrument/instrument_category";
 
 // --- Removed FeatureCategoryName import ---
 
@@ -71,17 +71,7 @@ export class ScheduleEditor {
     this.audioController = audioController;
     this.appSettings = appSettings ?? null;
 
-    // --- Determine Default Category ---
-    const defaultCategory = getCategory('Instrument');
-    if (defaultCategory) {
-      this.defaultCategoryName = defaultCategory.getName();
-      console.log(`Using default category: ${this.defaultCategoryName}`);
-    } else {
-      console.error(
-        "CRITICAL: No categories registered. Cannot determine default category for editor."
-      );
-    }
-    // --- End Determine Default Category ---
+    this.defaultCategoryName = instrumentCategory.getName();
 
     this.uiManager = new EditorUIManager(this.containerEl);
     this._findNameEditElements();
@@ -249,13 +239,10 @@ export class ScheduleEditor {
 
     if (!initialItems) {
       console.log("Loading default schedule from first registered category...");
-      const defaultCat = getCategory('Instrument');
-      if (defaultCat) {
-        if (typeof defaultCat.getDefaultIntervals === "function") {
-          initialItems = defaultCat.getDefaultIntervals();
-        }
-        initialName = `${defaultCat.getDisplayName()} Default`;
+      if (typeof instrumentCategory.getDefaultIntervals === "function") {
+        initialItems = instrumentCategory.getDefaultIntervals();
       }
+      initialName = `${instrumentCategory.getDisplayName()} Default`;
 
       if (!initialItems || initialItems.length === 0) {
         console.warn(

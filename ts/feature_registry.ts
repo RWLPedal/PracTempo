@@ -1,17 +1,12 @@
 import { FeatureTypeDescriptor } from "./feature";
 import { Category } from "./feature";
 
-// --- Internal Registry Maps ---
-/** Stores registered Category instances, keyed by category name */
-const categoryRegistry = new Map<string, Category>();
-
-/** Stores FeatureTypeDescriptors, keyed by categoryName/typeName for quick lookup */
-const featureTypeRegistry = new Map<string, FeatureTypeDescriptor>(); // Key: "CategoryName/TypeName"
+/** Stores FeatureTypeDescriptors, keyed by "CategoryName/TypeName" for quick lookup */
+const featureTypeRegistry = new Map<string, FeatureTypeDescriptor>();
 
 /**
- * Registers a feature category instance.
- * Extracts necessary information and populates internal registries.
- * @param categoryInstance - An instance of a class implementing Category.
+ * Registers all feature types from a category instance.
+ * Called once during bootstrap to populate the feature type registry.
  */
 export function registerCategory(categoryInstance: Category): void {
   const categoryName = categoryInstance.getName();
@@ -22,27 +17,8 @@ export function registerCategory(categoryInstance: Category): void {
     );
     return;
   }
-  if (categoryRegistry.has(categoryName)) {
-    console.warn(
-      `FeatureCategory "${categoryName}" is already registered. Overwriting.`
-    );
-  }
 
-  categoryRegistry.set(categoryName, categoryInstance);
-
-  // Register individual feature types for easy lookup
-  let featureTypes: ReadonlyMap<string, FeatureTypeDescriptor> | null = null;
-  try {
-    featureTypes = categoryInstance.getFeatureTypes();
-    if (!featureTypes)
-      throw new Error("getFeatureTypes() returned null or undefined");
-  } catch (e) {
-    console.error(
-      `Error getting feature types for category "${categoryName}":`,
-      e
-    );
-    return; // Don't proceed if features can't be retrieved
-  }
+  const featureTypes = categoryInstance.getFeatureTypes();
 
   featureTypes.forEach((featureType, typeName) => {
     if (!typeName || typeof typeName !== "string") {
@@ -53,12 +29,6 @@ export function registerCategory(categoryInstance: Category): void {
       return;
     }
     const fullKey = `${categoryName}/${typeName}`;
-    if (featureTypeRegistry.has(fullKey)) {
-      console.warn(
-        `FeatureType "${fullKey}" is already registered. Overwriting.`
-      );
-    }
-    // Basic validation of featureType descriptor
     if (
       typeof featureType?.createFeature !== "function" ||
       typeof featureType?.getConfigurationSchema !== "function"
@@ -73,26 +43,12 @@ export function registerCategory(categoryInstance: Category): void {
   });
 
   console.log(
-    `Registered Category: ${categoryName} with ${
-      featureTypes?.size ?? 0
-    } feature types.`
+    `Registered Category: ${categoryName} with ${featureTypes?.size ?? 0} feature types.`
   );
 }
 
 /**
- * Retrieves a registered category instance by name.
- * @param categoryName - The unique name of the category.
- * @returns The Category instance or undefined if not found.
- */
-export function getCategory(categoryName: string): Category | undefined {
-  return categoryRegistry.get(categoryName);
-}
-
-/**
  * Retrieves the descriptor for a specific feature type.
- * @param categoryName - The category name.
- * @param typeName - The feature type name within the category.
- * @returns The descriptor or undefined if not found.
  */
 export function getFeatureTypeDescriptor(
   categoryName: string,
@@ -104,14 +60,16 @@ export function getFeatureTypeDescriptor(
 
 /**
  * Retrieves all available feature type descriptors for a given category.
- * @param categoryName - The category name.
- * @returns An array of type descriptors, or empty if category not found.
  */
 export function getAvailableFeatureTypes(
   categoryName: string
 ): FeatureTypeDescriptor[] {
-  const category = categoryRegistry.get(categoryName);
-  return category ? Array.from(category.getFeatureTypes().values()) : [];
+  const results: FeatureTypeDescriptor[] = [];
+  const prefix = `${categoryName}/`;
+  featureTypeRegistry.forEach((ft, key) => {
+    if (key.startsWith(prefix)) results.push(ft);
+  });
+  return results;
 }
 
 /**
@@ -127,4 +85,3 @@ export function getAvailableFeatureTypesForInstrument(
     (ft) => !ft.requiredInstruments || ft.requiredInstruments.includes(instrument)
   );
 }
-

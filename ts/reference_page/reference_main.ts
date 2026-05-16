@@ -2,11 +2,8 @@ import { SidebarView } from "./sidebar_view";
 import { FloatingViewManager } from '../floating_views/floating_view_manager';
 import { AppSettings, loadSettings, SETTINGS_STORAGE_KEY } from "../settings";
 import { ThemeManager, Theme } from "../theme_manager";
-import { getCategory } from "../feature_registry";
+import { instrumentCategory } from "../instrument/instrument_category";
 import { SettingsManager } from "../settings_manager";
-import { registerFloatingView } from '../floating_views/floating_view_registry';
-import { BackingTrackView } from '../views/backing_track_view';
-import { CapoView } from '../views/capo_view';
 import { LinkManager } from '../floating_views/link_manager';
 import '../floating_views/drive_slots'; // registers all drive sources/targets as a side effect
 import { registerBuiltins } from '../app_bootstrap';
@@ -22,25 +19,6 @@ class ReferencePage {
 
     constructor() {
         registerBuiltins();
-
-        // Register backing track floating view
-        registerFloatingView({
-            viewId: "drum_machine",
-            displayName: "Backing Track",
-            categoryName: "General",
-            defaultWidth: 585,
-            defaultHeight: 300,
-            createView: (initialState?: any) => new BackingTrackView(initialState),
-        });
-
-        registerFloatingView({
-            viewId: "capo_view",
-            displayName: "Capo",
-            categoryName: "General",
-            defaultWidth: 240,
-            defaultHeight: 350,
-            createView: (initialState?: any) => new CapoView(this.settings),
-        });
 
         this.settings = loadSettings();
         this.themeManager = new ThemeManager(this.settings.theme);
@@ -92,8 +70,7 @@ class ReferencePage {
     }
 
     private handleFeatureClick(viewId: string, featureTypeName?: string): void {
-        const guitarCategory = getCategory('Instrument');
-        const featureDescriptor = featureTypeName ? guitarCategory?.getFeatureTypes().get(featureTypeName) : undefined;
+        const featureDescriptor = featureTypeName ? instrumentCategory.getFeatureTypes().get(featureTypeName) : undefined;
         const title = featureTypeName
             ? (featureDescriptor?.displayName ?? featureTypeName)
             : undefined;

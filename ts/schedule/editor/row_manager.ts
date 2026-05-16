@@ -11,10 +11,8 @@ import { buildIntervalRowElement } from "./interval/interval_row_ui";
 import { SelectionManager } from "./selection_manager";
 import { applyIndentation, extractLayerListValues } from "./interval/common_ui_elements";
 import { UiComponentType } from "../../feature";
-import {
-  getFeatureTypeDescriptor,
-  getCategory,
-} from "../../feature_registry";
+import { getFeatureTypeDescriptor } from "../../feature_registry";
+import { instrumentCategory } from "../../instrument/instrument_category";
 
 export class RowManager {
   private configEntriesContainerEl: HTMLElement;
@@ -40,8 +38,7 @@ export class RowManager {
   public createEmptyIntervalUIData(
     categoryName: string
   ): IntervalRowData | null {
-    const category = getCategory(categoryName);
-    const settingsFactory = category?.getIntervalSettingsFactory();
+    const settingsFactory = instrumentCategory.getIntervalSettingsFactory();
     if (!settingsFactory) {
       console.error(
         `Cannot create empty row data: No IntervalSettings factory found for category "${categoryName}".`

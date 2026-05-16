@@ -4,10 +4,8 @@ import { AudioController } from "../../audio_controller";
 import { AppSettings } from "../../settings";
 import { Feature } from "../../feature";
 // Import registry functions for generic handling
-import {
-  getFeatureTypeDescriptor,
-  getCategory,
-} from "../../feature_registry";
+import { getFeatureTypeDescriptor } from "../../feature_registry";
+import { instrumentCategory } from "../../instrument/instrument_category";
 import { parseDurationString } from "../../time_utils";
 import { ErrorDisplay } from "./error_display";
 import {
@@ -110,20 +108,7 @@ export class ScheduleBuilder {
           }
 
           // 2. Instantiate Interval Settings
-          const category = getCategory(categoryName);
-          if (category) {
-            intervalSettings = category.createIntervalSettingsFromJSON(intervalData.intervalSettings);
-          } else {
-            console.warn(
-              `[ScheduleBuilder] No category found for "${categoryName}". Using raw data fallback.`
-            );
-            intervalSettings = {
-              toJSON: () => intervalData.intervalSettings || {},
-            };
-            if (intervalData.intervalSettings) {
-              Object.assign(intervalSettings, intervalData.intervalSettings);
-            }
-          }
+          intervalSettings = instrumentCategory.createIntervalSettingsFromJSON(intervalData.intervalSettings);
 
           // 3. Create Feature if specified (Generically)
           if (intervalData.featureTypeName) {

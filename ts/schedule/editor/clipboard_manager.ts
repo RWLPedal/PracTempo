@@ -10,8 +10,7 @@ import {
   IntervalSettingsJSON, // Needed for parsing/creating settings
 } from "./interval/types";
 import { SelectionManager } from "./selection_manager";
-// Import registry functions for generic handling
-import { getCategory } from "../../feature_registry";
+import { instrumentCategory } from "../../instrument/instrument_category";
 // Import the builder for interval rows
 import { buildIntervalRowElement } from "./interval/interval_row_ui";
 // --- Removed direct import of InstrumentIntervalSettings ---
@@ -87,16 +86,16 @@ export class ClipboardManager {
           const intervalJsonData = rowDataJSON as IntervalDataJSON;
           const categoryName = intervalJsonData.categoryName; // Get category name string
 
-          // Validate category exists
-          if (!getCategory(categoryName)) {
+          // Validate category name matches the registered instrument category
+          if (categoryName !== instrumentCategory.getName()) {
             console.warn(
               `Cannot paste interval row: Category "${categoryName}" not registered. Skipping row.`
             );
-            return; // Skip this row if category invalid
+            return;
           }
 
           // --- Create Settings Instance using Parser ---
-          const pasteCategory = getCategory(categoryName);
+          const pasteCategory = instrumentCategory;
           let settingsInstance: IntervalSettings;
           const settingsJsonData = intervalJsonData.intervalSettings;
 

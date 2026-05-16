@@ -10,8 +10,8 @@ import {
   getAvailableFeatureTypes,
   getAvailableFeatureTypesForInstrument,
   getFeatureTypeDescriptor,
-  getCategory,
 } from "../../../feature_registry";
+import { instrumentCategory } from "../../../instrument/instrument_category";
 // Import generic settings types
 import { IntervalSettings, IntervalRowData } from "./types";
 
@@ -58,7 +58,7 @@ export function buildIntervalRowElement(
   ) {
     settingsInstance = initialData.intervalSettings;
   } else {
-    const settingsFactory = getCategory(categoryName)?.getIntervalSettingsFactory();
+    const settingsFactory = instrumentCategory.getIntervalSettingsFactory();
     if (settingsFactory) {
       console.log(
         `Creating default interval settings using factory for category: ${categoryName}`
@@ -174,7 +174,7 @@ function createFeatureTypeDropdownCell(
   const availableTypes: FeatureTypeDescriptor[] = instrument
     ? getAvailableFeatureTypesForInstrument(categoryName, instrument)
     : getAvailableFeatureTypes(categoryName);
-  const category = getCategory(categoryName); // Get category for display name fallback
+  const category = instrumentCategory;
 
   if (availableTypes.length === 0) {
     console.warn(

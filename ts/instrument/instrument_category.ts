@@ -14,13 +14,6 @@ import { ChordFeature } from "./features/chord_feature";
 import { ChordProgressionFeature } from "./features/chord_progression_feature";
 import { TriadFeature } from "./features/triad_feature";
 import { MetronomeFeature } from "./features/metronome_feature";
-import { registerFloatingView } from "../floating_views/floating_view_registry";
-import { FretboardFloatingViewDescriptor } from "../floating_views/floating_view_types";
-import { ColorLegendView } from "./views/color_legend_view";
-import { MetronomeView } from "./views/metronome_view";
-import { ConfigurableFeatureView } from '../views/configurable_feature_view';
-import { AppSettings } from "../settings";
-import { AudioController } from "../audio_controller";
 
 // Import Guitar Settings related items
 import { DEFAULT_INSTRUMENT_SETTINGS, InstrumentSettings } from "./instrument_settings";
@@ -129,119 +122,6 @@ export class InstrumentCategory implements Category {
         MultiSelectFretboardFeature as unknown as FeatureTypeDescriptor,
       ],
     ]);
-
-    this.registerFloatingViews();
-  }
-
-  private registerFloatingViews(): void {
-    registerFloatingView({
-      viewId: "instrument_color_legend", // Unique ID
-      displayName: "Color Legend", // User-facing name
-      categoryName: this.getName(), // Associate with Guitar category
-      defaultWidth: 180, // Example default size
-      // Factory needs access to AppSettings to get current scheme
-      createView: (initialState?: any, appSettings?: AppSettings) => {
-        if (!appSettings) {
-          console.error("AppSettings not provided to ColorLegendView factory!");
-          // Return a dummy view or throw error
-          return {
-            render: (c) => (c.textContent = "Error: Settings unavailable."),
-            start() {},
-            stop() {},
-            destroy() {},
-          };
-        }
-        return new ColorLegendView(appSettings);
-      },
-    });
-
-    registerFloatingView({
-      viewId: "configurable_instrument_feature", // New ID
-      displayName: "Configurable Feature",  // Generic name
-      categoryName: this.getName(),
-      defaultWidth: 420,
-      defaultHeight: 550,
-      showInMenu: false,
-      supportsConfigToggle: true,
-      isFretboardView: true,
-      supportsRotate: true,
-      supportsZoom: true,
-      createView: (initialState, appSettings) => {
-        return new ConfigurableFeatureView({ categoryName: this.getName(), ...initialState }, appSettings!);
-      },
-    } as FretboardFloatingViewDescriptor);
-
-    registerFloatingView({
-        viewId: "instrument_notes_reference",
-        displayName: "Fretboard Notes",
-        categoryName: this.getName(),
-        defaultWidth: 340,
-        defaultHeight: 550,
-        showInMenu: true,
-        isFretboardView: true,
-        supportsRotate: true,
-        supportsZoom: true,
-        createView: (initialState, appSettings) => {
-          // This view will just create and render a NotesFeature with default config
-          const feature = NotesFeature.createFeature(
-              ['None'], // Config for showing all notes
-              new AudioController(null,null,null,null),
-              appSettings,
-              new InstrumentIntervalSettings(),
-              650,
-              this.getName()
-          );
-  
-          // We need a view object that wraps the feature.
-          return {
-              render: (container: HTMLElement) => {
-                  feature.render(container);
-                  if (feature.views) {
-                    feature.views.forEach(v => v.render(container));
-                  }
-              },
-              start: () => feature.start?.(),
-              stop: () => feature.stop?.(),
-              destroy: () => feature.destroy?.()
-          };
-        },
-      } as FretboardFloatingViewDescriptor);
-
-    registerFloatingView({
-      viewId: "instrument_chord_progression",
-      displayName: "Chord Progression",
-      categoryName: this.getName(),
-      defaultWidth: 420,
-      defaultHeight: 600,
-      showInMenu: true,
-      supportsConfigToggle: true,
-      isFretboardView: true,
-      supportsRotate: true,
-      supportsZoom: true,
-      createView: (initialState, appSettings) => {
-        return new ConfigurableFeatureView(
-          { ...initialState, categoryName: this.getName(), featureTypeName: ChordProgressionFeature.typeName },
-          appSettings!
-        );
-      },
-    } as FretboardFloatingViewDescriptor);
-
-    registerFloatingView({
-      viewId: "instrument_floating_metronome",
-      displayName: "Metronome",
-      categoryName: this.getName(),
-      defaultWidth: 280,
-      defaultHeight: 120,
-      createView: (_initialState?: any, _appSettings?: AppSettings) => {
-        const audioController = new AudioController(
-          document.querySelector("#intro-end-sound") as HTMLAudioElement,
-          document.querySelector("#interval-end-sound") as HTMLAudioElement,
-          document.querySelector("#metronome-sound") as HTMLAudioElement,
-          document.querySelector("#metronome-accent-sound") as HTMLAudioElement,
-        );
-        return new MetronomeView(120, audioController);
-      },
-    });
   }
 
   getName(): string {
@@ -318,3 +198,5 @@ export class InstrumentCategory implements Category {
     ];
   }
 }
+
+export const instrumentCategory = new InstrumentCategory();
