@@ -266,7 +266,7 @@ body.dark-theme #schedule-accordion:not(.collapsed) #schedule-editor-container {
   font-size: 0.72rem;
   height: 1.9em;
   padding: 0 1.8em 0 0.5em;
-  background-color: var(--bg-secondary);
+  background-color: var(--input-bg);
   color: var(--text-primary);
   border-color: var(--border);
 }
