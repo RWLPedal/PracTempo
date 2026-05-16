@@ -10,8 +10,9 @@ import { getFloatingViewDescriptor } from "./floating_view_registry";
 import { AppSettings } from "../settings"; // Needed for createView
 import { LinkManager } from "./link_manager";
 import { getFeatureTypeNameByViewId } from "./drive_registry";
+import { ScreenConfigManager } from "../screen_config/screen_config_manager";
+import { CurrentPayload } from "../screen_config/screen_config_types";
 
-const FLOATING_VIEW_STATE_KEY = "floatingViewStates";
 const FLOATING_VIEW_AREA_ID = "floating-view-area";
 
 // --- Grid coordinate helpers ---
@@ -47,14 +48,14 @@ export class FloatingViewManager {
   private nextInstanceId = 1;
   private currentMaxZIndex = 100;
   public appSettings: AppSettings;
-  private storageKey: string;
+  private screenConfigManager: ScreenConfigManager;
   private linkManager: LinkManager | null = null;
 
   private _resizeDebounceTimer: ReturnType<typeof setTimeout> | null = null;
 
-  constructor(appSettings: AppSettings, storageKey: string = FLOATING_VIEW_STATE_KEY) {
+  constructor(appSettings: AppSettings, screenConfigManager: ScreenConfigManager) {
     this.appSettings = appSettings;
-    this.storageKey = storageKey;
+    this.screenConfigManager = screenConfigManager;
     this.viewAreaElement = document.getElementById(FLOATING_VIEW_AREA_ID);
     if (!this.viewAreaElement) {
       console.error(
@@ -513,26 +514,25 @@ export class FloatingViewManager {
   }
 
   public exportStateJson(): string {
-    return JSON.stringify(this._buildSaveState(), null, 2);
+    return this.screenConfigManager.exportJson(this._buildStrippedPayload());
   }
 
   public importStateJson(json: string): void {
-    const parsedState = JSON.parse(json) as FloatingViewManagerSaveState;
+    const migrated = this.screenConfigManager.importJson(json);
+    if (!migrated) {
+      console.error("importStateJson: could not parse or migrate the provided JSON.");
+      return;
+    }
 
     const instanceIds = Array.from(this.activeViews.keys());
     instanceIds.forEach(id => {
       const wrapper = this.activeViews.get(id);
       if (wrapper) wrapper.destroy();
     });
-
+    this.activeViews.clear();
     this.nextInstanceId = 1;
 
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify(parsedState));
-    } catch (e) {
-      console.error("Failed to write imported state to localStorage:", e);
-      return;
-    }
+    this.screenConfigManager.saveAutoSave(migrated);
     this.restoreViewsFromState();
   }
 
@@ -572,37 +572,26 @@ export class FloatingViewManager {
     return stateToSave;
   }
 
-  private saveState(): void {
-    if (typeof localStorage === "undefined") return;
+  /** Builds the stripped (runtime-fields-excluded) payload for persistence. */
+  private _buildStrippedPayload(): CurrentPayload {
     const saveState = this._buildSaveState();
-    // Strip runtime-only pixel fields before writing to storage.
-    const toWrite = {
+    return {
       ...saveState,
+      links: saveState.links ?? [],
       openViews: Object.fromEntries(
         Object.entries(saveState.openViews).map(([id, s]) => {
           const { position: _p, size: _sz, ...persisted } = s;
           return [id, persisted];
         })
       ),
-    };
-    try {
-      localStorage.setItem(this.storageKey, JSON.stringify(toWrite));
-    } catch (e) {
-      console.error("Failed to save floating view state:", e);
-    }
+    } as CurrentPayload;
+  }
+
+  private saveState(): void {
+    this.screenConfigManager.saveAutoSave(this._buildStrippedPayload());
   }
 
   private loadState(): FloatingViewManagerSaveState | null {
-    if (typeof localStorage === "undefined") return null;
-    const savedJson = localStorage.getItem(this.storageKey);
-    if (savedJson) {
-      try {
-        return JSON.parse(savedJson) as FloatingViewManagerSaveState;
-      } catch (e) {
-        console.error("Failed to parse saved floating view state:", e);
-        localStorage.removeItem(this.storageKey);
-      }
-    }
-    return null;
+    return this.screenConfigManager.loadAutoSave() as FloatingViewManagerSaveState | null;
   }
 }

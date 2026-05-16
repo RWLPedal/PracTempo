@@ -11,6 +11,7 @@ import { LinkManager } from '../floating_views/link_manager';
 import '../floating_views/drive_slots'; // registers all drive sources/targets as a side effect
 import { registerBuiltins } from '../app_bootstrap';
 import { setFloatingViewGridSize, GRID_UNIT } from '../floating_views/floating_view_wrapper';
+import { ScreenConfigManager } from '../screen_config/screen_config_manager';
 
 class ReferencePage {
     private floatingViewManager: FloatingViewManager;
@@ -44,7 +45,8 @@ class ReferencePage {
         this.settings = loadSettings();
         this.themeManager = new ThemeManager(this.settings.theme);
 
-        this.floatingViewManager = new FloatingViewManager(this.settings, 'floatingViewStates_reference');
+        const screenConfigManager = new ScreenConfigManager('floatingViewStates_reference', 'reference');
+        this.floatingViewManager = new FloatingViewManager(this.settings, screenConfigManager);
 
         // Wire up the link/drive system
         const viewAreaEl = document.getElementById('floating-view-area');

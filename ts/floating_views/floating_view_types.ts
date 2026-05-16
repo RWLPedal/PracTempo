@@ -60,6 +60,13 @@ export interface FloatingViewInstanceState {
 // Structure for saving state to localStorage.
 // referenceGrid records the viewport size (in grid units) at save time,
 // enabling proportional scaling when loading on a different screen size.
+//
+// PERSISTENCE NOTE: This type is structurally equivalent to V1Payload in
+// screen_config/screen_config_types.ts. FloatingViewManager never touches
+// localStorage directly — it calls ScreenConfigManager.saveAutoSave() /
+// loadAutoSave(), which handle versioning, migration, and serialization.
+// The runtime-only fields (position, size) are stripped before persisting;
+// see FloatingViewManager._buildStrippedPayload().
 export interface FloatingViewManagerSaveState {
   /** Viewport dimensions in grid units at the time of saving. */
   referenceGrid: { cols: number; rows: number };
